@@ -22,10 +22,22 @@ struct ChatRowView: View {
     @State private var isShowingScanner = false
     @State private var isShowingCamera = false
 
+    var filteredContacts: [Contact] {
+        guard !searchText.isEmpty else {
+            return contactsManager.contacts
+        }
+
+        return contactsManager.contacts.filter { contact in
+            let searchTerms = searchText.lowercased().trimmingCharacters(in: .whitespaces)
+            return contact.name.lowercased().contains(searchTerms) ||
+            contact.phone.replacingOccurrences(of: " ", with: "")
+                .contains(searchTerms.replacingOccurrences(of: " ", with: ""))
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack {
-
                 ScrollView {
                     VStack{
                         CustomSearchBar(searchText: $searchText)
@@ -34,15 +46,20 @@ struct ChatRowView: View {
                     .padding(.horizontal,8)
                     .padding(.top,10)
                     VStack(spacing: 10) {
-                        if !contactsManager.contacts.isEmpty {
-                            ForEach(contactsManager.contacts) { contact in
-                                ChatRow(contact: contact)
-                            }
-                        } else {
+                        if filteredContacts.isEmpty && !searchText.isEmpty {
+                            Text("No matches found")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding()
+                        } else if filteredContacts.isEmpty && searchText.isEmpty {
                             Text("No Contacts Found")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                                 .padding()
+                        } else {
+                            ForEach(filteredContacts) { contact in
+                                ChatRow(contact: contact)
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -96,25 +113,24 @@ struct ChatRowView: View {
                 contactsManager.requestAccess()
             }
         }
+
     }
 
     struct CustomSearchBar: View {
         @Binding var searchText: String
+
         var body: some View {
             HStack {
-                Button(action: {
-                    print("Search tapped")
-                }) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                        .padding(.leading,10)
-                        .frame(width: 30, height: 30)
-                }
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                    .padding(.leading, 10)
+                    .frame(width: 30, height: 30)
+
                 TextField("Search Contacts", text: $searchText)
-                    .padding(.vertical,10)
-
+                    .padding(.vertical, 10)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
             }
-
             .background(Color.gray.opacity(0.1))
 
         }
@@ -142,8 +158,8 @@ struct ChatRowView: View {
                 }
             }
             .onTapGesture {
-                      dismiss()
-                  }
+                dismiss()
+            }
         }
     }
 
@@ -173,7 +189,7 @@ struct ChatRowView: View {
                     }
 
                     ).buttonStyle(PlainButtonStyle()) // Removes button styling
-                     .sheet(isPresented: $isProfilePicPresented) {
+                        .sheet(isPresented: $isProfilePicPresented) {
                             ProfilePicView(contact: contact)
                         }
 
