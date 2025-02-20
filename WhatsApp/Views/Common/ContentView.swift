@@ -5,7 +5,7 @@ import SwiftUI
 
 // ContentView.swift
 struct ContentView: View {
-    @State private var isShowingSplash = true
+    @State private var isShowingSplash = false
     @EnvironmentObject var contacrsManager: ContactsManager
 
     var body: some View {

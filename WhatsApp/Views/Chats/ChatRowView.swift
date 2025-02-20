@@ -13,7 +13,7 @@
 // ChatsRowView.swift
 import SwiftUI
 import Contacts
-import AVFoundation // Import for camera access
+//import AVFoundation // Import for camera access
 
 struct ChatRowView: View {
     @EnvironmentObject private var contactsManager: ContactsManager
@@ -44,8 +44,8 @@ struct ChatRowView: View {
                     }
                     .cornerRadius(20)
                     .padding(.horizontal,8)
-                    .padding(.top,10)
-                    VStack(spacing: 10) {
+                    .padding(.top,12)
+                    VStack(spacing: 15) {
                         if filteredContacts.isEmpty && !searchText.isEmpty {
                             Text("No matches found")
                                 .font(.caption)
@@ -63,7 +63,9 @@ struct ChatRowView: View {
                         }
                     }
                     .padding(.horizontal)
+                    .padding(.bottom, 50)
                 }
+              
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
                 .toolbar {
@@ -126,7 +128,7 @@ struct ChatRowView: View {
                     .padding(.leading, 10)
                     .frame(width: 30, height: 30)
 
-                TextField("Search Contacts", text: $searchText)
+                TextField("Ask Meta AI or Contacts", text: $searchText)
                     .padding(.vertical, 10)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -167,9 +169,14 @@ struct ChatRowView: View {
     struct ChatRow: View {
         let contact: Contact
         @State private var isProfilePicPresented = false
+        @EnvironmentObject private var navigationState: NavigationState
 
         var body: some View {
-            NavigationLink(destination: ChatDetailView(contact: contact)) {
+            NavigationLink(
+                destination: ChatDetailView(contact: contact)
+                .onAppear { navigationState.isChatDetailActive = true }
+                .onDisappear { navigationState.isChatDetailActive = false }
+            ) {
                 HStack {
                     Button(action: { isProfilePicPresented = true },
                            label: {
@@ -180,7 +187,7 @@ struct ChatRowView: View {
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())
                         } else {
-                            Image(systemName: "person.crop.circle.fill") // Default image
+                            Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 40, height: 40)

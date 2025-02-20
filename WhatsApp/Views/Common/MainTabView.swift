@@ -1,20 +1,28 @@
 import SwiftUI
 
 // MainTabView.swift
+
+class NavigationState: ObservableObject {
+    @Published var isChatDetailActive = false
+}
+
 struct MainTabView: View {
     @State private var selectedTab = 0
     @EnvironmentObject private var contactsManager: ContactsManager
+    @StateObject private var navigationState = NavigationState()
 
     var body: some View {
         TabView(selection: $selectedTab) {
 
             NavigationStack {
                 ChatRowView()
+                    .environmentObject(navigationState)
             }
             .tabItem {
                 Label("Chats", systemImage: "ellipsis.message.fill")
             }
             .tag(0)
+        
 
             StatusView()
                 .tabItem {
@@ -38,6 +46,7 @@ struct MainTabView: View {
         .tint(.green)  // This replaces .accentColor which is deprecated
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.white, for: .tabBar)
+        .toolbar(navigationState.isChatDetailActive ? .hidden : .visible, for: .tabBar)
     }
 }
 #Preview {

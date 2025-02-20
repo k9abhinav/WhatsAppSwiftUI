@@ -66,6 +66,7 @@ struct ChatDetailView: View {
             .padding(.top, 1)
             .padding(.bottom,6)
         }
+
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -111,6 +112,7 @@ struct ChatDetailView: View {
                 }
             }
         }
+//        .hidesBottomBarWhenPushed(true)  // Add this line
     }
 
     private func sendMessage() {

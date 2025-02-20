@@ -18,6 +18,7 @@ struct StatusUpdateView: View {
 
     var body: some View {
         VStack(spacing: 20) {
+            
             Button("Show Sheet") {
                 isSheetPresented = true
             }
@@ -34,7 +35,7 @@ struct StatusUpdateView: View {
                 showOverlay.toggle()
             }
 
-             // Your main content
+            // Your main content
         }
         .navigationTitle("Presentations")
         .sheet(isPresented: $isSheetPresented) {
@@ -46,9 +47,10 @@ struct StatusUpdateView: View {
         .popover(isPresented: $isPopoverPresented) {
             PopoverView(isPresented: $isPopoverPresented)
         }
-        .overlay( // Overlay always on top (can be toggled)
+        .overlay(
             showOverlay ?
-            Color.black.opacity(0.5) // Semi-transparent overlay
+            Color.black.opacity(0.9)
+                .cornerRadius(20)
                 .overlay(
                     VStack{
                         Text("Overlay Content")
@@ -59,7 +61,7 @@ struct StatusUpdateView: View {
                     }
 
                 )
-            : nil // No overlay
+            : nil
         )
     }
 }
