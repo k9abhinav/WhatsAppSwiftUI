@@ -14,7 +14,7 @@ struct SplashScreen: View {
                     .scaledToFit()
                     .frame(width: 200, height: 200)
                     .padding()
-                Text("WhatsApp Clone")
+                Text("WhatsApp")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.green)
@@ -26,7 +26,7 @@ struct SplashScreen: View {
                     size = 0.9
                     opacity = 1.0
                 }
-
+//                main thread
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                     withAnimation {
                         isActive = false

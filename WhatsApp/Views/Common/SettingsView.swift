@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import SwiftData
+
 
 struct UserProfile {
     var name: String
@@ -24,12 +26,19 @@ class SettingsViewModel: ObservableObject {
 // ------------------------------------ VIEW ----------------------------------------------------------
 
 struct SettingsView: View {
-    @StateObject private var viewModel = SettingsViewModel()
+
+    //    @StateObject private var viewModel = SettingsViewModel()
+    @AppStorage("userName") private var userName = "Abhinav"
+    @AppStorage("userStatus") private var userStatus = "Hey there, I am using WhatsApp!"
+    @AppStorage("userImageKey") private var userImageData: Data?
+
     @Environment(\.dismiss) var dismiss
     @State private var showingEdit = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var showingImageChangeAlert = false
+
+
 
     var body: some View {
         NavigationView {
@@ -52,9 +61,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingEdit) {
                 EditProfileView(
-                    nameValue: $viewModel.userProfile.name,
-                    statusValue: $viewModel.userProfile.status
-                )
+                    userName: $userName,
+                    userStatus: $userStatus
+                ).presentationDetents([.medium])
             }
             .onChange(of: selectedPhoto) { _, newValue in
                 loadImage(newValue)
@@ -64,11 +73,14 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         Section {
+            Text("My Profile")
+                .font(.title)
+            //                    .font(.custom("Product Sans Regular",size: 54))
+                .fontWeight(.medium)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundColor(.black.opacity(0.8))
             VStack(spacing: 15) {
-                Text("My Profile")
-                    .font(.largeTitle)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.black.opacity(0.8))
+
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
                     ZStack {
@@ -86,11 +98,13 @@ struct SettingsView: View {
 
                 Button(action: { showingEdit = true }) {
                     VStack {
-                        Text(viewModel.userProfile.name)
+                        Text(userName)
                             .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundColor(.black.opacity(0.8))
-                        Text(viewModel.userProfile.status)
+                            .padding(.bottom,6)
+                        Text(userStatus)
+                            .multilineTextAlignment(.center)
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
@@ -103,15 +117,9 @@ struct SettingsView: View {
 
     private var profileImageView: some View {
         Group {
-            if let selectedImageData = selectedImageData,
-               let uiImage = UIImage(data: selectedImageData) {
+            if let imageData = userImageData,
+               let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-            } else if let imageName = viewModel.userProfile.profileImage {
-                Image(imageName)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
@@ -146,10 +154,10 @@ struct SettingsView: View {
 
     private func loadImage(_ newItem: PhotosPickerItem?) {
         Task {
-            if let newItem = newItem, let data = try? await newItem.loadTransferable(type: Data.self) {
+            if let newItem = newItem,
+               let data = try? await newItem.loadTransferable(type: Data.self) {
                 await MainActor.run {
-                    selectedImageData = data
-                    viewModel.updateProfile(profileImage: "new_image")
+                    userImageData = data
                     showingImageChangeAlert = true
                 }
             }
@@ -186,8 +194,8 @@ struct RowView: View {
 // ------------------------------------ EDIT PROFILE VIEW ----------------------------------------------------------
 
 struct EditProfileView: View {
-    @Binding var nameValue: String
-    @Binding var statusValue: String
+    @Binding var userName: String
+    @Binding var userStatus: String
     @Environment(\.dismiss) var dismiss
     @State private var tempName: String = ""
     @State private var tempStatus: String = ""
@@ -211,21 +219,21 @@ struct EditProfileView: View {
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
+//                ToolbarItem(placement: .navigationBarLeading) {
+//                    Button("Cancel") { dismiss() }
+//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        nameValue = tempName
-                        statusValue = tempStatus
+                        userName = tempName
+                        userStatus = tempStatus
                         dismiss()
                     }
                     .bold()
                 }
             }
             .onAppear {
-                tempName = nameValue
-                tempStatus = statusValue
+                tempName = userName
+                tempStatus = userStatus
             }
         }
     }

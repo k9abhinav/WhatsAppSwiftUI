@@ -13,7 +13,7 @@
 // ChatsRowView.swift
 import SwiftUI
 import Contacts
-//import AVFoundation // Import for camera access
+import UIKit
 
 struct ChatRowView: View {
     @EnvironmentObject private var contactsManager: ContactsManager
@@ -45,7 +45,7 @@ struct ChatRowView: View {
                     .cornerRadius(20)
                     .padding(.horizontal,8)
                     .padding(.top,12)
-                    VStack(spacing: 15) {
+                    VStack(spacing: 16) {
                         if filteredContacts.isEmpty && !searchText.isEmpty {
                             Text("No matches found")
                                 .font(.caption)
@@ -104,6 +104,7 @@ struct ChatRowView: View {
                 .sheet(isPresented: $showingSettings) {
                     SettingsView()
                 }
+
                 //                .searchable(text: $searchText, placement: .automatic, prompt: "Search Contacts")
                 .scrollIndicators(.hidden)
                 .background(.white)
@@ -169,59 +170,54 @@ struct ChatRowView: View {
     struct ChatRow: View {
         let contact: Contact
         @State private var isProfilePicPresented = false
-        @EnvironmentObject private var navigationState: NavigationState
-
         var body: some View {
             NavigationLink(
-                destination: ChatDetailView(contact: contact)
-                .onAppear { navigationState.isChatDetailActive = true }
-                .onDisappear { navigationState.isChatDetailActive = false }
-            ) {
-                HStack {
-                    Button(action: { isProfilePicPresented = true },
-                           label: {
-                        if let imageData = contact.imageData, let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 40, height: 40)
+                destination: ChatDetailView(contact: contact)) {
+                    HStack {
+                        Button(action: { isProfilePicPresented = true },
+                               label: {
+                            if let imageData = contact.imageData, let uiImage = UIImage(data: imageData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
+                        ).buttonStyle(PlainButtonStyle()) // Removes button styling
+                            .sheet(isPresented: $isProfilePicPresented) {
+                                ProfilePicView(contact: contact)
+                            }
+
+                        VStack(alignment: .leading) {
+                            Text(contact.name)
+                                .font(.headline)
+
+                            Text(contact.phone)
+                                .font(.subheadline)
                                 .foregroundColor(.gray)
                         }
-                    }
 
-                    ).buttonStyle(PlainButtonStyle()) // Removes button styling
-                        .sheet(isPresented: $isProfilePicPresented) {
-                            ProfilePicView(contact: contact)
+                        Spacer()
+                        VStack {
+                            let date: Date = Date()
+                            Text(timeString(from: date))
+                                .font(.caption)
+                                .fontWeight(.light)
+                                .foregroundStyle(.gray.opacity(0.8))
                         }
-
-                    VStack(alignment: .leading) {
-                        Text(contact.name)
-                            .font(.headline)
-
-                        Text(contact.phone)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
                     }
-
-                    Spacer()
-                    VStack {
-                        let date: Date = Date()
-                        Text(timeString(from: date))
-                            .font(.caption)
-                            .fontWeight(.light)
-                            .foregroundStyle(.gray.opacity(0.8))
-                    }
+                    .padding(.vertical,5)
+                    .cornerRadius(10)
                 }
-                .padding(.vertical,5)
-                .cornerRadius(10)
-            }
-            .buttonStyle(.plain)
+                .buttonStyle(.plain)
         }
         private func timeString(from date: Date) -> String {
             let formatter = DateFormatter()
@@ -231,6 +227,7 @@ struct ChatRowView: View {
     }
 
 }
-//#Preview {
-//    ChatRowView( contact: .init(name: "John Doe", phone: "+1234567890", imageData: nil))
-//}
+#Preview {
+    ChatRowView()
+        .environmentObject(ContactsManager())
+}
