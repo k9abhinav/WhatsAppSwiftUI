@@ -13,14 +13,15 @@
 // ChatsRowView.swift
 import SwiftUI
 import Contacts
-import UIKit
+import PhotosUI
 
 struct ChatRowView: View {
-    @EnvironmentObject private var contactsManager: ContactsManager
+    var contactsManager: ContactsManager
     @State private var searchText = ""
     @State private var showingSettings = false
     @State private var isShowingScanner = false
-    @State private var isShowingCamera = false
+//    @State private var isShowingCamera = false
+
 
     var filteredContacts: [Contact] {
         guard !searchText.isEmpty else {
@@ -45,7 +46,7 @@ struct ChatRowView: View {
                     .cornerRadius(20)
                     .padding(.horizontal,8)
                     .padding(.top,12)
-                    VStack(spacing: 16) {
+                    VStack(spacing: 17) {
                         if filteredContacts.isEmpty && !searchText.isEmpty {
                             Text("No matches found")
                                 .font(.caption)
@@ -65,7 +66,7 @@ struct ChatRowView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 50)
                 }
-              
+                .background(Color.clear)
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
                 .toolbar {
@@ -76,20 +77,27 @@ struct ChatRowView: View {
                             .foregroundStyle(.green)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            isShowingScanner = true
-                            print("Showing Scanner")
-                        } label: {
-                            Image(systemName: "qrcode.viewfinder")
-                        }
+                        PhotosPicker(selection: .constant(nil), matching: .images, photoLibrary: .shared()) {
+                        Image(systemName: "qrcode.viewfinder")
+                    }
+//                        Button {
+//                            isShowingScanner = true
+//                            print("Showing Scanner")
+//                        } label: {
+//                            Image(systemName: "qrcode.viewfinder")
+//                        }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            isShowingCamera = true
-                            print("Showing Camera")
-                        }) {
-                            Image(systemName: "camera")
-                        }
+//                        Button(action: {
+//
+//
+//                            print("Showing Camera")
+//                        }) {
+//                            Image(systemName: "camera")
+//                        }
+                        PhotosPicker(selection: .constant(nil), matching: .images, photoLibrary: .shared()) {
+                        Image(systemName: "camera")
+                    }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
@@ -133,6 +141,15 @@ struct ChatRowView: View {
                     .padding(.vertical, 10)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+
+                if !searchText.isEmpty {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .onTapGesture {
+                            searchText = "" // Reset search text to show all contacts
+                        }
+                        .padding(.trailing, 10)
+                }
             }
             .background(Color.gray.opacity(0.1))
 
@@ -149,6 +166,7 @@ struct ChatRowView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
+                        .aspectRatio(contentMode: .fill)
                         .frame(maxWidth: .infinity, maxHeight: 200)
                         .background(Color.black.opacity(0.9))
                         .ignoresSafeArea()
@@ -160,6 +178,7 @@ struct ChatRowView: View {
                         .foregroundColor(.gray)
                 }
             }
+
             .onTapGesture {
                 dismiss()
             }
@@ -185,15 +204,17 @@ struct ChatRowView: View {
                             } else {
                                 Image(systemName: "person.crop.circle.fill")
                                     .resizable()
-                                    .scaledToFit()
+                                    .scaledToFill()
                                     .frame(width: 40, height: 40)
+//                                    .aspectRatio(contentMode: .fit)
                                     .foregroundColor(.gray)
                             }
                         }
 
                         ).buttonStyle(PlainButtonStyle()) // Removes button styling
-                            .sheet(isPresented: $isProfilePicPresented) {
+                            .popover(isPresented: $isProfilePicPresented) {
                                 ProfilePicView(contact: contact)
+                                    .presentationDetents([.fraction(0.65)])
                             }
 
                         VStack(alignment: .leading) {
@@ -216,6 +237,7 @@ struct ChatRowView: View {
                     }
                     .padding(.vertical,5)
                     .cornerRadius(10)
+
                 }
                 .buttonStyle(.plain)
         }
@@ -228,6 +250,5 @@ struct ChatRowView: View {
 
 }
 #Preview {
-    ChatRowView()
-        .environmentObject(ContactsManager())
+    ChatRowView(contactsManager: ContactsManager())
 }

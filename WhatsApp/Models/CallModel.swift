@@ -29,8 +29,8 @@ enum CallDirection {
     case outgoing
 }
 
-class CallsViewModel: ObservableObject {
-    @Published var calls: [Call] = [
+@Observable class CallsViewModel {
+     var calls: [Call] = [
         Call(
             contactName: "John Doe",
             profileImage: "person.circle.fill",

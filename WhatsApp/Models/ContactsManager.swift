@@ -9,8 +9,8 @@ struct Contact: Identifiable {
     let imageData: Data?
 }
 
-class ContactsManager: ObservableObject {
-    @Published var contacts: [Contact] = []
+@Observable class ContactsManager {
+    var contacts: [Contact] = []
     private let contactStore = CNContactStore()
 
     func requestAccess() {

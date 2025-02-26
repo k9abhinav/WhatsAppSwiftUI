@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 import SwiftData
 
 @Model
@@ -39,6 +38,7 @@ struct ChatDetailView: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText = ""
 
+    @State private var isTyping = false
 
     //    @State private var messages: [Message] = [
     //        Message(content: "Hey there!", isFromCurrentUser: false, timestamp: Date()),
@@ -68,6 +68,11 @@ struct ChatDetailView: View {
                                 MessageBubble(message: message)
                                     .id(message.id) // Assign an ID for scrolling
                             }
+                            if isTyping {
+                                   TypingIndicatorView()
+                                    .frame(maxWidth:.infinity ,alignment: .leading)
+                                       .id("typingIndicator") // Assign an ID for scrolling
+                               }
                         }
                         .padding()
                         .padding(.horizontal, 25)
@@ -197,10 +202,11 @@ struct ChatDetailView: View {
             contactId: contact.phone
         )
         context.insert(newMessage)
-        let sentMessageText = messageText // Store message before clearing
+        let sentMessageText = messageText
         messageText = ""
 
-        // Create a background task for the reply
+           isTyping = true
+
         Task {
             try await Task.sleep(nanoseconds: 1_750_000_000) // Sleep for 1.75 seconds
 
@@ -212,6 +218,7 @@ struct ChatDetailView: View {
                 contactId: contact.phone
             )
             context.insert(replyMessage)
+            isTyping = false
             print("Reply sent: \(replyMessage.content)")
 
             try? context.save()

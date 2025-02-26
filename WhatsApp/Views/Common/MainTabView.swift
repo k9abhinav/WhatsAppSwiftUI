@@ -4,14 +4,15 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab = 0
-    @EnvironmentObject private var contactsManager: ContactsManager
+    @Environment(ContactsManager.self) var contactsManager
+    @Environment(SettingsViewModel.self) var settingsViewModel
 
 
     var body: some View {
         TabView(selection: $selectedTab) {
 
             NavigationStack {
-                ChatRowView()
+                ChatRowView(contactsManager: contactsManager)
             }
             .tabItem {
                 Label("Chats", systemImage: "ellipsis.message.fill")
@@ -51,6 +52,6 @@ struct MainTabView: View {
 
 
 #Preview {
-    MainTabView()
-        .environmentObject(ContactsManager())
+//    MainTabView()
+//        .environment(ContactsManager())
 }

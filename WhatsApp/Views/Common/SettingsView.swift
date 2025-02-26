@@ -9,11 +9,11 @@ struct UserProfile {
     var profileImage: String?
 }
 
-class SettingsViewModel: ObservableObject {
-    @Published var userProfile = UserProfile(
-        name: "Abhinav",
-        status: "Hey there, I am using WhatsApp!",
-        profileImage: "abhinav"
+@Observable class SettingsViewModel {
+     var userProfile = UserProfile(
+        name: "User",
+        status: "Add About Here!",
+        profileImage: "person.circle.fill"
     )
 
     func updateProfile(name: String? = nil, status: String? = nil, profileImage: String? = nil) {
@@ -28,8 +28,8 @@ class SettingsViewModel: ObservableObject {
 struct SettingsView: View {
 
     //    @StateObject private var viewModel = SettingsViewModel()
-    @AppStorage("userName") private var userName = "Abhinav"
-    @AppStorage("userStatus") private var userStatus = "Hey there, I am using WhatsApp!"
+    @AppStorage("userName") private var userName = "User"
+    @AppStorage("userStatus") private var userStatus = "No About here!"
     @AppStorage("userImageKey") private var userImageData: Data?
 
     @Environment(\.dismiss) var dismiss
@@ -41,7 +41,7 @@ struct SettingsView: View {
 
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 profileSection
                 settingsSection
@@ -73,12 +73,9 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         Section {
-            Text("My Profile")
-                .font(.title)
-            //                    .font(.custom("Product Sans Regular",size: 54))
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .foregroundColor(.black.opacity(0.8))
+
+
+
             VStack(spacing: 15) {
 
 
@@ -112,6 +109,11 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
+        } header: {
+            Text("My Profile")
+                .padding(.bottom, 5)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundColor(.secondary)
         }
     }
 
@@ -149,7 +151,7 @@ struct SettingsView: View {
             Button("Logout") {}
             Button("About") {}
         }
-        .foregroundColor(.red)
+        .foregroundColor(.secondary)
     }
 
     private func loadImage(_ newItem: PhotosPickerItem?) {
@@ -176,18 +178,18 @@ struct RowView: View {
         HStack {
             Image(systemName: iconSystemName)
                 .frame(width: 32, height: 32)
-                .foregroundColor(.blue)
-
+                .foregroundColor(.secondary)
+            Spacer()
             VStack(alignment: .leading) {
                 Text(title)
                     .font(.headline)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.gray)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 3)
     }
 }
 

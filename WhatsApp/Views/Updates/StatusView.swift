@@ -1,148 +1,167 @@
 //
-//  UpdatesDetailView.swift
+//  StatusView.swift
 //  WhatsApp
 //
-//  Created by Abhinava Krishna on 14/02/25.
+//  Created by Abhinava Krishna on 26/02/25.
 //
-
-// StatusView.swift
 import SwiftUI
+import SwiftData
+import PhotosUI
 
+
+//------------------------------------------------------------------------------------ View
 struct StatusView: View {
-    @StateObject private var viewModel = StatusViewModel()
-    //Creates a instance of Observable object
-//    This initialization happens only once when the view first appears
-//    @StateObject ensures that the ObservableObject instance is retained (kept alive) as long as the view is displayed.
-//    Even if the view re-renders (due to state changes or other UI updates), the same ObservableObject instance is used.
-//  @StateObject automatically observes any changes to @Published properties within your ObservableObject.  When a @Published property changes, SwiftUI updates the views that depend on it.
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Status.createdAt, order: .reverse) private var allStatuses: [Status]
 
-    @State private var showingSettings = false
+     var activeStatuses: [Status] {
+         let now = Date() // Compute current time at the moment of access
+         return allStatuses.filter { $0.expiresAt > Date() }
+     }
+
+
+    @State private var showingAddStatus = false
+    @State private var selectedStatus: Status?
 
     var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    HStack {
-                        ZStack(alignment: .bottomTrailing) {
-                            Image(systemName: viewModel.statuses[0].profileImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 60, height: 60)
-                                .clipShape(Circle())
+        NavigationStack {
+            ZStack {
+                if activeStatuses.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "circle.dashed")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
 
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 20, height: 20)
-                                .overlay(
-                                    Image(systemName: "plus")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                )
-                                .offset(x: 3, y: 3)
-                        }
+                        Text("No Status Updates")
+                            .font(.headline)
 
-                        VStack(alignment: .leading) {
-                            Text("My Status")
-                                .font(.headline)
-                            Text("Tap to add status update")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                        Text("Tap the + button to add a status update")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Button(action: {
+                            showingAddStatus = true
+                        }) {
+                            Text("Add Status")
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
-                        .padding(.leading, 10)
+                        .padding(.top, 8)
                     }
-                    .padding(.vertical, 5)
-                } header: {
-                    Text("Recent Updates")
-                }
+                } else {
+                    List {
+                        Section(header: Text("My Status")) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .frame(width: 50, height: 50)
 
-                // Recent Updates
-                Section {
-                    // DropFirst to drop the first element in the array.
-                    ForEach(viewModel.statuses.dropFirst()) { status in
-                        StatusRow(status: status)
+                                    if let imageData = activeStatuses.first?.imageData, let uiImage = UIImage(data: imageData) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 46, height: 46)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("My Status")
+                                        .font(.headline)
+                                        .padding(.bottom, 8)
+
+                                    Text("\(activeStatuses.count) updates")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button(action: {
+                                    showingAddStatus = true
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if !activeStatuses.isEmpty {
+                                    selectedStatus = activeStatuses.first
+                                }
+                            }
+                        }
+
+                        Section(header: Text("My Recent Updates").padding(.bottom, 8)) {
+                            ForEach(activeStatuses) { status in
+                                StatusRowView(status: status)
+                                    .onTapGesture {
+                                        selectedStatus = status
+                                    }
+                            }
+                        }
                     }
                 }
             }
-            .navigationTitle("Status")
+            .navigationTitle("Status Updates")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
-                        print("Camera Action")
+                        showingAddStatus = true
                     }) {
-                        Image(systemName: "camera")
-                            .foregroundColor(.gray)
+                        Image(systemName: "plus")
                     }
                 }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingSettings = true
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .rotationEffect(.degrees(90))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.horizontal, 10)
-                }
-
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }.background(Color.white)
-
+            .sheet(isPresented: $showingAddStatus) {
+                AddStatusView()
+            }
+            .sheet(item: $selectedStatus) { status in
+                StatusDetailView(status: status)
+            }
+            .task {
+                cleanupExpiredStatuses()
+            }
         }
     }
-}
 
-struct StatusRow: View {
-    let status: Status
-
-    var body: some View {
-        HStack {
-
-            Circle()
-                .stroke(status.isViewed ? Color.gray : Color.green, lineWidth: 2)
-                .frame(width: 65, height: 65)
-                .overlay(
-                    Image(systemName: status.profileImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 55, height: 55)
-                        .clipShape(Circle())
-                )
-
-            VStack(alignment: .leading) {
-                Text(status.user)
-                    .font(.headline)
-                Text(timeAgo(from: status.timePosted))
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            .padding(.leading, 10)
-
-            Spacer()
-        }
-        .padding(.vertical, 5)
-    }
-
-    private func timeAgo(from date: Date) -> String {
-        let calendar = Calendar.current
+    private func cleanupExpiredStatuses() {
         let now = Date()
-        let components = calendar.dateComponents([.minute, .hour], from: date, to: now)
 
-        if let hour = components.hour, hour > 0 {
-            return "\(hour)h ago"
-        } else if let minute = components.minute {
-            return "\(minute)m ago"
-        } else {
-            return "Just now"
+        Task {
+            do {
+
+                let allStatuses = try modelContext.fetch(FetchDescriptor<Status>())
+
+
+                let expiredStatuses = allStatuses.filter { $0.expiresAt <= now }
+
+
+                for status in expiredStatuses {
+                    modelContext.delete(status)
+                }
+
+                try modelContext.save()
+            } catch {
+                print("Failed to clean up expired statuses: \(error)")
+            }
         }
     }
+
 }
 
-// Preview
-struct StatusView_Previews: PreviewProvider {
-    static var previews: some View {
-        StatusView()
-    }
+#Preview {
+    StatusView()
 }
