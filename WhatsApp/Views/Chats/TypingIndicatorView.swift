@@ -1,9 +1,3 @@
-//
-//  TypingIndicator.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 26/02/25.
-//
 
 import SwiftUI
 
@@ -26,9 +20,4 @@ struct TypingIndicatorView: View {
             isAnimating = true
         }
     }
-}
-
-
-#Preview {
-    TypingIndicatorView()
 }

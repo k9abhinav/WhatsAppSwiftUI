@@ -2,43 +2,19 @@ import SwiftUI
 import PhotosUI
 import SwiftData
 
-
-struct UserProfile {
-    var name: String
-    var status: String
-    var profileImage: String?
-}
-
-@Observable class SettingsViewModel {
-     var userProfile = UserProfile(
-        name: "User",
-        status: "Add About Here!",
-        profileImage: "person.circle.fill"
-    )
-
-    func updateProfile(name: String? = nil, status: String? = nil, profileImage: String? = nil) {
-        if let name = name { userProfile.name = name }
-        if let status = status { userProfile.status = status }
-        if let profileImage = profileImage { userProfile.profileImage = profileImage }
-    }
-}
-
-// ------------------------------------ VIEW ----------------------------------------------------------
-
 struct SettingsView: View {
+    
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var context
 
-    //    @StateObject private var viewModel = SettingsViewModel()
     @AppStorage("userName") private var userName = "User"
     @AppStorage("userStatus") private var userStatus = "No About here!"
     @AppStorage("userImageKey") private var userImageData: Data?
 
-    @Environment(\.dismiss) var dismiss
     @State private var showingEdit = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var showingImageChangeAlert = false
-
-
 
     var body: some View {
         NavigationStack {
@@ -65,21 +41,22 @@ struct SettingsView: View {
                     userStatus: $userStatus
                 ).presentationDetents([.medium])
             }
-            .onChange(of: selectedPhoto) { _, newValue in
+            .onChange(of: selectedPhoto) { oldValue,newValue in
                 loadImage(newValue)
             }
         }
     }
 
+// MARK: Components ----------------------------------------------
+
     private var profileSection: some View {
         Section {
-
-
-
             VStack(spacing: 15) {
-
-
-                PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
+                PhotosPicker(
+                    selection: $selectedPhoto,
+                    matching: .images,
+                    photoLibrary: .shared())
+                {
                     ZStack {
                         profileImageView
                         Image(systemName: "camera.fill")
@@ -139,10 +116,10 @@ struct SettingsView: View {
 
     private var settingsSection: some View {
         Section {
-            RowView(iconSystemName: "key", title: "Account", subtitle: "Security, disappearing messages")
-            RowView(iconSystemName: "lock", title: "Privacy", subtitle: "Block contacts, adjust privacy")
-            RowView(iconSystemName: "message", title: "Chats", subtitle: "Themes, backup and restore chats")
-            RowView(iconSystemName: "bell", title: "Notifications", subtitle: "Manage your notifications")
+            eachSettingSection(iconSystemName: "key", title: "Account", subtitle: "Security, disappearing messages")
+            eachSettingSection(iconSystemName: "lock", title: "Privacy", subtitle: "Block contacts, adjust privacy")
+            eachSettingSection(iconSystemName: "message", title: "Chats", subtitle: "Themes, backup and restore chats")
+            eachSettingSection(iconSystemName: "bell", title: "Notifications", subtitle: "Manage your notifications")
         }
     }
 
@@ -167,9 +144,7 @@ struct SettingsView: View {
     }
 }
 
-// ------------------------------------ COMPONENTS ----------------------------------------------------------
-
-struct RowView: View {
+struct eachSettingSection: View {
     let iconSystemName: String
     let title: String
     let subtitle: String
@@ -193,56 +168,6 @@ struct RowView: View {
     }
 }
 
-// ------------------------------------ EDIT PROFILE VIEW ----------------------------------------------------------
-
-struct EditProfileView: View {
-    @Binding var userName: String
-    @Binding var userStatus: String
-    @Environment(\.dismiss) var dismiss
-    @State private var tempName: String = ""
-    @State private var tempStatus: String = ""
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Personal Information").font(.headline).padding(.bottom)) {
-
-                    TextField("Enter your name", text: $tempName)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal, 10)
-                        .padding(.top,10)
-
-                    TextField("Add About", text: $tempStatus)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                }.listRowSeparator(.hidden)
-
-            }
-            .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-//                ToolbarItem(placement: .navigationBarLeading) {
-//                    Button("Cancel") { dismiss() }
-//                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        userName = tempName
-                        userStatus = tempStatus
-                        dismiss()
-                    }
-                    .bold()
-                }
-            }
-            .onAppear {
-                tempName = userName
-                tempStatus = userStatus
-            }
-        }
-    }
-}
 
 // ------------------------------------ PREVIEW ----------------------------------------------------------
 
-#Preview {
-    SettingsView()
-}

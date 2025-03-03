@@ -2,11 +2,8 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
-
-
-
-struct StatusRowView: View {
-    let status: Status
+struct UpdatesRowView: View {
+    let status: Update
 
     var body: some View {
         HStack(spacing: 12) {
@@ -41,9 +38,3 @@ struct StatusRowView: View {
         .padding(.vertical, 4)
     }
 }
-
-
-
-//
-
-

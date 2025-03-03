@@ -8,20 +8,17 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+struct UpdatesView: View {
 
-//------------------------------------------------------------------------------------ View
-struct StatusView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Status.createdAt, order: .reverse) private var allStatuses: [Status]
-
-     var activeStatuses: [Status] {
-         let now = Date() // Compute current time at the moment of access
-         return allStatuses.filter { $0.expiresAt > Date() }
-     }
-
-
     @State private var showingAddStatus = false
-    @State private var selectedStatus: Status?
+    @State private var selectedStatus: Update?
+
+    @Query(sort: \Update.createdAt, order: .reverse) private var allStatuses: [Update]
+
+    var activeStatuses: [Update] {
+        return allStatuses.filter { $0.expiresAt > Date() }
+    }
 
     var body: some View {
         NavigationStack {
@@ -106,7 +103,7 @@ struct StatusView: View {
 
                         Section(header: Text("My Recent Updates").padding(.bottom, 8)) {
                             ForEach(activeStatuses) { status in
-                                StatusRowView(status: status)
+                                UpdatesRowView(status: status)
                                     .onTapGesture {
                                         selectedStatus = status
                                     }
@@ -126,10 +123,10 @@ struct StatusView: View {
                 }
             }
             .sheet(isPresented: $showingAddStatus) {
-                AddStatusView()
+                AddUpdatesView()
             }
             .sheet(item: $selectedStatus) { status in
-                StatusDetailView(status: status)
+                UpdatesDetailView(status: status)
             }
             .task {
                 cleanupExpiredStatuses()
@@ -143,7 +140,7 @@ struct StatusView: View {
         Task {
             do {
 
-                let allStatuses = try modelContext.fetch(FetchDescriptor<Status>())
+                let allStatuses = try modelContext.fetch(FetchDescriptor<Update>())
 
 
                 let expiredStatuses = allStatuses.filter { $0.expiresAt <= now }
@@ -163,5 +160,5 @@ struct StatusView: View {
 }
 
 #Preview {
-    StatusView()
+    UpdatesView()
 }

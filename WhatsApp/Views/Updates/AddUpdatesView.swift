@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-struct AddStatusView: View {
+struct AddUpdatesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
@@ -101,7 +101,7 @@ struct AddStatusView: View {
     }
 
     private func saveStatus() {
-        let newStatus = Status(content: statusText, imageData: selectedImageData)
+        let newStatus = Update(content: statusText, imageData: selectedImageData)
         modelContext.insert(newStatus)
 
         do {
@@ -115,5 +115,5 @@ struct AddStatusView: View {
 
 
 #Preview {
-    AddStatusView()
+    AddUpdatesView()
 }

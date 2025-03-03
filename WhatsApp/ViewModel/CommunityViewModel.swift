@@ -1,40 +1,13 @@
 //
-//  CommunityModels.swift
+//  CommunityViewModel.swift
 //  WhatsApp
 //
-//  Created by Abhinava Krishna on 14/02/25.
+//  Created by Abhinava Krishna on 27/02/25.
 //
+import Foundation
 
-// CommunityModels.swift
-import SwiftUI
-
-struct Community: Identifiable {
-    let id = UUID()
-    let name: String
-    let description: String
-    let icon: String
-    let groups: [CommunityGroup]
-    let memberCount: Int
-    let announcements: [Announcement]
-}
-
-struct CommunityGroup: Identifiable {
-    let id = UUID()
-    let name: String
-    let memberCount: Int
-    let lastMessage: String
-    let timestamp: Date
-}
-
-struct Announcement: Identifiable {
-    let id = UUID()
-    let content: String
-    let sender: String
-    let timestamp: Date
-}
-
-class CommunitiesViewModel: ObservableObject {
-    @Published var communities: [Community] = [
+@Observable class CommunityViewModel {
+     var communities: [Community] = [
         Community(
             name: "Local Neighborhood",
             description: "Community for our neighborhood residents",

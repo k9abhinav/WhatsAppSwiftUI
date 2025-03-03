@@ -1,8 +1,9 @@
+
 import SwiftUI
-// SplashScreen.swift
+
 struct SplashScreen: View {
-    
-    @Binding var isActive: Bool
+
+    @Binding var splashViewActive: Bool
     @State private var size = 0.8
     @State private var opacity = 0.4
 
@@ -26,16 +27,20 @@ struct SplashScreen: View {
                     size = 0.9
                     opacity = 1.0
                 }
-//                main thread
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                //                main thread
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     withAnimation {
-                        isActive = false
+                        splashViewActive = false
                     }
                 }
             }
         }
     }
 }
+
+
+
+
 
 
 

@@ -8,11 +8,11 @@
 import Foundation
 import SwiftUI
 
-struct StatusDetailView: View {
+struct UpdatesDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    let status: Status
+    let status: Update
 
     var body: some View {
         ZStack {

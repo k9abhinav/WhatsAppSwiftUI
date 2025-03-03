@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct CommunitiesView: View {
-    @StateObject private var viewModel = CommunitiesViewModel()
+    var viewModel : CommunityViewModel
     @State private var showNewCommunity = false
 
     var body: some View {
@@ -224,5 +224,5 @@ func timeAgo(from date: Date) -> String {
 }
 
 #Preview {
-    CommunitiesView()
+//    CommunitiesView(viewModel: communityViewModel)
 }

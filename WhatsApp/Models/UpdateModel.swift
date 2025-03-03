@@ -4,19 +4,18 @@
 //
 //  Created by Abhinava Krishna on 26/02/25.
 //
-
-import SwiftUI
 import SwiftData
-import PhotosUI
-
+import Foundation
 // To create a model
 @Model
-class Status {
+class Update {
     var id: UUID
     var content: String
     var imageData: Data?
     var createdAt: Date
     var expiresAt: Date
+
+//    @Relationship
 
     init(content: String, imageData: Data? = nil) {
         self.id = UUID()

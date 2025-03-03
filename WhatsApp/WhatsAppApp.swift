@@ -4,20 +4,20 @@
 //
 //  Created by Abhinava Krishna on 13/02/25.
 //
-
-// WhatsAppApp.swift
 import SwiftUI
 import SwiftData
+
 @main
 struct WhatsAppApp: App {
     @State private var contactsManager = ContactsManager()
-    @State private var settingsViewModel = SettingsViewModel()
+    @State private var callsViewModel = CallsViewModel()
+    @State private var communityViewModel = CommunityViewModel()
+    @State private var chatsViewModel = ChatsViewModel()
     let container: ModelContainer
 
     init() {
         do {
-            // Create a ModelConfiguration
-            let schema = Schema([ChatMessage.self,Status.self])
+            let schema = Schema([User.self,Chat.self])
             container = try ModelContainer(for: schema)
         } catch {
             fatalError("Failed to initialize SwiftData container: \(error)")
@@ -28,7 +28,9 @@ struct WhatsAppApp: App {
         WindowGroup {
             ContentView()
                 .environment(contactsManager)
-                .environment(settingsViewModel)
+                .environment(chatsViewModel)
+                .environment(callsViewModel)
+                .environment(communityViewModel)
                 .modelContainer(container)
         }
     }

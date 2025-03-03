@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct CallsView: View {
-    @State private var viewModel = CallsViewModel()
+    var viewModel: CallsViewModel
     @State private var showNewCallSheet = false
 
     var body: some View {
@@ -61,7 +61,7 @@ struct CallsView: View {
             .sheet(isPresented: $showNewCallSheet) {
                 NewCallView()
             }
-        }.environment(viewModel)
+        }
     }
 
 }
@@ -183,6 +183,6 @@ struct NewCallView: View {
     }
 }
 
-#Preview {
-    CallsView()
-}
+//#Preview {
+//    CallsView()
+//}
