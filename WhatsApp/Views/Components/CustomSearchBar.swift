@@ -1,37 +1,39 @@
-//
-//  CustomSearchBar.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 27/02/25.
-//
 
 import SwiftUI
 
 struct CustomSearchBar: View {
+
     @Binding var searchText: String
+    @State var placeholderText: String 
 
     var body: some View {
         HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
-                .padding(.leading, 10)
-                .frame(width: 30, height: 30)
-
-            TextField("Ask Meta AI or Contacts", text: $searchText)
-                .padding(.vertical, 10)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-
-            if !searchText.isEmpty {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.gray)
-                    .onTapGesture {
-                        searchText = "" // Reset search text to show all contacts
-                    }
-                    .padding(.trailing, 10)
-            }
+            magnifyingGlassSymbol
+            searchBar
+            if !searchText.isEmpty { crossButton }
         }
         .background(Color.gray.opacity(0.1))
+    }
 
+    // MARK: Components -------------------------
+
+    private var magnifyingGlassSymbol: some View {
+        Image(systemName: "magnifyingglass")
+            .foregroundColor(.gray)
+            .padding(.leading, 10)
+            .frame(width: 30, height: 30)
+    }
+    private var searchBar : some View {
+        TextField(placeholderText, text: $searchText)
+            .padding(.vertical, 10)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+    }
+
+    private var crossButton: some View {
+        Image(systemName: "xmark.circle.fill")
+            .foregroundColor(.gray)
+            .onTapGesture { searchText = "" }
+            .padding(.trailing, 10)
     }
 }

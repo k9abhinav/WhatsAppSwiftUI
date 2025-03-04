@@ -15,8 +15,6 @@ class User {
     var imageData: Data?
     var lastSeen: Date?
     var password: String?
-
-    // Relationship to chats
     @Relationship(deleteRule: .cascade) var chats: [Chat] = []
 
    init(id: String, phone: String, name: String, imageData: Data? = nil, lastSeen: Date? = nil, password: String? = nil, chats: [Chat]) {

@@ -1,43 +1,19 @@
 import SwiftUI
 import SwiftData
 
-@MainActor
 @Observable
 class ChatsViewModel {
-    var searchText: String = ""
-    var showingSettings: Bool = false
-    var isTyping: Bool = false
-    func filteredUsers(users: [User]) -> [User] {
-        guard !searchText.isEmpty else {
-            return users
-        }
+    func filteredUsers(users: [User], searchText: String) -> [User] {
+        guard !searchText.isEmpty else { return users }
 
         let searchTerms = searchText.lowercased().trimmingCharacters(in: .whitespaces)
 
         return users.filter { user in
             let nameMatch = user.name.lowercased().contains(searchTerms)
-
-            let phoneMatch = user.phone
-                .replacingOccurrences(of: " ", with: "")
+            let phoneMatch = user.phone.replacingOccurrences(of: " ", with: "")
                 .lowercased()
                 .contains(searchTerms.replacingOccurrences(of: " ", with: ""))
-
             return nameMatch || phoneMatch
-        }
-    }
-
-    func toggleSettings() {
-        showingSettings = true
-        print("Showing Settings: \(showingSettings)")
-    }
-
-    func scrollToBottom(_ scrollProxy: ScrollViewProxy, chats: [Chat]) {
-        guard let lastMessage = chats.last else { return }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Small delay to ensure UI updates
-            withAnimation {
-                scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-            }
         }
     }
 
@@ -50,33 +26,29 @@ class ChatsViewModel {
             user: user
         )
         context.insert(newMessage)
-        isTyping = true
 
-        Task {
-            try await Task.sleep(nanoseconds: 1_750_000_000) // Sleep for 1.75 seconds
-
+        Task { @MainActor in
+            try await Task.sleep(nanoseconds: 2_000_000_000)
             let replyMessage = Chat(
                 content: generateReply(for: messageText),
                 isFromCurrentUser: false,
-                user:user
+                user: user
             )
-            
             context.insert(replyMessage)
             try? context.save()
-            isTyping = false
         }
         try? context.save()
     }
 
     private func generateReply(for userMessage: String) -> String {
         let replies = [
-            "Happy to see you! This is a long message to test the scrolling behavior if it works correctly. It should scroll to the bottom automatically when new messages are added.",
-            "Hello ! How are you.",
+            "Happy to see you! This is a long message to test scrolling behavior.",
+            "Hello! How are you?",
             "Ok bye! 👋",
             "That's interesting!",
             "Tell me more!",
             "😭",
-            "Its Ok!",
+            "It's okay!",
             "😂",
             "Let's catch up soon!",
             "👍"

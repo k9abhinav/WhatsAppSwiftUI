@@ -15,13 +15,10 @@ class Update {
     var createdAt: Date
     var expiresAt: Date
 
-//    @Relationship
-
     init(content: String, imageData: Data? = nil) {
         self.id = UUID()
         self.content = content
         self.imageData = imageData
-
 
         let now = Date()
         self.createdAt = now
@@ -34,9 +31,7 @@ class Update {
 
     var timeRemaining: String {
         let remaining = expiresAt.timeIntervalSince(Date())
-        if remaining <= 0 {
-            return "Expired"
-        }
+        if remaining <= 0 { return "Expired" }
 
         let hours = Int(remaining) / 3600
         let minutes = (Int(remaining) % 3600) / 60

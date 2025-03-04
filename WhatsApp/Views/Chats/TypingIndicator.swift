@@ -1,7 +1,7 @@
 
 import SwiftUI
 
-struct TypingIndicatorView: View {
+struct TypingIndicator: View {
     @State private var isAnimating = false
 
     var body: some View {
@@ -13,7 +13,7 @@ struct TypingIndicatorView: View {
         .foregroundColor(.gray)
         .opacity(isAnimating ? 1.0 : 0.3)
         .animation(
-            .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+            .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
             value: isAnimating
         )
         .onAppear {
