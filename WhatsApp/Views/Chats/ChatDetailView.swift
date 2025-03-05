@@ -47,15 +47,13 @@ struct ChatDetailView: View {
         viewModel.sendMessage(user: user, messageText: messageText, context: context)
         messageText = ""
         isTyping = true
-        // Auto-scroll when typing starts
+
         if let scrollProxy = scrollViewProxy {
             scrollToBottom(scrollProxy, chats: user.chats)
         }
 
-        // Hide typing indicator after 5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             isTyping = false
-            // Auto-scroll again when typing disappears
             if let scrollProxy = scrollViewProxy {
                 scrollToBottom(scrollProxy, chats: user.chats)
             }
@@ -124,7 +122,7 @@ struct ChatDetailView: View {
                     }
                     if isTyping {
                         HStack {
-                            TypingIndicator()
+                            ChatTypingIndicator()
                             Spacer()
                         }
                         .padding(.leading, 10)
@@ -141,7 +139,6 @@ struct ChatDetailView: View {
                 scrollToBottom(scrollProxy, chats: user.chats)
             }
             .onChange(of: user.chats.count) { _, _ in
-                      // Auto-scroll when a new message is added
                       if let scrollProxy = scrollViewProxy {
                           scrollToBottom(scrollProxy, chats: user.chats)
                       }

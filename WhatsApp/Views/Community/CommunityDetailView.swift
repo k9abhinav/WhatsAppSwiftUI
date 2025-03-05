@@ -58,7 +58,7 @@ struct CommunityDetailView: View {
             }
             Section(header: Text("Groups")) {
                 ForEach(community.groups) { group in
-                    GroupRow(group: group)
+                    CommunityGroupRow(group: group)
                 }
             }
         }

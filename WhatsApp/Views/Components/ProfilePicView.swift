@@ -1,9 +1,3 @@
-//
-//  ProfilePicView.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 27/02/25.
-//
 
 import SwiftUI
 
@@ -29,13 +23,7 @@ struct ProfilePicView: View {
                     .foregroundColor(.gray)
             }
         }
-
-        .onTapGesture {
-            dismiss()
-        }
+        .onTapGesture {  dismiss()  }
     }
 }
-//
-//#Preview {
-//    ProfilePicView()
-//}
+

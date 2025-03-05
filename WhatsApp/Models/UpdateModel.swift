@@ -1,12 +1,7 @@
-//
-//  StatusModel.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 26/02/25.
-//
+
 import SwiftData
 import Foundation
-// To create a model
+
 @Model
 class Update {
     var id: UUID

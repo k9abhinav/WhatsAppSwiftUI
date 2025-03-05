@@ -1,9 +1,3 @@
-//
-//  ContactsManager.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 27/02/25.
-//
 
 import Contacts
 import SwiftData
@@ -13,12 +7,12 @@ import SwiftUI
 @Observable class ContactsManager {
     var contacts: [Contact] = []
     private let contactStore = CNContactStore()
+    
+    private var modelContext: ModelContext
 
-//    private var modelContext: ModelContext
-//
-//    init(modelContext: ModelContext) {
-//           self.modelContext = modelContext
-//       }
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
 
     func requestAccess() {
         contactStore.requestAccess(for: .contacts) { granted, error in
@@ -51,7 +45,7 @@ import SwiftUI
 
                 DispatchQueue.main.async {
                     self.contacts = fetchedContacts
-//                    self.saveContactsAsUsersIfNeeded() // Call the new function
+                    self.saveContactsAsUsersIfNeeded()
                 }
             } catch {
                 print("Failed to fetch contacts: \(error)")
@@ -59,30 +53,30 @@ import SwiftUI
         }
     }
 
-//    private func saveContactsAsUsersIfNeeded() {
-//        let modelContext = self.modelContext
-//        for contact in contacts {
-//            let phone = contact.phone
-//            let fetchDescriptor = FetchDescriptor<User>(predicate: #Predicate { $0.phone == phone })
-//            do {
-//                let existingUsers = try modelContext.fetch(fetchDescriptor)
-//                if existingUsers.isEmpty {
-//                    let newUser = User(
-//                        id: UUID().uuidString,
-//                        phone: contact.phone,
-//                        name: contact.name,
-//                        imageData: contact.imageData,
-//                        chats: [] // Initialize with empty chats
-//                    )
-//                    modelContext.insert(newUser)
-//                    try modelContext.save()
-//                    print("User created for phone: \(contact.phone)")
-//                } else {
-//                    print("User already exists for phone: \(contact.phone)")
-//                }
-//            } catch {
-//                print("Error saving or fetching user: \(error)")
-//            }
-//        }
-//    }
+    private func saveContactsAsUsersIfNeeded() {
+        let modelContext = self.modelContext
+        for contact in contacts {
+            let phone = contact.phone
+            let fetchDescriptor = FetchDescriptor<User>(predicate: #Predicate { $0.phone == phone })
+            do {
+                let existingUsers = try modelContext.fetch(fetchDescriptor)
+                if existingUsers.isEmpty {
+                    let newUser = User(
+                        id: UUID().uuidString,
+                        phone: contact.phone,
+                        name: contact.name,
+                        imageData: contact.imageData,
+                        chats: [] // Initialize with empty chats
+                    )
+                    modelContext.insert(newUser)
+                    try modelContext.save()
+                    print("User created for phone: \(contact.phone)")
+                } else {
+                    print("User already exists for phone: \(contact.phone)")
+                }
+            } catch {
+                print("Error saving or fetching user: \(error)")
+            }
+        }
+    }
 }

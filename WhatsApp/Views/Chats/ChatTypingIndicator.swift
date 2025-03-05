@@ -1,7 +1,7 @@
 
 import SwiftUI
 
-struct TypingIndicator: View {
+struct ChatTypingIndicator: View {
     @State private var isAnimating = false
 
     var body: some View {

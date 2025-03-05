@@ -9,7 +9,7 @@ import SwiftData
 
 @main
 struct WhatsAppApp: App {
-    @State private var contactsManager = ContactsManager()
+//    @State private var contactsManager = ContactsManager()
     @State private var callsViewModel = CallsViewModel()
     @State private var communityViewModel = CommunityViewModel()
     @State private var chatsViewModel = ChatsViewModel()
@@ -27,7 +27,7 @@ struct WhatsAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(contactsManager)
+//                .environment(contactsManager)
                 .environment(chatsViewModel)
                 .environment(callsViewModel)
                 .environment(communityViewModel)

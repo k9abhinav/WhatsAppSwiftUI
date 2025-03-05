@@ -1,9 +1,4 @@
-//
-//  CommunityViewModel.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 27/02/25.
-//
+
 import Foundation
 
 @Observable class CommunityViewModel {

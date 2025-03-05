@@ -1,7 +1,5 @@
 
-
 import Foundation
-
 
 struct Contact: Identifiable, Hashable {
     let id = UUID()

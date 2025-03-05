@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct GroupRow: View {
+struct CommunityGroupRow: View {
     @Environment(CommunityViewModel.self) var viewModel:CommunityViewModel
     let group: CommunityGroup
 

@@ -5,12 +5,10 @@ import SwiftData
 struct SettingsView: View {
     
     @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) private var context
-
+//    @Environment(\.modelContext) private var context
     @AppStorage("userName") private var userName = "User"
     @AppStorage("userStatus") private var userStatus = "No About here!"
     @AppStorage("userImageKey") private var userImageData: Data?
-
     @State private var showingEdit = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
@@ -169,5 +167,5 @@ struct eachSettingSection: View {
 }
 
 
-// ------------------------------------ PREVIEW ----------------------------------------------------------
+
 

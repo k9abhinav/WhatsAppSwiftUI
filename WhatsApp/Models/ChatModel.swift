@@ -1,9 +1,4 @@
-//
-//  Chat.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 13/02/25.
-//
+
 import Foundation
 import SwiftData
 

@@ -1,9 +1,4 @@
-//
-//  CommunityModels.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 14/02/25.
-//
+
 import Foundation
 
 struct Community: Identifiable {

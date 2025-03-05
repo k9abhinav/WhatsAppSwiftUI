@@ -25,7 +25,8 @@ struct SplashScreen: View {
                 size = 0.9
                 opacity = 1.0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
                 withAnimation {
                     splashViewActive = false
                 }
