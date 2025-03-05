@@ -1,5 +1,5 @@
 ## **🚀 WhatsApp Clone (SwiftUI)**
-A **WhatsApp-inspired** chat application built using **SwiftUI** with **SwiftData** for persistent storage. This project is for **learning purposes only** and does **not use a backend**—it relies entirely on local storage.
+A **WhatsApp-inspired** chat application built using **SwiftUI** with **SwiftData** for persistent storage. This project is for **learning purposes only** 
 
 ### 📸 **Screenshots**
 ---
