@@ -1,13 +1,7 @@
-Here's a **README.md** file content for your **WhatsApp SwiftUI Clone** project on GitHub. It includes an overview, features, setup instructions, and more.  
-
----
-
 ## **🚀 WhatsApp Clone (SwiftUI)**
 A **WhatsApp-inspired** chat application built using **SwiftUI** with **SwiftData** for persistent storage. This project is for **learning purposes only** and does **not use a backend**—it relies entirely on local storage.
 
 ### 📸 **Screenshots**
-_(Add some images of your app's UI here.)_
-
 ---
 
 ## **✨ Features**
@@ -25,7 +19,6 @@ _(Add some images of your app's UI here.)_
 ## **🛠️ Tech Stack**
 - **SwiftUI** (for UI)
 - **SwiftData** (for persistent storage)
-- **@Observable** (instead of `@ObservableObject`)
 - **Contacts Framework** (for fetching contacts)
 - **Async/Await & DispatchQueue** (for concurrency)
 
@@ -70,6 +63,3 @@ This project is for learning purposes, but feel free to fork and experiment! �
 ## **📄 License**
 ⚠️ **This project is not affiliated with WhatsApp.** It is for educational purposes only.  
 
----
-
-Would you like me to tweak it based on your progress? 
