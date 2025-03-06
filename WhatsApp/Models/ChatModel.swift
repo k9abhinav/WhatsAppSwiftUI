@@ -15,7 +15,6 @@ class Chat {
          self.content = content
          self.isFromCurrentUser = isFromCurrentUser
          self.timestamp = Date()
-
          self.user = user
      }
 }

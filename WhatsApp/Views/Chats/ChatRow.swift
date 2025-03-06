@@ -31,7 +31,7 @@ struct ChatRow: View {
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {
         VStack {
-            let date: Date = Date()
+            let date: Date = user.lastChatMessage?.timestamp ??  .now
             Text(timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
@@ -45,7 +45,7 @@ struct ChatRow: View {
             HStack{
                 Image(systemName: "checkmark.message.fill")
                     .foregroundColor(.green.opacity(0.9))
-                Text(user.lastChatMessage?.content ?? "Ok")
+                Text(user.lastChatMessage?.content ?? "")
                     .font(.subheadline)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -72,10 +72,21 @@ struct ChatRow: View {
     }
     // MARK: HELPER FUNCTIONS -------------------------------
     private func timeString(from date: Date) -> String {
+        let calendar = Calendar.current
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+
+        if calendar.isDateInToday(date) {
+            formatter.timeStyle = .short
+            return formatter.string(from: date)  // Example: "2:30 PM"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            return formatter.string(from: date)  // Example: "Mar 4, 2025"
+        }
     }
+
 
 
 }

@@ -1,6 +1,6 @@
-
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct ChatDetailView: View {
 
@@ -9,9 +9,7 @@ struct ChatDetailView: View {
     @Environment(\.modelContext) private var context : ModelContext
     @Environment(\.presentationMode) private var presentationMode
     @FocusState private var isTextFieldFocused: Bool
-    @State private var scrollViewProxy: ScrollViewProxy?
     @State private var messageText: String = ""
-    @State private var isKeyboardShowing: Bool = false
     @State private var isProfilePicPresented: Bool = false
     @State private var isTyping: Bool = false
 
@@ -19,13 +17,11 @@ struct ChatDetailView: View {
 
     var body: some View {
         VStack {
-            VStack{
-                ZStack{
-                    backGroundImage
-                    mainScrollChatsView
-                }
-                inputMessageTabBar
+            ZStack {
+                backGroundImage
+                mainScrollChatsView
             }
+            inputMessageTabBar
         }
         .modifier(KeyBoardViewModifier())
         .navigationBarTitleDisplayMode(.inline)
@@ -47,32 +43,23 @@ struct ChatDetailView: View {
         viewModel.sendMessage(user: user, messageText: messageText, context: context)
         messageText = ""
         isTyping = true
-
-        if let scrollProxy = scrollViewProxy {
-            scrollToBottom(scrollProxy, chats: user.chats)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             isTyping = false
-            if let scrollProxy = scrollViewProxy {
-                scrollToBottom(scrollProxy, chats: user.chats)
-            }
         }
     }
 
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
-    private func scrollToBottom(_ scrollProxy: ScrollViewProxy, chats: [Chat]) {
-        guard let lastMessage = chats.last else { return }
 
+    private func scrollToBottom(_ scrollProxy: ScrollViewProxy) {
+        guard let lastMessage = user.chats.last else { return }
         DispatchQueue.main.async {
             withAnimation(.smooth) {
                 scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
             }
         }
     }
-
 
     //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
 
@@ -102,7 +89,6 @@ struct ChatDetailView: View {
         .popover(isPresented: $isProfilePicPresented) {
             ProfilePicView(user: user).presentationDetents([.fraction(0.65)])
         }
-
     }
 
     private var topRightNavItems: some View {
@@ -115,46 +101,73 @@ struct ChatDetailView: View {
     private var mainScrollChatsView: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(spacing: 10) {
-                    ForEach(user.chats ,id: \.id) { message in
+                LazyVStack(spacing: 10, pinnedViews: []) {
+                    ForEach(user.chats, id: \.id) { message in
                         ChatBubble(message: message)
                             .id(message.id)
+
                     }
+
                     if isTyping {
                         HStack {
                             ChatTypingIndicator()
                             Spacer()
                         }
-                        .padding(.leading, 10)
+                        .padding(.leading, 50)
                         .transition(.opacity)
                         .id("TypingIndicator")
                     }
+                }
+            }
+            .padding(.bottom, 10)
+            .scrollIndicators(.hidden)
+            .onAppear {
+
+                if let lastMessage = user.chats.last {
+                    scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                }
+            }
+            .onChange(of: user.chats.count) { _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    if let lastMessage = user.chats.last {
+                        withTransaction(Transaction(animation: nil)) {
+                            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+            .onChange(of: isTextFieldFocused) { _, isFocused in
+                if isFocused {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        if let lastMessage = user.chats.last {
+                            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+            .onChange(of: isTyping) { _, newValue in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+
+                        if newValue {
+                            scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
+                        } else if let lastMessage = user.chats.last {
+                            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
 
                 }
             }
-            .padding(.bottom,10)
-            .scrollIndicators(.hidden)
-            .onAppear {
-                scrollViewProxy = scrollProxy
-                scrollToBottom(scrollProxy, chats: user.chats)
-            }
-            .onChange(of: user.chats.count) { _, _ in
-                      if let scrollProxy = scrollViewProxy {
-                          scrollToBottom(scrollProxy, chats: user.chats)
-                      }
-                  }
-            .onChange(of: isTyping) { _, _ in
-                       if let scrollProxy = scrollViewProxy {
-                           scrollToBottom(scrollProxy, chats: user.chats)
-                       }
-                   }
 
         }
     }
 
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
-            Button(action: { print("Plus button tapped") }) {
+            PhotosPicker(
+                selection: .constant( nil ) ,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            {
                 Image(systemName: "plus")
                     .font(.system(size: 22))
                     .foregroundColor(.gray)
@@ -173,7 +186,7 @@ struct ChatDetailView: View {
         }
         .padding(.horizontal)
         .padding(.top, 1)
-        .padding(.bottom,5)
+        .padding(.bottom, 5)
     }
 
     private var profileImage: some View {
@@ -197,9 +210,15 @@ struct ChatDetailView: View {
 
 }
 
-extension View {
-    func keyboardObserving() -> some View {
-        modifier(KeyBoardViewModifier())
-    }
-}
 
+//    .onAppear {
+//        let storageKey = "lastReadMessage_\(user.id)"
+//        lastReadMessageID = UserDefaults.standard.string(forKey: storageKey) ?? ""
+//        print("USER ID : -->  \(lastReadMessageID)")
+//
+//        if lastReadMessageID.isEmpty {
+//            scrollProxy.scrollTo(lastReadMessageID, anchor: .bottom)
+//        } else if let lastMessage = user.chats.last {
+//            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+//        }
+//    }

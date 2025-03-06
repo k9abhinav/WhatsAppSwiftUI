@@ -4,13 +4,19 @@ import SwiftUI
 struct CustomSearchBar: View {
 
     @Binding var searchText: String
-    @State var placeholderText: String 
+    @State var placeholderText: String
+    @FocusState var isFocused: Bool
 
     var body: some View {
         HStack {
             magnifyingGlassSymbol
             searchBar
             if !searchText.isEmpty { crossButton }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(style: StrokeStyle(lineWidth: 3))
+                .foregroundColor( isFocused ? Color.green : Color.clear)
         }
         .background(Color.gray.opacity(0.1))
     }
@@ -26,8 +32,10 @@ struct CustomSearchBar: View {
     private var searchBar : some View {
         TextField(placeholderText, text: $searchText)
             .padding(.vertical, 10)
+            .focused($isFocused)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
+
     }
 
     private var crossButton: some View {

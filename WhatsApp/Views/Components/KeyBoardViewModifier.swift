@@ -10,7 +10,7 @@ struct KeyBoardViewModifier: ViewModifier {
         content
             .safeAreaInset(edge: .bottom) {
                 if isKeyboardVisible {
-                    Color.clear.frame(height: keyboardHeight) // Add space only when the keyboard is visible
+                    Color.clear.frame(height: max(0,keyboardHeight)) // Add space only when the keyboard is visible
                 }
             }
             .onAppear {
