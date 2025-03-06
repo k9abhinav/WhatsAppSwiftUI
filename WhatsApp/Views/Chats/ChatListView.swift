@@ -66,7 +66,7 @@ struct ChatListView: View {
             .padding(.horizontal, 8)
             .padding(.top, 12)
 
-            VStack(spacing: 17) {
+            VStack(spacing: 18) {
                 if filteredUsers.isEmpty && !searchText.isEmpty {
                     Text("No matches found")
                         .font(.caption)
