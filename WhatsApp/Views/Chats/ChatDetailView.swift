@@ -22,6 +22,8 @@ struct ChatDetailView: View {
                 mainScrollChatsView
             }
             inputMessageTabBar
+                .background(Color.white)
+                .ignoresSafeArea()
         }
         .modifier(KeyBoardViewModifier())
         .navigationBarTitleDisplayMode(.inline)
@@ -30,6 +32,8 @@ struct ChatDetailView: View {
             ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
             ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
         }
+        .toolbarBackground(.white, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .onDisappear {
             withAnimation(.spring) { UITabBar.appearance().isHidden = false }
@@ -67,6 +71,7 @@ struct ChatDetailView: View {
         Image("bgChats")
             .resizable()
             .scaledToFill()
+            .scaleEffect(1.4)
             .opacity(0.5)
     }
 
@@ -119,7 +124,6 @@ struct ChatDetailView: View {
                     }
                 }
             }
-            .padding(.bottom, 10)
             .scrollIndicators(.hidden)
             .onAppear {
 
@@ -185,7 +189,7 @@ struct ChatDetailView: View {
             .disabled(messageText.isEmpty)
         }
         .padding(.horizontal)
-        .padding(.top, 1)
+        .padding(.top, 8)
         .padding(.bottom, 5)
     }
 

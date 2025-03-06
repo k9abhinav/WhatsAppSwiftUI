@@ -23,7 +23,7 @@ struct ChatRow: View {
                 userLastSeenTime
             }
             .padding(.vertical,5)
-            .cornerRadius(10)
+//            .cornerRadius(10)
 
         }
         .buttonStyle(.plain)
@@ -39,18 +39,24 @@ struct ChatRow: View {
         }
     }
     private var userProfileNameandContent: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading,spacing: 6) {
             Text(user.name)
                 .font(.headline)
-            HStack{
-                Image(systemName: "checkmark.message.fill")
-                    .foregroundColor(.green.opacity(0.9))
+             
+            HStack(spacing:12 ){
+                Image("doubleCheck")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 5, height: 5)
+                    .scaleEffect(3.5)
+
                 Text(user.lastChatMessage?.content ?? "")
                     .font(.subheadline)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .foregroundColor(.gray)
-            }.frame(maxWidth : .infinity, alignment: .leading)
+            }
+            .padding(.leading,5)
         }
     }
     private var userProfilePictureView: some View {
