@@ -5,7 +5,7 @@ import SwiftData
 struct SettingsView: View {
     
     @Environment(\.dismiss) var dismiss
-//    @Environment(\.modelContext) private var context
+    @Environment(AuthViewModel.self) private var viewModel
     @AppStorage("userName") private var userName = "User"
     @AppStorage("userStatus") private var userStatus = "No About here!"
     @AppStorage("userImageKey") private var userImageData: Data?
@@ -123,7 +123,7 @@ struct SettingsView: View {
 
     private var actionsSection: some View {
         Section {
-            Button("Logout") {}
+            Button("Logout") { viewModel.signOut() }
             Button("About") {}
         }
         .foregroundColor(.secondary)

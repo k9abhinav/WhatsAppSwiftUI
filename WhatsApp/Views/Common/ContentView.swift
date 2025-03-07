@@ -1,18 +1,32 @@
+
+
 import SwiftUI
 import SwiftData
-
+import FirebaseAuth
 struct ContentView: View {
     @State private var splashViewActive = true
+    @State private var isUserLoggedIn: Bool = Auth.auth().currentUser != nil
+    @State private var authListenerHandle: AuthStateDidChangeListenerHandle?
     var body: some View {
         Group {
             if splashViewActive {
                 SplashScreen(splashViewActive: $splashViewActive)
-            } else {
-                MainTabView()
+            } else  {
+                if isUserLoggedIn { MainTabView() }
+                else {  SignUpView() }
             }
         }
         .animation(.easeOut(duration: 0.3), value: splashViewActive)
-//        .onAppear { contactsManager.requestAccess() }
+        .onAppear {
+            authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
+                isUserLoggedIn = (user != nil)
+            }
+        }
+        .onDisappear {
+            if let handle = authListenerHandle {
+                Auth.auth().removeStateDidChangeListener(handle)
+            }
+        }
     }
 }
 
@@ -20,6 +34,11 @@ struct ContentView: View {
 
 
 
+
+
+
+
+//        .onAppear { contactsManager.requestAccess() }
 
 //    @Environment(ContactsManager.self) private var contactsManager : ContactsManager
 //    @Environment(\.modelContext) var modelContext: ModelContext
