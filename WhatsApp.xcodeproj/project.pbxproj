@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		C606DC512D7EA07E0072B6B9 /* .gitignore in Sources */ = {isa = PBXBuildFile; fileRef = C606DC502D7EA0790072B6B9 /* .gitignore */; };
+		C606DC542D7EAC750072B6B9 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC532D7EAC750072B6B9 /* GoogleSignIn */; };
+		C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */; };
 		C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = C67C79682D7ABDBF009B1BA2 /* FirebaseAnalytics */; };
 		C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796A2D7ABDBF009B1BA2 /* FirebaseAuth */; };
 		C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796C2D7ABDBF009B1BA2 /* FirebaseDatabase */; };
@@ -40,9 +42,22 @@
 		C6F5562A2D5DA67E00296758 /* WhatsAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhatsAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C606DC5A2D7EBC420072B6B9 /* Exceptions for "WhatsApp" folder in "WhatsApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C6F5560F2D5DA67E00296758 /* WhatsApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C6F556122D5DA67E00296758 /* WhatsApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C606DC5A2D7EBC420072B6B9 /* Exceptions for "WhatsApp" folder in "WhatsApp" target */,
+			);
 			path = WhatsApp;
 			sourceTree = "<group>";
 		};
@@ -63,8 +78,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C606DC542D7EAC750072B6B9 /* GoogleSignIn in Frameworks */,
 				C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */,
 				C67C796F2D7ABDBF009B1BA2 /* FirebaseStorage in Frameworks */,
+				C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */,
 				C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */,
 				C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */,
 			);
@@ -133,6 +150,8 @@
 				C67C796A2D7ABDBF009B1BA2 /* FirebaseAuth */,
 				C67C796C2D7ABDBF009B1BA2 /* FirebaseDatabase */,
 				C67C796E2D7ABDBF009B1BA2 /* FirebaseStorage */,
+				C606DC532D7EAC750072B6B9 /* GoogleSignIn */,
+				C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */,
 			);
 			productName = WhatsApp;
 			productReference = C6F556102D5DA67E00296758 /* WhatsApp.app */;
@@ -218,6 +237,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				C606DC522D7EAC750072B6B9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C6F556112D5DA67E00296758 /* Products */;
@@ -419,12 +439,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WhatsApp/Preview Content\"";
 				DEVELOPMENT_TEAM = A5G4Z284VF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WhatsApp/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -451,12 +474,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WhatsApp/Preview Content\"";
 				DEVELOPMENT_TEAM = A5G4Z284VF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WhatsApp/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -592,6 +618,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C606DC522D7EAC750072B6B9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "git@github.com:google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 		C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "git@github.com:firebase/firebase-ios-sdk.git";
@@ -603,6 +637,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C606DC532D7EAC750072B6B9 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C606DC522D7EAC750072B6B9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C606DC522D7EAC750072B6B9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
 		C67C79682D7ABDBF009B1BA2 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

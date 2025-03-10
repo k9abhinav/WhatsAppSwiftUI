@@ -41,6 +41,8 @@ struct SignUpView: View {
     @State private var enteredPassword: String = ""
     @State private var enteredFullName: String = ""
     @State private var phoneNumber: String = ""
+    @State private var otpCode = ""
+    @State private var isOTPOverlayVisible = false
 
     var body: some View {
         NavigationView {
@@ -68,21 +70,22 @@ struct SignUpView: View {
 
                     // Form Fields
                     VStack(spacing: 20) {
-                        TextField("Full Name", text: $enteredFullName)
-                        .modifier(TextFieldStyle())
-                        .autocapitalization(.words)
+                        //                        TextField("Full Name", text: $enteredFullName)
+                        //                        .modifier(TextFieldStyle())
+                        //                        .autocapitalization(.words)
 
                         TextField("Phone Number", text: $phoneNumber)
-                        .modifier(TextFieldStyle())
-                        .keyboardType(.phonePad)
-
-                        TextField("Email", text: $enteredEmail)
-                        .modifier(TextFieldStyle())
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-
-                        SecureField("Password", text: $enteredPassword)
                             .modifier(TextFieldStyle())
+                            .keyboardType(.phonePad)
+
+
+                        //                        TextField("Email", text: $enteredEmail)
+                        //                        .modifier(TextFieldStyle())
+                        //                        .keyboardType(.emailAddress)
+                        //                        .autocapitalization(.none)
+                        //
+                        //                        SecureField("Password", text: $enteredPassword)
+                        //                            .modifier(TextFieldStyle())
                     }
                     .padding(.vertical, 30)
 
@@ -90,26 +93,29 @@ struct SignUpView: View {
                     Button(action: {
                         isLoading = true
                         Task {
-                            await viewModel.signUpWithEmail(
-                                email: enteredEmail,
-                                password: enteredPassword,
-                                fullName: enteredFullName,
-                                phoneNumber: phoneNumber
-                            )
-                            isLoading = false
-                        }
+                               await viewModel.sendOTP(phoneNumber: phoneNumber)
+                               isOTPOverlayVisible = true
+                           }
+                        //                        Task {
+                        //                            await viewModel.signUpWithEmail(
+                        //                                email: enteredEmail,
+                        //                                password: enteredPassword,
+                        //                                fullName: enteredFullName,
+                        //                                phoneNumber: phoneNumber
+                        //                            )
+                        //                            isLoading = false
+                        //                        }
+
                     }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Text("Sign Up")
-                                .fontWeight(.semibold)
-                        }
+                        Text("Send OTP")
+                            .fontWeight(.semibold)
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .padding(.horizontal)
-                    .disabled(isLoading)
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    }
 
                     // Social Sign Up Options
                     VStack(spacing: 15) {
@@ -118,9 +124,16 @@ struct SignUpView: View {
                             .font(.footnote)
 
                         HStack(spacing: 20) {
-                            SocialButton(image: "apple.logo", action: {})
-                            SocialButton(image: "g.circle.fill", action: {})
-                            SocialButton(image: "phone.fill", action: {})
+                            //                            SocialButton(image: "apple.logo", action: {})
+                            SocialButton(image: "g.circle.fill", action: {
+                                Task {
+                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let rootVC = scene.windows.first?.rootViewController {
+                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                                    }
+                                }
+                            })
+                            //                            SocialButton(image: "phone.fill", action: {})
                         }
                     }
                     .padding(.vertical)
@@ -153,6 +166,13 @@ struct SignUpView: View {
             .navigationBarHidden(true)
             .fullScreenCover(isPresented: $isShowingSignIn) {
                 SignInView()
+            }
+            .sheet(isPresented: $isOTPOverlayVisible) {
+                OTPOverlayView(isPresented: $isOTPOverlayVisible, otpCode: $otpCode) {
+                    Task {
+                        await viewModel.verifyOTP(otpCode: otpCode)
+                    }
+                }
             }
             .alert(isPresented: Binding(
                 get: { viewModel.showingError },

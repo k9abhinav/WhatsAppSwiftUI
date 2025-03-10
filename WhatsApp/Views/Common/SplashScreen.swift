@@ -7,10 +7,10 @@ struct SplashScreen: View {
 
     var body: some View {
         VStack {
-            Image("whatsapp")
+            Image("welcome_image")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 200, height: 200)
+                .frame(width: 300, height: 300)
                 .padding()
 
             Text("WhatsApp")

@@ -1,6 +1,9 @@
-import Foundation
+import Firebase
 import FirebaseAuth
 import SwiftUI
+import GoogleSignIn
+import GoogleSignInSwift
+import UIKit
 
 @MainActor @Observable final class AuthViewModel {
     var user: FireUserModel?
@@ -14,7 +17,7 @@ import SwiftUI
         loadCurrentUser()
     }
 
-    // MARK: - Load Current User
+    // MARK : - Load Current User
     private func loadCurrentUser() {
         guard let firebaseUser = Auth.auth().currentUser else { return }
         user = FireUserModel(
@@ -24,12 +27,13 @@ import SwiftUI
             phoneNumber: firebaseUser.phoneNumber,
             profileImageURL: nil
         )
-        print ("\(user.debugDescription)")
+        print ("This is : \(user.debugDescription)")
         isAuthenticated = true
     }
 
-    // MARK: - Sign Up with Email
+    // MARK : - Sign Up with Email
     func signUpWithEmail(email: String, password: String, fullName: String, phoneNumber: String ) async {
+
         guard !email.isEmpty, !password.isEmpty, !fullName.isEmpty ,!phoneNumber.isEmpty else {
             showError("Please fill in all fields")
             return
@@ -45,7 +49,7 @@ import SwiftUI
     }
 
 
-    // MARK: - Sign In with Email
+    // MARK : - Sign In with Email
     func signInWithEmail(email: String, password: String) async {
         guard !email.isEmpty, !password.isEmpty else {
             showError("Please enter both email and password")
@@ -61,7 +65,7 @@ import SwiftUI
     }
 
 
-    // MARK: - Sign Out
+    // MARK : - Sign Out
     func signOut() {
         do {
             try Auth.auth().signOut()
@@ -72,7 +76,7 @@ import SwiftUI
         }
     }
 
-    // MARK: - Update Email
+    // MARK : - Update Email
     func updateEmail(newEmail: String) async {
         guard let firebaseUser = Auth.auth().currentUser else { return }
         do {
@@ -83,7 +87,7 @@ import SwiftUI
         }
     }
 
-    // MARK: - Update Password
+    // MARK : - Update Password
     func updatePassword(newPassword: String) async {
         guard let firebaseUser = Auth.auth().currentUser else { return }
         do {
@@ -93,7 +97,7 @@ import SwiftUI
         }
     }
 
-    // MARK: - Update Display Name
+    // MARK : - Update Display Name
     func updateDisplayName(newName: String) async {
         guard let firebaseUser = Auth.auth().currentUser else { return }
         let changeRequest = firebaseUser.createProfileChangeRequest()
@@ -105,8 +109,111 @@ import SwiftUI
             showError(error.localizedDescription)
         }
     }
+    // MARK : SIGN IN WITH GOOGLE
+    func signInWithGoogle(presenting viewController: UIViewController) async {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            showError("Missing Firebase Client ID")
+            return
+        }
 
-    // MARK: - Delete Account
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        do {
+            let userAuth = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
+            guard let idToken = userAuth.user.idToken?.tokenString else {
+                showError("Failed to retrieve Google ID Token")
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                           accessToken: userAuth.user.accessToken.tokenString)
+
+            let authResult = try await Auth.auth().signIn(with: credential)
+            let firebaseUser = authResult.user
+
+            user = FireUserModel(
+                uid: firebaseUser.uid,
+                fullName: firebaseUser.displayName ?? "",
+                email: firebaseUser.email,
+                phoneNumber: firebaseUser.phoneNumber,
+                profileImageURL: firebaseUser.photoURL?.absoluteString
+            )
+
+            isAuthenticated = true
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+    // MARK: PHONE N OTP as password
+    func sendOTP(phoneNumber: String) async {
+        guard !phoneNumber.isEmpty else {
+            showError("Please enter a valid phone number")
+            return
+        }
+
+        let formattedPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard formattedPhone.hasPrefix("+") else {
+            showError("Phone number must include country code (e.g., +1 for the US).")
+            return
+        }
+
+        do {
+            print("Requesting OTP for: \(formattedPhone)")
+
+            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(formattedPhone, uiDelegate: nil)
+
+            DispatchQueue.main.async {
+                self.verificationID = verificationID
+                print("OTP sent successfully! Verification ID: \(verificationID)")
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.showError("Failed to send OTP: \(error.localizedDescription)")
+                print("Error sending OTP: \(error.localizedDescription)")
+
+                if let error = error as NSError? {
+                    print("Debug Info - Code: \(error.code), Domain: \(error.domain)")
+                }
+            }
+        }
+    }
+
+
+
+
+    func verifyOTP(otpCode: String) async {
+        guard !otpCode.isEmpty, !verificationID.isEmpty else {
+            showError("Invalid OTP or missing verification ID")
+            return
+        }
+
+        let credential = PhoneAuthProvider.provider().credential(
+            withVerificationID: verificationID,
+            verificationCode: otpCode
+        )
+
+        do {
+            let authResult = try await Auth.auth().signIn(with: credential)
+            let firebaseUser = authResult.user
+
+            user = FireUserModel(
+                uid: firebaseUser.uid,
+                fullName: firebaseUser.displayName ?? "",
+                email: firebaseUser.email,
+                phoneNumber: firebaseUser.phoneNumber,
+                profileImageURL: nil
+            )
+
+            isAuthenticated = true
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+
+    // MARK : - Delete Account
     func deleteAccount() async {
         guard let firebaseUser = Auth.auth().currentUser else { return }
         do {
@@ -124,3 +231,4 @@ import SwiftUI
         showingError = true
     }
 }
+

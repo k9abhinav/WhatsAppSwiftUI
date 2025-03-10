@@ -3,7 +3,7 @@ import PhotosUI
 import SwiftData
 
 struct SettingsView: View {
-    
+
     @Environment(\.dismiss) var dismiss
     @Environment(AuthViewModel.self) private var viewModel
     @AppStorage("userName") private var userName = "User"
@@ -45,7 +45,7 @@ struct SettingsView: View {
         }
     }
 
-// MARK: Components ----------------------------------------------
+    // MARK: Components ----------------------------------------------
 
     private var profileSection: some View {
         Section {
@@ -124,6 +124,11 @@ struct SettingsView: View {
     private var actionsSection: some View {
         Section {
             Button("Logout") { viewModel.signOut() }
+            Button("Delete your WhatsApp account") {
+                Task {  await viewModel.deleteAccount()   }
+            }
+            Button("Update Password") {  }
+            Button("Update Name") {}
             Button("About") {}
         }
         .foregroundColor(.secondary)
