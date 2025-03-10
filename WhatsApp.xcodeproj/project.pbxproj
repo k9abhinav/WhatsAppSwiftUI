@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C606DC512D7EA07E0072B6B9 /* .gitignore in Sources */ = {isa = PBXBuildFile; fileRef = C606DC502D7EA0790072B6B9 /* .gitignore */; };
 		C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = C67C79682D7ABDBF009B1BA2 /* FirebaseAnalytics */; };
 		C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796A2D7ABDBF009B1BA2 /* FirebaseAuth */; };
 		C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796C2D7ABDBF009B1BA2 /* FirebaseDatabase */; };
@@ -32,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C606DC502D7EA0790072B6B9 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		C6B8C6092D682FFA00827362 /* About.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = About.txt; sourceTree = "<group>"; };
 		C6F556102D5DA67E00296758 /* WhatsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WhatsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6F556202D5DA67E00296758 /* WhatsAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhatsAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,6 +90,7 @@
 		C6F556072D5DA67E00296758 = {
 			isa = PBXGroup;
 			children = (
+				C606DC502D7EA0790072B6B9 /* .gitignore */,
 				C6B8C6092D682FFA00827362 /* About.txt */,
 				C6F556122D5DA67E00296758 /* WhatsApp */,
 				C6F556232D5DA67E00296758 /* WhatsAppTests */,
@@ -258,6 +261,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C606DC512D7EA07E0072B6B9 /* .gitignore in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

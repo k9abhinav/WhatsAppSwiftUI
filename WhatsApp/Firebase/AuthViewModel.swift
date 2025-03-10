@@ -24,6 +24,7 @@ import SwiftUI
             phoneNumber: firebaseUser.phoneNumber,
             profileImageURL: nil
         )
+        print ("\(user.debugDescription)")
         isAuthenticated = true
     }
 
@@ -36,7 +37,7 @@ import SwiftUI
 
         do {
             let authResult = try await Auth.auth().createUser(withEmail: email, password: password)
-            let user = FireUserModel(uid: authResult.user.uid, fullName: fullName, email: email, phoneNumber: phoneNumber , profileImageURL: nil)
+//            let user = FireUserModel(uid: authResult.user.uid, fullName: fullName, email: email, phoneNumber: phoneNumber , profileImageURL: nil)
             isAuthenticated = true
         } catch {
             showError(error.localizedDescription)
