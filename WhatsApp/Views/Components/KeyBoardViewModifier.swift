@@ -16,7 +16,7 @@ struct KeyBoardViewModifier: ViewModifier {
             .onAppear {
                 NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                     if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                        keyboardHeight = keyboardFrame.height - 130 // Reduce the height to avoid too much space
+                        keyboardHeight = keyboardFrame.height - 350 // Reduce the height to avoid too much space
                         isKeyboardVisible = true
                     }
                 }

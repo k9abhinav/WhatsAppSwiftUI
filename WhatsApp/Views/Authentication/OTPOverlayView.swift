@@ -42,7 +42,7 @@ struct OTPOverlayView: View {
                     }
                     .foregroundColor(.white)
                     .padding()
-                    .background(Color.green)
+                    .background(Color.customGreen)
                     .cornerRadius(8)
                 }
             }

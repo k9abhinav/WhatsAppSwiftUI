@@ -3,7 +3,7 @@ import PhotosUI
 import SwiftData
 
 struct SettingsView: View {
-
+    @State private var profileViewModel: ProfileImageViewModel = ProfileImageViewModel()
     @Environment(\.dismiss) var dismiss
     @Environment(AuthViewModel.self) private var viewModel
     @AppStorage("userName") private var userName = "User"
@@ -59,7 +59,7 @@ struct SettingsView: View {
                         profileImageView
                         Image(systemName: "camera.fill")
                             .padding(7)
-                            .background(Color.green)
+                            .background(Color.customGreen)
                             .clipShape(Circle())
                             .foregroundColor(.white.opacity(0.9))
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -70,7 +70,8 @@ struct SettingsView: View {
 
                 Button(action: { showingEdit = true }) {
                     VStack {
-                        Text(userName)
+                        Text(viewModel.user?.fullName ?? "Couldn't load user name")
+//                        Text(userName)
                             .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundColor(.black.opacity(0.8))
@@ -94,22 +95,21 @@ struct SettingsView: View {
 
     private var profileImageView: some View {
         Group {
-            if let imageData = userImageData,
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
-            }
-        }
+            if let imageData = profileViewModel.userImageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 80)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 80)
+                            .clipShape(Circle())
+                            .foregroundColor(.gray)
+                    }
+                }
     }
 
     private var settingsSection: some View {
@@ -131,7 +131,7 @@ struct SettingsView: View {
             Button("Update Name") {}
             Button("About") {}
         }
-        .foregroundColor(.secondary)
+        .foregroundColor(.red)
     }
 
     private func loadImage(_ newItem: PhotosPickerItem?) {

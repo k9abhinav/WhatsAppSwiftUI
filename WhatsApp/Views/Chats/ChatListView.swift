@@ -38,7 +38,8 @@ struct ChatListView: View {
         Text("WhatsApp")
             .font(.title)
             .fontWeight(.semibold)
-            .foregroundColor(.green)
+//            .foregroundStyle(Color.rainbow)
+            .foregroundColor(Color.customGreen)
     }
 
     private var toolbarButtons: some View {

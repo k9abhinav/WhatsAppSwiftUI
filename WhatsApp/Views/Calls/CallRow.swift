@@ -47,7 +47,7 @@ struct CallRow: View {
                 print("Phone key is tapped")
             }) {
                 Image(systemName: call.callType == .audio ? "phone" : "video")
-                    .foregroundColor(.green)
+                    .foregroundColor(.customGreen)
             }
         }
         .padding(.vertical, 5)

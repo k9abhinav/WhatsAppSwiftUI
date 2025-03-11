@@ -4,6 +4,7 @@ import SwiftUI
 import GoogleSignIn
 import GoogleSignInSwift
 import UIKit
+import FirebaseFirestore
 
 @MainActor @Observable final class AuthViewModel {
     var user: FireUserModel?
@@ -40,7 +41,8 @@ import UIKit
         }
 
         do {
-            let authResult = try await Auth.auth().createUser(withEmail: email, password: password)
+//            let authResult =
+            try await Auth.auth().createUser(withEmail: email, password: password)
 //            let user = FireUserModel(uid: authResult.user.uid, fullName: fullName, email: email, phoneNumber: phoneNumber , profileImageURL: nil)
             isAuthenticated = true
         } catch {
@@ -131,7 +133,30 @@ import UIKit
 
             let authResult = try await Auth.auth().signIn(with: credential)
             let firebaseUser = authResult.user
+            print("DEBUG: Firebase Sign-In successful. UID: \(firebaseUser.uid)")
+            let userRef = Firestore.firestore().collection("users").document(firebaseUser.uid)
 
+            // Check if user exists in Firestore
+            let document = try await userRef.getDocument()
+            if document.exists {
+                print("DEBUG: User already exists in Firestore")
+            } else {
+                print("DEBUG: User does not exist in Firestore. Creating new entry.")
+
+                // Create a new user in Firestore
+                let userData: [String: Any] = [
+                    "uid": firebaseUser.uid,
+                    "fullName": firebaseUser.displayName ?? "",
+                    "email": firebaseUser.email ?? "",
+                    "phoneNumber": firebaseUser.phoneNumber ?? "",
+                    "profileImageURL": firebaseUser.photoURL?.absoluteString ?? "",
+                    "createdAt": FieldValue.serverTimestamp()
+                ]
+                try await userRef.setData(userData)
+                print("DEBUG: User successfully created in Firestore")
+            }
+
+            // Update local user model
             user = FireUserModel(
                 uid: firebaseUser.uid,
                 fullName: firebaseUser.displayName ?? "",
@@ -142,9 +167,11 @@ import UIKit
 
             isAuthenticated = true
         } catch {
+            print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
             showError(error.localizedDescription)
         }
     }
+
     // MARK: PHONE N OTP as password
     func sendOTP(phoneNumber: String) async {
         guard !phoneNumber.isEmpty else {
@@ -163,7 +190,6 @@ import UIKit
             print("Requesting OTP for: \(formattedPhone)")
 
             let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(formattedPhone, uiDelegate: nil)
-
             DispatchQueue.main.async {
                 self.verificationID = verificationID
                 print("OTP sent successfully! Verification ID: \(verificationID)")

@@ -10,10 +10,13 @@ struct ContentView: View {
     var body: some View {
         Group {
             if splashViewActive {
-                SplashScreen(splashViewActive: $splashViewActive)
+                SplashView(splashViewActive: $splashViewActive)
             } else  {
-                if isUserLoggedIn { MainTabView() }
-                else {  SignUpView() }
+                if isUserLoggedIn {
+                    withAnimation(.easeIn(duration: 0.3)) { MainTabView() }
+                }
+                else {  withAnimation(.easeIn(duration: 0.3)) { WelcomeView() }
+                }
             }
         }
         .animation(.easeOut(duration: 0.3), value: splashViewActive)
@@ -29,8 +32,43 @@ struct ContentView: View {
         }
     }
 }
+extension Color {
+    static let customGreen = Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0))
+}
+import SwiftUI
 
-
+extension Color {
+     static var rainbow: some ShapeStyle {
+        LinearGradient(
+            stops: [
+                .init(color: Color(red: 122/255, green: 229/255, blue: 83/255), location: 0.0),
+                .init(color: Color(red: 179/255, green: 203/255, blue: 54/255), location: 0.143),
+                .init(color: Color(red: 216/255, green: 78/255, blue: 87/255), location: 0.286),
+                .init(color: Color(red: 242/255, green: 191/255, blue: 28/255), location: 0.429),
+                .init(color: Color(red: 42/255, green: 161/255, blue: 208/255), location: 0.572),
+                .init(color: Color(red: 94/255, green: 196/255, blue: 138/255), location: 0.714),
+                .init(color: Color(red: 97/255, green: 124/255, blue: 184/255), location: 0.857),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+}
+extension LinearGradient {
+    static let rainbow = LinearGradient(
+        stops: [
+            .init(color: Color(red: 122/255, green: 229/255, blue: 83/255), location: 0.0),
+            .init(color: Color(red: 179/255, green: 203/255, blue: 54/255), location: 0.143),
+            .init(color: Color(red: 216/255, green: 78/255, blue: 87/255), location: 0.286),
+            .init(color: Color(red: 242/255, green: 191/255, blue: 28/255), location: 0.429),
+            .init(color: Color(red: 42/255, green: 161/255, blue: 208/255), location: 0.572),
+            .init(color: Color(red: 94/255, green: 196/255, blue: 138/255), location: 0.714),
+            .init(color: Color(red: 97/255, green: 124/255, blue: 184/255), location: 0.857),
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+}
 
 
 

@@ -70,7 +70,6 @@ struct ChatDetailView: View {
     private var backGroundImage: some View {
         Image("bgChats")
             .resizable()
-            .scaledToFill()
             .scaleEffect(1.4)
             .opacity(0.5)
     }
@@ -118,7 +117,7 @@ struct ChatDetailView: View {
                             ChatTypingIndicator()
                             Spacer()
                         }
-                        .padding(.leading, 50)
+                        .padding(.leading, 20)
                         .transition(.opacity)
                         .id("TypingIndicator")
                     }
@@ -184,7 +183,7 @@ struct ChatDetailView: View {
             Button(action: { sendMessage() }) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 22))
-                    .foregroundColor(.green)
+                    .foregroundColor(.customGreen)
             }
             .disabled(messageText.isEmpty)
         }

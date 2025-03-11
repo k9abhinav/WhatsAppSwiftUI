@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C606DC512D7EA07E0072B6B9 /* .gitignore in Sources */ = {isa = PBXBuildFile; fileRef = C606DC502D7EA0790072B6B9 /* .gitignore */; };
 		C606DC542D7EAC750072B6B9 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC532D7EAC750072B6B9 /* GoogleSignIn */; };
 		C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */; };
 		C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = C67C79682D7ABDBF009B1BA2 /* FirebaseAnalytics */; };
@@ -15,6 +14,7 @@
 		C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796C2D7ABDBF009B1BA2 /* FirebaseDatabase */; };
 		C67C796F2D7ABDBF009B1BA2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796E2D7ABDBF009B1BA2 /* FirebaseStorage */; };
 		C6B8C60A2D68302000827362 /* About.txt in Resources */ = {isa = PBXBuildFile; fileRef = C6B8C6092D682FFA00827362 /* About.txt */; };
+		C6C440BA2D802A4800D2FA94 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C6C440B92D802A4800D2FA94 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +35,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		C606DC502D7EA0790072B6B9 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		C6B8C6092D682FFA00827362 /* About.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = About.txt; sourceTree = "<group>"; };
 		C6F556102D5DA67E00296758 /* WhatsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WhatsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6F556202D5DA67E00296758 /* WhatsAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhatsAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -84,6 +83,7 @@
 				C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */,
 				C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */,
 				C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */,
+				C6C440BA2D802A4800D2FA94 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,14 +104,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C6C440B82D802A4800D2FA94 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		C6F556072D5DA67E00296758 = {
 			isa = PBXGroup;
 			children = (
-				C606DC502D7EA0790072B6B9 /* .gitignore */,
 				C6B8C6092D682FFA00827362 /* About.txt */,
 				C6F556122D5DA67E00296758 /* WhatsApp */,
 				C6F556232D5DA67E00296758 /* WhatsAppTests */,
 				C6F5562D2D5DA67E00296758 /* WhatsAppUITests */,
+				C6C440B82D802A4800D2FA94 /* Frameworks */,
 				C6F556112D5DA67E00296758 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -152,6 +159,7 @@
 				C67C796E2D7ABDBF009B1BA2 /* FirebaseStorage */,
 				C606DC532D7EAC750072B6B9 /* GoogleSignIn */,
 				C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */,
+				C6C440B92D802A4800D2FA94 /* FirebaseFirestore */,
 			);
 			productName = WhatsApp;
 			productReference = C6F556102D5DA67E00296758 /* WhatsApp.app */;
@@ -281,7 +289,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C606DC512D7EA07E0072B6B9 /* .gitignore in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -666,6 +673,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		C6C440B92D802A4800D2FA94 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -16,7 +16,7 @@ struct CustomSearchBar: View {
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(style: StrokeStyle(lineWidth: 3))
-                .foregroundColor( isFocused ? Color.green : Color.clear)
+                .foregroundColor( isFocused ? Color.customGreen : Color.clear)
         }
         .background(Color.gray.opacity(0.1))
     }

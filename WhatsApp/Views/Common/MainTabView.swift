@@ -34,7 +34,7 @@ struct MainTabView: View {
                 .badge(5)
         }
 
-        .tint(.green)
+        .tint(.customGreen)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.white, for: .tabBar)
     }

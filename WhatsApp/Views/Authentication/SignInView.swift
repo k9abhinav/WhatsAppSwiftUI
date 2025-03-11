@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleSignInSwift
 
 struct SignInView: View {
     @Environment(AuthViewModel.self) private var viewModel
@@ -25,7 +26,7 @@ struct SignInView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 70, height: 70)
-                            .foregroundColor(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
+                            .foregroundColor(.customGreen)
 
                         Text("Welcome Back")
                             .font(.largeTitle)
@@ -54,7 +55,7 @@ struct SignInView: View {
                             Button("Forgot Password?") {
                                 // Implement forgot password
                             }
-                            .foregroundColor(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
+                            .foregroundColor(.customGreen)
                             .font(.footnote)
                             .padding(.trailing)
                         }
@@ -89,7 +90,15 @@ struct SignInView: View {
                             .font(.footnote)
 
                         HStack(spacing: 20) {
-                            SocialButton(image: "apple.logo", action: {})
+//                            SocialButton(image: "apple.logo", action: {})
+                            GoogleSignInButton( scheme: GoogleSignInButtonColorScheme.light ) {
+                                Task {
+                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let rootVC = scene.windows.first?.rootViewController {
+                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                                    }
+                                }
+                            }
                             SocialButton(image: "g.circle.fill", action: {})
                             SocialButton(image: "phone.fill", action: {})
                         }
@@ -106,7 +115,7 @@ struct SignInView: View {
                         Button("Sign Up") {
                             presentationMode.wrappedValue.dismiss()
                         }
-                        .foregroundColor(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
+                        .foregroundColor(.customGreen)
                         .fontWeight(.semibold)
                     }
                     .padding(.bottom, 30)

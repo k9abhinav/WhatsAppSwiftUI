@@ -28,14 +28,14 @@ struct NewCallView: View {
                                     // Make audio call
                                 }) {
                                     Image(systemName: "phone")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.customGreen)
                                 }
 
                                 Button(action: {
                                     // Make video call
                                 }) {
                                     Image(systemName: "video")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.customGreen)
                                 }
                             }
                         }

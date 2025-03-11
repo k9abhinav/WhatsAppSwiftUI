@@ -1,37 +1,8 @@
-//
-//  SignUpView.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 07/03/25.
-//
 
 import SwiftUI
+import FirebaseAuth
+import GoogleSignInSwift
 
-// MARK: - Custom Styles
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
-    }
-}
-
-struct TextFieldStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding()
-            .background(Color(UIColor.systemGray6))
-            .cornerRadius(8)
-            .padding(.horizontal)
-    }
-}
-
-// MARK: - SignUp View
 struct SignUpView: View {
 
     @Environment(AuthViewModel.self) private var viewModel
@@ -50,17 +21,18 @@ struct SignUpView: View {
                 VStack {
                     // Header
                     VStack(spacing: 20) {
-                        Image(systemName: "message.fill")
+                        Image("image")
                             .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 70, height: 70)
-                            .foregroundColor(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
+                            .scaledToFit()
+//                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 90, height: 90)
+//                            .foregroundColor(.customGreen)
 
-                        Text("Create Account")
+                        Text("Verify Account")
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Sign up to get started with WhatsApp Clone")
+                        Text("Enter your Phone Number to get started with WhatsApp Clone.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -93,9 +65,9 @@ struct SignUpView: View {
                     Button(action: {
                         isLoading = true
                         Task {
-                               await viewModel.sendOTP(phoneNumber: phoneNumber)
-                               isOTPOverlayVisible = true
-                           }
+                            await viewModel.sendOTP(phoneNumber: phoneNumber)
+                            isOTPOverlayVisible = true
+                        }
                         //                        Task {
                         //                            await viewModel.signUpWithEmail(
                         //                                email: enteredEmail,
@@ -112,28 +84,38 @@ struct SignUpView: View {
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .padding(.horizontal)
+
                     if isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     }
-
+                    
                     // Social Sign Up Options
                     VStack(spacing: 15) {
                         Text("OR")
                             .foregroundColor(.secondary)
                             .font(.footnote)
 
-                        HStack(spacing: 20) {
-                            //                            SocialButton(image: "apple.logo", action: {})
-                            SocialButton(image: "g.circle.fill", action: {
-                                Task {
-                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                       let rootVC = scene.windows.first?.rootViewController {
-                                        await viewModel.signInWithGoogle(presenting: rootVC)
-                                    }
+                        Button("Sign In with Google"){
+                            Task {
+                                isLoading = true
+                                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                   let rootVC = scene.windows.first?.rootViewController {
+                                    await viewModel.signInWithGoogle(presenting: rootVC)
                                 }
-                            })
-                            //                            SocialButton(image: "phone.fill", action: {})
+                            }
+                        }
+                        .fontWeight(.semibold)
+                        .buttonStyle(PrimaryButtonStyle())
+                        .padding(.horizontal)
+                        HStack(spacing: 20) {
+//                                                        SocialButton(image: "apple.logo", action: {})
+//                            GoogleSignInButton( scheme: .light , style: .wide ,state: .normal ) {
+//
+//                            }
+//                            .padding(.horizontal,20)
+
+//                                                        SocialButton(image: "phone.fill", action: {})
                         }
                     }
                     .padding(.vertical)
@@ -141,17 +123,17 @@ struct SignUpView: View {
                     Spacer()
 
                     // Sign In Link
-                    HStack {
-                        Text("Already have an account?")
-                            .foregroundColor(.secondary)
-
-                        Button("Sign In") {
-                            isShowingSignIn = true
-                        }
-                        .foregroundColor(Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0)))
-                        .fontWeight(.semibold)
-                    }
-                    .padding(.bottom, 30)
+                    //                    HStack {
+                    //                        Text("Already have an account?")
+                    //                            .foregroundColor(.secondary)
+                    //
+                    //                        Button("Sign In") {
+                    //                            isShowingSignIn = true
+                    //                        }
+                    //                        .foregroundColor(.customGreen)
+                    //                        .fontWeight(.semibold)
+                    //                    }
+                    //                    .padding(.bottom, 30)
                 }
 
                 if viewModel.isAuthenticated {
@@ -188,22 +170,7 @@ struct SignUpView: View {
     }
 }
 
-struct SocialButton: View {
-    let image: String
-    let action: () -> Void
 
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .padding()
-                .background(Color(UIColor.systemGray6))
-                .clipShape(Circle())
-        }
-    }
-}
 
 #Preview {
     SignUpView()

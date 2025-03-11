@@ -15,7 +15,7 @@ struct CallsView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 25, height: 25)
-                            .foregroundColor(.green)
+                            .foregroundColor(.customGreen)
                             .padding(8)
                             .background(Color.green.opacity(0.2))
                             .clipShape(Circle())
@@ -47,7 +47,7 @@ struct CallsView: View {
                         showNewCallSheet = true
                     }) {
                         Image(systemName: "phone.badge.plus")
-                            .foregroundColor(.green)
+                            .foregroundColor(.customGreen)
                     }
                 }
             }

@@ -11,7 +11,7 @@ import FirebaseAuth
 
 @main
 struct WhatsAppApp: App {
-//    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @UIApplicationDelegateAdaptor(NotificationDelegate.self) var notificationDelegate
     @State private var authViewModel : AuthViewModel
     @State private var callsViewModel = CallsViewModel()
     @State private var communityViewModel = CommunityViewModel()
@@ -45,9 +45,6 @@ struct WhatsAppApp: App {
                 .environment(chatsViewModel)
                 .environment(callsViewModel)
                 .environment(communityViewModel)
-                .onOpenURL { url in
-                    Auth.auth().canHandle(url)
-                }
                 .modelContainer(container)
         }
     }
