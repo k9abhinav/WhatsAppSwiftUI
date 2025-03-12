@@ -1,30 +1,28 @@
+import SwiftUI
 import UIKit
-import Firebase
 import FirebaseAuth
-import FirebaseCore
+import Firebase
 
-@MainActor
-class NotificationDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+class AppDelegate: NSObject, UIApplicationDelegate {
 
-//        let firebaseAuthCompletion: (Result<Bool, Error>) -> Void = { result in
-//            switch result {
-//            case .success(let handled):
-//                if handled {
-//                    completionHandler(.noData)
-//                } else {
-//                    // Handle other notifications
-//                    completionHandler(.newData)
-//                }
-//            case .failure(_):
-//                completionHandler(.failed)
-//            }
-//        }
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    print("\(#function)")
+    Auth.auth().setAPNSToken(deviceToken, type: .sandbox)
+  }
 
-        if Auth.auth().canHandleNotification(userInfo) {
-            return;
-        }
-
-        completionHandler(.newData)
+  func application(_ application: UIApplication, didReceiveRemoteNotification notification: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    print("\(#function)")
+    if Auth.auth().canHandleNotification(notification) {
+      completionHandler(.noData)
+      return
     }
+  }
+
+  func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any]) -> Bool {
+    print("\(#function)")
+    if Auth.auth().canHandle(url) {
+      return true
+    }
+    return false
+  }
 }

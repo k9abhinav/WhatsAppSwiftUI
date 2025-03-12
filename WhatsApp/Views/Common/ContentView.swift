@@ -30,6 +30,7 @@ struct ContentView: View {
                 Auth.auth().removeStateDidChangeListener(handle)
             }
         }
+
     }
 }
 extension Color {

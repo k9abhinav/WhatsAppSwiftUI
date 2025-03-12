@@ -16,21 +16,29 @@
 				<string>com.googleusercontent.apps.316251288934-i8n9orq0i1nv3qv4q0cdm597jm6kt2m9</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string></string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-316251288934-ios-0e263877c66fbd43dd04a7
+</string>
+			</array>
+			<key>FirebaseAppDelegateProxyEnabled</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>
-	<true/>
+	<false/>
 	<key>NSAllowsArbitraryLoads</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict/>
-	</dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>processing</string>
-		<string>fetch</string>
-	</array>
+	<dict/>
 </dict>
 </plist>

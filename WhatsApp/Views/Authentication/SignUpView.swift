@@ -12,21 +12,21 @@ struct SignUpView: View {
     @State private var enteredPassword: String = ""
     @State private var enteredFullName: String = ""
     @State private var phoneNumber: String = ""
-    @State private var otpCode = ""
-    @State private var isOTPOverlayVisible = false
+    @State private var otpCode: String = ""
+    @State private var otpViewVisibilty: Bool = false
+    @State private var signUpViewActive: Bool = false
 
     var body: some View {
         NavigationView {
             ZStack {
+                BackgroundImage()
                 VStack {
                     // Header
                     VStack(spacing: 20) {
-                        Image("image")
+                        Image("whatsapp")
                             .resizable()
                             .scaledToFit()
-//                            .aspectRatio(contentMode: .fit)
                             .frame(width: 90, height: 90)
-//                            .foregroundColor(.customGreen)
 
                         Text("Verify Account")
                             .font(.largeTitle)
@@ -40,13 +40,14 @@ struct SignUpView: View {
                     }
                     .padding(.top, 50)
 
+
                     // Form Fields
                     VStack(spacing: 20) {
                         //                        TextField("Full Name", text: $enteredFullName)
                         //                        .modifier(TextFieldStyle())
                         //                        .autocapitalization(.words)
 
-                        TextField("Phone Number", text: $phoneNumber)
+                        TextField("Enter your phone number", text: $phoneNumber)
                             .modifier(TextFieldStyle())
                             .keyboardType(.phonePad)
 
@@ -66,7 +67,7 @@ struct SignUpView: View {
                         isLoading = true
                         Task {
                             await viewModel.sendOTP(phoneNumber: phoneNumber)
-                            isOTPOverlayVisible = true
+                            otpViewVisibilty = true
                         }
                         //                        Task {
                         //                            await viewModel.signUpWithEmail(
@@ -77,45 +78,72 @@ struct SignUpView: View {
                         //                            )
                         //                            isLoading = false
                         //                        }
-
                     }) {
-                        Text("Send OTP")
-                            .fontWeight(.semibold)
+                        HStack {
+                            Text("Next")
+                                .fontWeight(.semibold)
+                            Image(systemName: "chevron.right")
+                        }
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .padding(.horizontal)
 
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    }
-                    
+
+
                     // Social Sign Up Options
                     VStack(spacing: 15) {
                         Text("OR")
                             .foregroundColor(.secondary)
                             .font(.footnote)
-
-                        Button("Sign In with Google"){
-                            Task {
-                                isLoading = true
-                                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                   let rootVC = scene.windows.first?.rootViewController {
-                                    await viewModel.signInWithGoogle(presenting: rootVC)
-                                }
+                        if isLoading {
+                            withAnimation(.smooth) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
+                                    .frame(width: 20, height: 20)
                             }
                         }
-                        .fontWeight(.semibold)
-                        .buttonStyle(PrimaryButtonStyle())
-                        .padding(.horizontal)
-                        HStack(spacing: 20) {
-//                                                        SocialButton(image: "apple.logo", action: {})
-//                            GoogleSignInButton( scheme: .light , style: .wide ,state: .normal ) {
-//
-//                            }
-//                            .padding(.horizontal,20)
 
-//                                                        SocialButton(image: "phone.fill", action: {})
+                        Button(
+                            action: {
+                                Task {
+                                    isLoading = true
+                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let rootVC = scene.windows.first?.rootViewController {
+                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                                    }
+                                }
+                            }, label: {
+                                HStack {
+                                    Text("Sign in with Google")
+                                    Image("googleIcon")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                }
+                            }
+                        )
+                        .fontWeight(.semibold)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color(#colorLiteral(red: 0.262745098, green: 0.5254901961, blue: 0.9607843137, alpha: 1)))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .foregroundStyle(.white)
+                        .buttonStyle(.automatic)
+                        HStack(spacing: 20) {
+                            //                                                        SocialButton(image: "apple.logo", action: {})
+                            //                            GoogleSignInButton( scheme: .light , style: .wide ,state: .pressed ) {
+                            //                                Task {
+                            //                                    isLoading = true
+                            //                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                            //                                       let rootVC = scene.windows.first?.rootViewController {
+                            //                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                            //                                    }
+                            //                                }
+                            //                            }
+                            //                            .padding(.horizontal,20)
+
+                            //                                                        SocialButton(image: "phone.fill", action: {})
                         }
                     }
                     .padding(.vertical)
@@ -149,13 +177,17 @@ struct SignUpView: View {
             .fullScreenCover(isPresented: $isShowingSignIn) {
                 SignInView()
             }
-            .sheet(isPresented: $isOTPOverlayVisible) {
-                OTPOverlayView(isPresented: $isOTPOverlayVisible, otpCode: $otpCode) {
+            .navigationDestination(isPresented: $signUpViewActive, destination:{
+               SignInView()
+            })
+
+            .navigationDestination(isPresented: $otpViewVisibilty, destination:{
+                VerifyOTPView(isPresented: $otpViewVisibilty, otpCode: $otpCode) {
                     Task {
                         await viewModel.verifyOTP(otpCode: otpCode)
                     }
                 }
-            }
+            })
             .alert(isPresented: Binding(
                 get: { viewModel.showingError },
                 set: { viewModel.showingError = $0 }

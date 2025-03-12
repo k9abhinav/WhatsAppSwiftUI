@@ -7,12 +7,21 @@ import UIKit
 import FirebaseFirestore
 
 @MainActor @Observable final class AuthViewModel {
+    var allUsers: [FireUserModel] = []
     var user: FireUserModel?
     var verificationID = ""
     var otpCode = ""
     var isAuthenticated = false
     var showingError = false
     var errorMessage = ""
+    var authType: AuthType = .unknown
+
+    enum AuthType {
+        case email
+        case google
+        case phone
+        case unknown
+    }
 
     init() {
         loadCurrentUser()
@@ -28,6 +37,21 @@ import FirebaseFirestore
             phoneNumber: firebaseUser.phoneNumber,
             profileImageURL: nil
         )
+
+        if let providerData = firebaseUser.providerData.first {
+                switch providerData.providerID {
+                case "password":
+                    authType = .email
+                case "google.com":
+                    authType = .google
+                case "phone":
+                    authType = .phone
+                default:
+                    authType = .unknown
+                }
+            }
+
+
         print ("This is : \(user.debugDescription)")
         isAuthenticated = true
     }
@@ -128,12 +152,14 @@ import FirebaseFirestore
                 return
             }
 
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                           accessToken: userAuth.user.accessToken.tokenString)
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: userAuth.user.accessToken.tokenString
+            )
 
             let authResult = try await Auth.auth().signIn(with: credential)
             let firebaseUser = authResult.user
-            print("DEBUG: Firebase Sign-In successful. UID: \(firebaseUser.uid)")
+            print("DEBUG: Firebase Sign-In successful. UID: \(String(describing: firebaseUser.displayName))")
             let userRef = Firestore.firestore().collection("users").document(firebaseUser.uid)
 
             // Check if user exists in Firestore
@@ -174,22 +200,25 @@ import FirebaseFirestore
 
     // MARK: PHONE N OTP as password
     func sendOTP(phoneNumber: String) async {
-        guard !phoneNumber.isEmpty else {
-            showError("Please enter a valid phone number")
-            return
-        }
+//        guard !phoneNumber.isEmpty else {
+//            showError("Please enter a valid phone number")
+//            return
+//        }
 
-        let formattedPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard formattedPhone.hasPrefix("+") else {
-            showError("Phone number must include country code (e.g., +1 for the US).")
-            return
-        }
+//        let formattedPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//        guard formattedPhone.hasPrefix("+") else {
+//            showError("Phone number must include country code (e.g., +1 for the US).")
+//            return
+//        }
 
         do {
-            print("Requesting OTP for: \(formattedPhone)")
+//            print("Requesting OTP for: \(formattedPhone)")
 
-            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(formattedPhone, uiDelegate: nil)
+            // Explicitly enable reCAPTCHA verification
+            Auth.auth().settings?.isAppVerificationDisabledForTesting = false
+
+            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber("+16505551234", uiDelegate: nil )
             DispatchQueue.main.async {
                 self.verificationID = verificationID
                 print("OTP sent successfully! Verification ID: \(verificationID)")
@@ -205,6 +234,7 @@ import FirebaseFirestore
             }
         }
     }
+
 
 
 
@@ -240,16 +270,25 @@ import FirebaseFirestore
 
 
     // MARK : - Delete Account
-    func deleteAccount() async {
-        guard let firebaseUser = Auth.auth().currentUser else { return }
+    func deleteAccountandUser() async {
+        guard let firebaseUser = Auth.auth().currentUser else { return  }
+
+        let userRef = Firestore.firestore().collection("users").document(firebaseUser.uid)
+
         do {
+            print("DEBUG: Deleting user document from Firestore for UID: \(String(describing: firebaseUser.displayName))")
+            try await userRef.delete()
+            print("DEBUG: User document successfully deleted from Firestore")
             try await firebaseUser.delete()
+            print("DEBUG: User successfully deleted from Firebase Authentication")
             isAuthenticated = false
             user = nil
         } catch {
             showError(error.localizedDescription)
+            print("DEBUG: Error deleting user - \(error.localizedDescription)")
         }
     }
+
 
     // MARK: - Helper Functions
     private func showError(_ message: String) {
@@ -258,3 +297,26 @@ import FirebaseFirestore
     }
 }
 
+
+
+extension AuthViewModel {
+    func fetchAllUsers() async {
+           let db = Firestore.firestore()
+           do {
+               let snapshot = try await db.collection("users").getDocuments()
+               let fetchedUsers = snapshot.documents.compactMap { document -> FireUserModel? in
+                   let data = document.data()
+                   return FireUserModel(
+                       uid: document.documentID,
+                       fullName: data["fullName"] as? String ?? "Unknown",
+                       email: data["email"] as? String,
+                       phoneNumber: data["phoneNumber"] as? String,
+                       profileImageURL: data["profileImageURL"] as? String
+                   )
+               }
+               self.allUsers = fetchedUsers
+           } catch {
+               print("Error fetching users: \(error.localizedDescription)")
+           }
+       }
+}

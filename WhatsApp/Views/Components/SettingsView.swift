@@ -125,7 +125,7 @@ struct SettingsView: View {
         Section {
             Button("Logout") { viewModel.signOut() }
             Button("Delete your WhatsApp account") {
-                Task {  await viewModel.deleteAccount()   }
+                Task {  await viewModel.deleteAccountandUser()   }
             }
             Button("Update Password") {  }
             Button("Update Name") {}
