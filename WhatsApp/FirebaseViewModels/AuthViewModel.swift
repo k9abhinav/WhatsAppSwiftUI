@@ -50,8 +50,6 @@ import FirebaseFirestore
                     authType = .unknown
                 }
             }
-
-
         print ("This is : \(user.debugDescription)")
         isAuthenticated = true
     }
