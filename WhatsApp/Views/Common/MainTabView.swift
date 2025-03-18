@@ -9,7 +9,7 @@ struct MainTabView: View {
 
         TabView(selection: $selectedTab) {
 //            ChatListView()
-            FireStoreListView()
+            FireChatListView()
                 .tabItem {
                     Label("Chats", systemImage: "ellipsis.message.fill")
                 }

@@ -11,4 +11,8 @@ Used MVVM Achitecture.
 
 SwiftData.
 
+FireBase Auth
+
+FireBase Storage i.e FireStore
+
 

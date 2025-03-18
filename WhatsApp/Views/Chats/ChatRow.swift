@@ -15,9 +15,6 @@ struct ChatRow: View {
                     action: { isProfilePicPresented.toggle() },
                     label: { userProfilePictureView }
                 ).buttonStyle(PlainButtonStyle())
-                    .popover(isPresented: $isProfilePicPresented) {
-                        ProfilePicView(user: user).presentationDetents([.fraction(0.65)])
-                    }
                 userProfileNameandContent
                 Spacer()
                 userLastSeenTime
@@ -65,13 +62,13 @@ struct ChatRow: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 40, height: 40)
+                    .frame(width: 50, height: 50)
                     .clipShape(Circle())
             } else {
                 Image(systemName: "person.crop.circle.fill")
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 40, height: 40)
+                    .frame(width: 50, height: 50)
                     .foregroundColor(.gray)
             }
         }
@@ -94,5 +91,9 @@ struct ChatRow: View {
     }
 
 
+
+}
+
+#Preview {
 
 }

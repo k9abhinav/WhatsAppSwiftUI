@@ -7,13 +7,20 @@ struct ContentView: View {
     @State private var splashViewActive = true
     @State private var isUserLoggedIn: Bool = Auth.auth().currentUser != nil
     @State private var authListenerHandle: AuthStateDidChangeListenerHandle?
+    @State private var isLoading = true
+    //    @Environment(ContactsManager.self) var contactsManager:ContactsManager
     var body: some View {
         Group {
             if splashViewActive {
                 SplashView(splashViewActive: $splashViewActive)
             } else  {
                 if isUserLoggedIn {
-                    withAnimation(.easeIn(duration: 0.3)) { MainTabView() }
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        ZStack {
+                            if isLoading { LoadingView() }
+                            else { MainTabView()  }
+                        }
+                    }
                 }
                 else {  withAnimation(.easeIn(duration: 0.3)) { WelcomeView() }
                 }
@@ -24,6 +31,12 @@ struct ContentView: View {
             authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
                 isUserLoggedIn = (user != nil)
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation {
+                    isLoading = false
+                }
+            }
+            //            contactsManager.requestAccess()
         }
         .onDisappear {
             if let handle = authListenerHandle {
@@ -39,7 +52,7 @@ extension Color {
 import SwiftUI
 
 extension Color {
-     static var rainbow: some ShapeStyle {
+    static var rainbow: some ShapeStyle {
         LinearGradient(
             stops: [
                 .init(color: Color(red: 122/255, green: 229/255, blue: 83/255), location: 0.0),

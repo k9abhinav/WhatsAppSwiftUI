@@ -1,10 +1,10 @@
 import Foundation
 
 struct FireUserModel: Identifiable, Codable {
-    var id: String // Firebase document ID
+    var id: String 
     var phone: String
     var name: String
-    var imageUrl: String? // URL to Firebase Storage
+    var imageUrl: String?
     var lastSeen: Date?
     var password: String?
     var aboutInfo: String?
@@ -16,7 +16,7 @@ struct FireUserModel: Identifiable, Codable {
     }
 }
 
-enum AuthType: Codable {
+enum AuthType: String ,Codable {
     case email
     case google
     case phone

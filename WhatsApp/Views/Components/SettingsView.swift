@@ -3,9 +3,11 @@ import PhotosUI
 import SwiftData
 
 struct SettingsView: View {
-    @State private var profileViewModel: ProfileImageViewModel = ProfileImageViewModel()
+
     @Environment(\.dismiss) var dismiss
     @Environment(AuthViewModel.self) private var viewModel
+    @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
+    @State private var userId: String?
     @AppStorage("userName") private var userName = "User"
     @AppStorage("userStatus") private var userStatus = "No About here!"
     @AppStorage("userImageKey") private var userImageData: Data?
@@ -23,24 +25,24 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
-                }
-            }
             .alert("Image Changed", isPresented: $showingImageChangeAlert) {
                 Button("OK", action: {})
-            } message: {
-                Text("Your profile image has been updated.")
-            }
+            } message: { Text("Your profile image has been updated.") }
             .sheet(isPresented: $showingEdit) {
                 EditProfileView(
+                    user: viewModel.fireuser!,
                     userName: $userName,
                     userStatus: $userStatus
                 ).presentationDetents([.medium])
             }
             .onChange(of: selectedPhoto) { oldValue,newValue in
                 loadImage(newValue)
+            }
+            .onAppear {
+                userId = viewModel.fireuser?.id
+                userName = viewModel.fireuser?.name ?? "Error"
+                userStatus = viewModel.fireuser?.aboutInfo ?? ""
+                userImageData = viewModel.fireuser?.imageUrl?.data(using: .utf8)
             }
         }
     }
@@ -50,39 +52,8 @@ struct SettingsView: View {
     private var profileSection: some View {
         Section {
             VStack(spacing: 15) {
-                PhotosPicker(
-                    selection: $selectedPhoto,
-                    matching: .images,
-                    photoLibrary: .shared())
-                {
-                    ZStack {
-                        profileImageView
-                        Image(systemName: "camera.fill")
-                            .padding(7)
-                            .background(Color.customGreen)
-                            .clipShape(Circle())
-                            .foregroundColor(.white.opacity(0.9))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                    }
-                    .frame(width: 90, height: 90)
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Button(action: { showingEdit = true }) {
-                    VStack {
-                        Text(viewModel.user?.fullName ?? "Couldn't load user name")
-//                        Text(userName)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.black.opacity(0.8))
-                            .padding(.bottom,6)
-                        Text(userStatus)
-                            .multilineTextAlignment(.center)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.top, 5)
-                }
+                profileImageAndEditView
+                userDetailsAndEditButton
             }
             .frame(maxWidth: .infinity, alignment: .center)
         } header: {
@@ -92,10 +63,55 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-
+    private var userDetailsAndEditButton: some View {
+        Button(action: { showingEdit = true }) {
+            VStack(spacing:10) {
+                Text( viewModel.fireuser?.name ?? "Loading Firebase username" )
+//                        Text(userName)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.black.opacity(0.8))
+                Text(userStatus)
+                    .multilineTextAlignment(.center)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            .padding(.top, 5)
+        }
+    }
+    private var profileImageAndEditView: some View {
+        PhotosPicker(
+            selection: $selectedPhoto,
+            matching: .images,
+            photoLibrary: .shared())
+        {
+            ZStack { profileImageView; cameraIconOverlay }
+            .frame(width: 90, height: 90)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onChange(of: selectedPhoto) { oldItem,newItem in
+            if let newItem = newItem {
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var cameraIconOverlay: some View {
+        Image(systemName: "camera.fill")
+            .padding(7)
+            .background(Color.customGreen)
+            .clipShape(Circle())
+            .foregroundColor(.white.opacity(0.9))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
     private var profileImageView: some View {
         Group {
-            if let imageData = profileViewModel.userImageData, let uiImage = UIImage(data: imageData) {
+            if let imageData = userImageData, let uiImage = UIImage(data: imageData) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
@@ -114,24 +130,33 @@ struct SettingsView: View {
 
     private var settingsSection: some View {
         Section {
-            eachSettingSection(iconSystemName: "key", title: "Account", subtitle: "Security, disappearing messages")
-            eachSettingSection(iconSystemName: "lock", title: "Privacy", subtitle: "Block contacts, adjust privacy")
-            eachSettingSection(iconSystemName: "message", title: "Chats", subtitle: "Themes, backup and restore chats")
-            eachSettingSection(iconSystemName: "bell", title: "Notifications", subtitle: "Manage your notifications")
+            EachSettingSection(iconSystemName: "key", title: "Account", subtitle: "Security, disappearing messages")
+            EachSettingSection(iconSystemName: "lock", title: "Privacy", subtitle: "Block contacts, adjust privacy")
+            EachSettingSection(iconSystemName: "message", title: "Chats", subtitle: "Themes, backup and restore chats")
+            EachSettingSection(iconSystemName: "bell", title: "Notifications", subtitle: "Manage your notifications")
+            EachSettingSection(iconSystemName: "globe", title: "App Language", subtitle: "English (device's langauage)")
+            EachSettingSection(iconSystemName: "questionmark.circle", title: "Help", subtitle: "Help Centre, contact us")
+            EachSettingSection(iconSystemName: "iphone.gen3.badge.exclamationmark", title: "App Updates", subtitle: "Check for updates")
         }
-    }
+            }
 
     private var actionsSection: some View {
         Section {
-            Button("Logout") { viewModel.signOut() }
-            Button("Delete your WhatsApp account") {
-                Task {  await viewModel.deleteAccountandUser()   }
+            Group{
+                Button("Logout") { viewModel.signOut() }
+                Button("Delete your WhatsApp account") {
+                    Task {  await viewModel.deleteAccountandUser()   }
+                }
             }
-            Button("Update Password") {  }
-            Button("Update Name") {}
-            Button("About") {}
+            .foregroundColor(.red)
+            if viewModel.authType == .email {
+                Button("Update Password") {  }
+                Button("Update Name") {}
+            } else if viewModel.authType == .phone {
+                Button("Delete your phone number") {}
+            }
+            Button("Connect with other Meta accounts") {}
         }
-        .foregroundColor(.red)
     }
 
     private func loadImage(_ newItem: PhotosPickerItem?) {
@@ -147,29 +172,7 @@ struct SettingsView: View {
     }
 }
 
-struct eachSettingSection: View {
-    let iconSystemName: String
-    let title: String
-    let subtitle: String
 
-    var body: some View {
-        HStack {
-            Image(systemName: iconSystemName)
-                .frame(width: 32, height: 32)
-                .foregroundColor(.secondary)
-            Spacer()
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.headline)
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.vertical, 3)
-    }
-}
 
 
 

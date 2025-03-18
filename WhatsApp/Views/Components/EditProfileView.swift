@@ -2,7 +2,9 @@
 import SwiftUI
 
 struct EditProfileView: View {
-
+    let user: FireUserModel
+    @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
+    @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
     @Environment(\.dismiss) var dismiss
     @Binding var userName: String
     @Binding var userStatus: String
@@ -49,6 +51,21 @@ struct EditProfileView: View {
         Button("Save") {
             userName = tempName
             userStatus = tempStatus
+            userViewModel.updateUserName(userId: user.id , newName: tempName ){ error in
+                if let error = error {
+                    print("Failed to update email: \(error.localizedDescription)")
+                } else {
+                    print("Email updated successfully in Firestore!")
+                }
+            }
+            userViewModel.updateUserStatus(userId: user.id , newStatus: tempStatus ){ error in
+                if let error = error {
+                    print("Failed to update email: \(error.localizedDescription)")
+                } else {
+                    print("Email updated successfully in Firestore!")
+                }
+            }
+
             dismiss()
         }.bold()
     }

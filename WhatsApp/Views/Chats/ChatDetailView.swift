@@ -10,34 +10,40 @@ struct ChatDetailView: View {
     @Environment(\.presentationMode) private var presentationMode
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
-    @State private var isProfilePicPresented: Bool = false
+    @State private var isProfileDetailPresented: Bool = false
     @State private var isTyping: Bool = false
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
-        VStack {
-            ZStack {
-                backGroundImage
-                mainScrollChatsView
+
+            VStack {
+                ZStack {
+                    backGroundImage
+                    mainScrollChatsView
+                }
+                inputMessageTabBar
+                    .background(Color.white)
+                    .ignoresSafeArea()
             }
-            inputMessageTabBar
-                .background(Color.white)
-                .ignoresSafeArea()
-        }
-        .modifier(KeyBoardViewModifier())
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
-            ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
-        }
-        .toolbarBackground(.white, for: .navigationBar)
-        .toolbarColorScheme(.light, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
-        .onDisappear {
-            withAnimation(.spring) { UITabBar.appearance().isHidden = false }
-        }
+            .modifier(KeyBoardViewModifier())
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
+//                ProfileDetailsView(user: user)
+            })
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
+                ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
+            }
+            .toolbarBackground(.white, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbar(.hidden, for: .tabBar)
+            .onDisappear {
+                withAnimation(.spring) { UITabBar.appearance().isHidden = false }
+            }
+
+
     }
 
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
@@ -86,12 +92,9 @@ struct ChatDetailView: View {
                 Text(user.name).font(.headline)
                 Text("Online").font(.caption).foregroundColor(.gray)
             }
-        }
-        .onTapGesture {
-            isProfilePicPresented.toggle()
-        }
-        .popover(isPresented: $isProfilePicPresented) {
-            ProfilePicView(user: user).presentationDetents([.fraction(0.65)])
+            .onTapGesture {
+                isProfileDetailPresented.toggle()
+            }
         }
     }
 
@@ -151,11 +154,11 @@ struct ChatDetailView: View {
             .onChange(of: isTyping) { _, newValue in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
 
-                        if newValue {
-                            scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
-                        } else if let lastMessage = user.chats.last {
-                            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
+                    if newValue {
+                        scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
+                    } else if let lastMessage = user.chats.last {
+                        scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
 
                 }
             }
@@ -212,16 +215,3 @@ struct ChatDetailView: View {
     }
 
 }
-
-
-//    .onAppear {
-//        let storageKey = "lastReadMessage_\(user.id)"
-//        lastReadMessageID = UserDefaults.standard.string(forKey: storageKey) ?? ""
-//        print("USER ID : -->  \(lastReadMessageID)")
-//
-//        if lastReadMessageID.isEmpty {
-//            scrollProxy.scrollTo(lastReadMessageID, anchor: .bottom)
-//        } else if let lastMessage = user.chats.last {
-//            scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-//        }
-//    }

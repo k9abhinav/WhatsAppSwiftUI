@@ -3,6 +3,9 @@ import SwiftData
 
 @Observable
 class ChatsViewModel {
+    var chatCategories: [String] = ["All","Family","Friends","Work","Unread"]
+
+
     func filteredUsers(users: [User], searchText: String) -> [User] {
         guard !searchText.isEmpty else {
             return users.sorted {
@@ -59,4 +62,5 @@ class ChatsViewModel {
         ]
         return replies.randomElement() ?? "Error in chat reply generation."
     }
+  
 }

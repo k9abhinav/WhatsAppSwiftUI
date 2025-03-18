@@ -22,68 +22,67 @@ struct SignUpView: View {
                 BackgroundImage()
                 VStack {
                     // Header
-                    VStack(spacing: 20) {
-                        Image("whatsapp")
+                    VStack(spacing: 12  ) {
+                        Image("logo")
                             .resizable()
-                            .scaledToFit()
+                            .scaledToFill()
                             .frame(width: 90, height: 90)
 
-                        Text("Verify Account")
+                        Text("Create Account")
                             .font(.largeTitle)
+                            .foregroundStyle(Color.customGreen)
                             .fontWeight(.bold)
 
-                        Text("Enter your Phone Number to get started with WhatsApp Clone.")
+                        Text("Sign up to get started with WhatsApp Clone")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
-                    .padding(.top, 50)
-
 
                     // Form Fields
                     VStack(spacing: 20) {
-                        //                        TextField("Full Name", text: $enteredFullName)
-                        //                        .modifier(TextFieldStyle())
-                        //                        .autocapitalization(.words)
+                        TextField("Full Name", text: $enteredFullName)
+                            .modifier(TextFieldStyle())
+                            .autocapitalization(.words)
 
                         TextField("Enter your phone number", text: $phoneNumber)
                             .modifier(TextFieldStyle())
                             .keyboardType(.phonePad)
 
+                        TextField("Email", text: $enteredEmail)
+                            .modifier(TextFieldStyle())
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
 
-                        //                        TextField("Email", text: $enteredEmail)
-                        //                        .modifier(TextFieldStyle())
-                        //                        .keyboardType(.emailAddress)
-                        //                        .autocapitalization(.none)
-                        //
-                        //                        SecureField("Password", text: $enteredPassword)
-                        //                            .modifier(TextFieldStyle())
+                        SecureField("Password", text: $enteredPassword)
+                            .modifier(TextFieldStyle())
                     }
-                    .padding(.vertical, 30)
+                    .padding(.vertical, 20)
 
                     // Sign Up Button
-                    Button(action: {
+                    Button(
+                        action: {
                         isLoading = true
-                        Task {
-                            await viewModel.sendOTP(phoneNumber: phoneNumber)
-                            otpViewVisibilty = true
-                        }
                         //                        Task {
-                        //                            await viewModel.signUpWithEmail(
-                        //                                email: enteredEmail,
-                        //                                password: enteredPassword,
-                        //                                fullName: enteredFullName,
-                        //                                phoneNumber: phoneNumber
-                        //                            )
-                        //                            isLoading = false
+                        //                            await viewModel.sendOTP(phoneNumber: phoneNumber)
+                        //                            otpViewVisibilty = true
                         //                        }
+                        Task {
+                            await viewModel.signUpWithEmail(
+                                email: enteredEmail,
+                                password: enteredPassword,
+                                fullName: enteredFullName,
+                                phoneNumber: phoneNumber
+                            )
+                            isLoading = false
+                        }
                     }) {
                         HStack {
-                            Text("Next")
-                                .fontWeight(.semibold)
+                            Text("Sign Up")
                             Image(systemName: "chevron.right")
-                        }
+
+                        }.fontWeight(.bold)
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .padding(.horizontal)
@@ -109,16 +108,16 @@ struct SignUpView: View {
                                     isLoading = true
                                     if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                                        let rootVC = scene.windows.first?.rootViewController {
-                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                                        await viewModel.signUppWithGoogle(presenting: rootVC)
                                     }
                                 }
                             }, label: {
                                 HStack {
-                                    Text("Sign in with Google")
+                                    Text("Sign up with Google")
                                     Image("googleIcon")
                                         .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
+                                        .scaledToFill()
+                                        .frame(width: 25, height: 25)
                                 }
                             }
                         )
@@ -130,38 +129,23 @@ struct SignUpView: View {
                         .padding(.horizontal)
                         .foregroundStyle(.white)
                         .buttonStyle(.automatic)
-                        HStack(spacing: 20) {
-                            //                                                        SocialButton(image: "apple.logo", action: {})
-                            //                            GoogleSignInButton( scheme: .light , style: .wide ,state: .pressed ) {
-                            //                                Task {
-                            //                                    isLoading = true
-                            //                                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                            //                                       let rootVC = scene.windows.first?.rootViewController {
-                            //                                        await viewModel.signInWithGoogle(presenting: rootVC)
-                            //                                    }
-                            //                                }
-                            //                            }
-                            //                            .padding(.horizontal,20)
-
-                            //                                                        SocialButton(image: "phone.fill", action: {})
-                        }
                     }
                     .padding(.vertical)
 
                     Spacer()
 
                     // Sign In Link
-                    //                    HStack {
-                    //                        Text("Already have an account?")
-                    //                            .foregroundColor(.secondary)
-                    //
-                    //                        Button("Sign In") {
-                    //                            isShowingSignIn = true
-                    //                        }
-                    //                        .foregroundColor(.customGreen)
-                    //                        .fontWeight(.semibold)
-                    //                    }
-                    //                    .padding(.bottom, 30)
+                    HStack {
+                        Text("Already have an account?")
+                            .foregroundColor(.secondary)
+
+                        Button("Sign In") {
+                            isShowingSignIn = true
+                        }
+                        .foregroundColor(.customGreen)
+                        .fontWeight(.semibold)
+                    }
+                    .padding(.bottom, 30)
                 }
 
                 if viewModel.isAuthenticated {
@@ -175,7 +159,7 @@ struct SignUpView: View {
             }
             .navigationBarHidden(true)
             .fullScreenCover(isPresented: $isShowingSignIn) {
-                SignUpView()
+                SignInWithEmailView()
             }
             .navigationDestination(isPresented: $signUpViewActive, destination:{
                 SignUpView()
@@ -184,7 +168,7 @@ struct SignUpView: View {
             .navigationDestination(isPresented: $otpViewVisibilty, destination:{
                 VerifyOTPView(isPresented: $otpViewVisibilty, otpCode: $otpCode) {
                     Task {
-                        await viewModel.verifyOTP(otpCode: otpCode)
+//                        await viewModel.verifyOTP(otpCode: otpCode)
                     }
                 }
             })

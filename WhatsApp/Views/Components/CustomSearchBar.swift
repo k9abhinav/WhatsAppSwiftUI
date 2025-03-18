@@ -11,7 +11,7 @@ struct CustomSearchBar: View {
         HStack {
             magnifyingGlassSymbol
             searchBar
-            if !searchText.isEmpty { crossButton }
+            if !searchText.isEmpty { withAnimation(.smooth) { crossButton } }
         }
         .overlay {
             RoundedRectangle(cornerRadius: 20)

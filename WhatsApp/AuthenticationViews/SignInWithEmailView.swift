@@ -16,17 +16,17 @@ struct SignInWithEmailView: View {
                 VStack {
                     // Header
                     VStack(spacing: 20) {
-                        Image("whatsapp")
+                        Image("logo")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 70, height: 70)
                             .foregroundColor(.customGreen)
 
-                        Text("Welcome Back")
+                        Text("Welcome Back!")
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Sign in with Email and Password to continue to WhatsApp Clone")
+                        Text("Sign in with Email and Password to continue to WhatsApp Clone.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)

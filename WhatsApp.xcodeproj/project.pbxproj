@@ -17,6 +17,7 @@
 		C69B94DA2D818061007AA7BD /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = C69B94D92D818061007AA7BD /* FirebaseRemoteConfig */; };
 		C6B8C60A2D68302000827362 /* About.txt in Resources */ = {isa = PBXBuildFile; fileRef = C6B8C6092D682FFA00827362 /* About.txt */; };
 		C6C440BA2D802A4800D2FA94 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C6C440B92D802A4800D2FA94 /* FirebaseFirestore */; };
+		C6E2CC672D842A620087B150 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = C6E2CC662D842A620087B150 /* Lottie */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +85,7 @@
 				C606DC542D7EAC750072B6B9 /* GoogleSignIn in Frameworks */,
 				C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */,
 				C67C796F2D7ABDBF009B1BA2 /* FirebaseStorage in Frameworks */,
+				C6E2CC672D842A620087B150 /* Lottie in Frameworks */,
 				C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */,
 				C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */,
 				C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */,
@@ -166,6 +168,7 @@
 				C6C440B92D802A4800D2FA94 /* FirebaseFirestore */,
 				C69B94D72D81803B007AA7BD /* FirebaseMessaging */,
 				C69B94D92D818061007AA7BD /* FirebaseRemoteConfig */,
+				C6E2CC662D842A620087B150 /* Lottie */,
 			);
 			productName = WhatsApp;
 			productReference = C6F556102D5DA67E00296758 /* WhatsApp.app */;
@@ -252,6 +255,7 @@
 			packageReferences = (
 				C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				C606DC522D7EAC750072B6B9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				C6E2CC652D842A620087B150 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C6F556112D5DA67E00296758 /* Products */;
@@ -450,7 +454,7 @@
 		C6F556352D5DA67E00296758 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -473,7 +477,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.WhatsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -485,7 +488,7 @@
 		C6F556362D5DA67E00296758 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -508,7 +511,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.WhatsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -647,6 +649,14 @@
 				minimumVersion = 11.9.0;
 			};
 		};
+		C6E2CC652D842A620087B150 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "git@github.com:airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -694,6 +704,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C645299E2D7AB91300079D3A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		C6E2CC662D842A620087B150 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6E2CC652D842A620087B150 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

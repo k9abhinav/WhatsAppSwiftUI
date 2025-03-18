@@ -12,6 +12,7 @@ struct ChatBubble: View {
                     .background(message.isFromCurrentUser ? Color.green : Color.gray.opacity(0.2))
                     .foregroundColor(message.isFromCurrentUser ? .white : .black)
                     .cornerRadius(16)
+                    .font(.body)
 
                 Text(timeString(from: message.timestamp))
                     .font(.caption2)

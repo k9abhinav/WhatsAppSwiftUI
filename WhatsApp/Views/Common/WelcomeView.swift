@@ -19,17 +19,21 @@ struct WelcomeView: View {
                 VStack(spacing: 24) {
                     // Logo and app name
                     VStack(spacing: 16) {
-                        Image("whatsapp")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
-                            .foregroundColor(.green)
-                            .padding()
-                            .background(
-                                Circle()
-                                    .fill(colorScheme == .dark ? Color.black.opacity(0.6) : Color.white)
-                                    .shadow(color: .black.opacity(0.1), radius: 10)
-                            )
+//                        Image("whatsapp")
+//                            .resizable()
+                                    LottieWhatsAppView()
+                            .frame(maxWidth: 80, maxHeight: 80)
+                            .rotationEffect(.degrees(25))
+
+//                            .aspectRatio(contentMode: .fit)
+//                            .frame(width: 80, height: 80)
+//                            .foregroundColor(.green)
+//                            .padding()
+//                            .background(
+//                                Circle()
+//                                    .fill(colorScheme == .dark ? Color.black.opacity(0.6) : Color.white)
+//                                    .shadow(color: .black.opacity(0.1), radius: 10)
+//                            )
                         
                         Text("Welcome to WhatsApp Clone.")
                             .font(.largeTitle)

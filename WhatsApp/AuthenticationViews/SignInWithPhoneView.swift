@@ -23,7 +23,7 @@ struct SignInWithPhoneView: View {
                 VStack {
                     // Header
                     VStack(spacing: 20) {
-                        Image("whatsapp")
+                        Image("logo")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 90, height: 90)
@@ -109,7 +109,7 @@ struct SignInWithPhoneView: View {
                                     isLoading = true
                                     if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                                        let rootVC = scene.windows.first?.rootViewController {
-                                        await viewModel.signInWithGoogle(presenting: rootVC)
+                                        await viewModel.signUppWithGoogle(presenting: rootVC)
                                     }
                                 }
                             }, label: {
@@ -184,7 +184,7 @@ struct SignInWithPhoneView: View {
             .navigationDestination(isPresented: $otpViewVisibilty, destination:{
                 VerifyOTPView(isPresented: $otpViewVisibilty, otpCode: $otpCode) {
                     Task {
-                        await viewModel.verifyOTP(otpCode: otpCode)
+//                        await viewModel.verifyOTP(otpCode: otpCode)
                     }
                 }
             })

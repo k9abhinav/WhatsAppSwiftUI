@@ -5,6 +5,7 @@ import SwiftData
 struct ChatListView: View {
 
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
+    @Environment(\.modelContext) private var modelContext
     @Query private var users: [User]
     @State private var searchText = ""
     @State private var showingSettings = false
@@ -18,16 +19,29 @@ struct ChatListView: View {
                         ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                         ToolbarItemGroup { toolbarButtons }
                     }
-                    .sheet(isPresented: $showingSettings) {
-                        SettingsView()
-                    }
+                    .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)
             }
         }
+        .onAppear {
+//            createSampleUsersAndInsert()
+        }
     }
 
-
+//    func createSampleUsersAndInsert() {
+//        let chat1 = Chat(content: "Hello!", isFromCurrentUser: true, user: nil)
+//        let user1 = User(id: UUID().uuidString, phone: "123-456-7890", name: "Alice Smith", password: "password123", chats: [chat1])
+//
+//        // Insert into context
+//        modelContext.insert(user1)
+//        do {
+//            try modelContext.save()
+//            print("User inserted successfully")
+//        } catch {
+//            print("Error inserting user: \(error)")
+//        }
+//    }
     // MARK: - Computed Properties
     private var filteredUsers: [User] {
         viewModel.filteredUsers(users: users, searchText: searchText)
@@ -66,6 +80,9 @@ struct ChatListView: View {
             .cornerRadius(20)
             .padding(.horizontal, 8)
             .padding(.top, 12)
+            .padding(.bottom,5)
+            
+            horizontalChatCategories
 
             VStack(spacing: 17) {
                 if filteredUsers.isEmpty && !searchText.isEmpty {
@@ -83,6 +100,29 @@ struct ChatListView: View {
             .padding(.bottom, 50)
         }
     }
+    private var horizontalChatCategories: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(viewModel.chatCategories, id: \.self) { category in
+                    Text(category)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16) // Padding for dynamic width
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color.customGreen)
+                        )
+                        .fixedSize() // Ensures the capsule only takes as much space as needed
+                }
+            }
+            .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: 50)
+    }
 }
 
 
+#Preview {
+
+}

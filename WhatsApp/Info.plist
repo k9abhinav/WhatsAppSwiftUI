@@ -23,11 +23,8 @@
 			<string></string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-1-316251288934-ios-0e263877c66fbd43dd04a7
-</string>
+				<string>app-1-316251288934-ios-0e263877c66fbd43dd04a7</string>
 			</array>
-			<key>FirebaseAppDelegateProxyEnabled</key>
-			<false/>
 		</dict>
 		<dict>
 			<key>CFBundleTypeRole</key>
