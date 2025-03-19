@@ -8,8 +8,8 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) private var viewModel
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
     @State private var userId: String?
-    @AppStorage("userName") private var userName = "User"
-    @AppStorage("userStatus") private var userStatus = "No About here!"
+    @AppStorage("userName") private var userName = "Error~User"
+    @AppStorage("userStatus") private var userStatus = "No~data!"
     @AppStorage("userImageKey") private var userImageData: Data?
     @State private var showingEdit = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -40,7 +40,7 @@ struct SettingsView: View {
             }
             .onAppear {
                 userId = viewModel.fireuser?.id
-                userName = viewModel.fireuser?.name ?? "Error"
+                userName = viewModel.fireuser?.name ?? "Error in loading user name"
                 userStatus = viewModel.fireuser?.aboutInfo ?? ""
                 userImageData = viewModel.fireuser?.imageUrl?.data(using: .utf8)
             }
@@ -66,7 +66,7 @@ struct SettingsView: View {
     private var userDetailsAndEditButton: some View {
         Button(action: { showingEdit = true }) {
             VStack(spacing:10) {
-                Text( viewModel.fireuser?.name ?? "Loading Firebase username" )
+                Text( userName )
 //                        Text(userName)
                     .font(.title3)
                     .fontWeight(.semibold)
@@ -90,14 +90,15 @@ struct SettingsView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .onChange(of: selectedPhoto) { oldItem,newItem in
-            if let newItem = newItem {
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
-                    }
-                }
-            }
+//            if let newItem = newItem {
+//                Task {
+//                    if let data = try? await newItem.loadTransferable(type: Data.self),
+//                       let uiImage = UIImage(data: data) {
+//                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
+//                    }
+//                }
+//            }
+
         }
     }
     

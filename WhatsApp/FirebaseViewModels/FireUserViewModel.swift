@@ -117,18 +117,18 @@ class FireUserViewModel {
     }
 
 
-    func updateUserName(userId: String, newName: String, completion: @escaping (Error?) -> Void) {
+    func updateUserName(userId: String, newName: String, completion: @escaping (Error?) -> Void)  {
 
-        db.collection("users").document(userId).updateData(["name": newName]) { error in
+          db.collection("users").document(userId).updateData(["name": newName]) { error in
             completion(error)
         }
     }
-    func updateUserPhone(userId: String, newPhone: String, completion: @escaping (Error?) -> Void) {
+    func updateUserPhone(userId: String, newPhone: String, completion: @escaping (Error?) -> Void)  {
         db.collection("users").document(userId).updateData(["phone": newPhone]) { error in
             completion(error)
         }
     }
-    func updateUserStatus(userId: String, newStatus: String, completion: @escaping (Error?) -> Void) {
+    func updateUserStatus(userId: String, newStatus: String, completion: @escaping (Error?) -> Void)  {
         db.collection("users").document(userId).updateData(["aboutInfo": newStatus]) { error in
             completion(error)
         }

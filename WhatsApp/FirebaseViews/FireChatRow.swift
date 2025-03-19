@@ -4,15 +4,20 @@ import PhotosUI
 
 struct FireChatRow: View {
     let user: FireUserModel
-    @State private var isProfilePicPresented = false
+    @Binding var currentUser: FireUserModel?
+    @Binding var isProfilePicPresented:Bool
     @State private var lastMessage: FireChatModel?
     @Environment(FireChatViewModel.self) private var chatViewModel
+    @State private var profileImageURLString: String? = ""
     var body: some View {
         NavigationLink( destination: FireChatDetailView(user:user) )
         {
             HStack {
                 Button(
-                    action: { isProfilePicPresented.toggle() },
+                    action: {
+                        currentUser = user
+                        isProfilePicPresented.toggle()
+                    },
                     label: { userProfilePictureView }
                 ).buttonStyle(PlainButtonStyle())
                 userProfileNameandContent
@@ -21,15 +26,14 @@ struct FireChatRow: View {
             }
             .padding(.vertical,5)
             //            .cornerRadius(10)
-
         }
         .buttonStyle(.plain)
         .onAppear{
             Task{
                 lastMessage = await chatViewModel.fetchLastChat(for: user.id)
+                profileImageURLString = user.imageUrl
             }
             }
-
     }
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {
@@ -62,23 +66,38 @@ struct FireChatRow: View {
             .padding(.leading,5)
         }
     }
-    private var userProfilePictureView : some View {
-        Group{
-            if let imageData = user.imageUrl?.data(using: .utf8) , let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(.gray)
+    private var userProfilePictureView: some View {
+            Group {
+                if let imageUrlString = profileImageURLString , let imageUrl = URL(string: imageUrlString) {
+                    AsyncImage(url: imageUrl) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView() // Show a loading indicator
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        case .failure:
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(.gray)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .foregroundColor(.gray)
+                }
             }
         }
-    }
     // MARK: HELPER FUNCTIONS -------------------------------
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current

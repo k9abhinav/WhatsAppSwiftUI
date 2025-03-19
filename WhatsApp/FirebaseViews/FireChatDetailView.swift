@@ -9,12 +9,14 @@ struct FireChatDetailView: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
+    @State private var isProfileImagePresented: Bool = false
     @State private var isTyping: Bool = false
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
 
+        ZStack {
             VStack {
                 ZStack {
                     backGroundImage
@@ -49,10 +51,17 @@ struct FireChatDetailView: View {
             .onDisappear {
                 chatViewModel.stopListening()
             }
-
+            
             .onDisappear {
                 withAnimation(.spring) { UITabBar.appearance().isHidden = false }
             }
+
+            if isProfileImagePresented {
+                        ProfilePicOverlay(user: user) {
+                            withAnimation { isProfileImagePresented = false }
+                        }
+                    }
+        }
 
 
     }
@@ -100,6 +109,9 @@ struct FireChatDetailView: View {
     private var topLeftNavItems: some View {
         HStack {
             profileImage
+                .onTapGesture {
+                    isProfileImagePresented.toggle()
+                }
             VStack(alignment: .leading) {
                 Text(user.name).font(.headline)
                 Text("Online").font(.caption).foregroundColor(.gray)
@@ -208,23 +220,38 @@ struct FireChatDetailView: View {
     }
 
     private var profileImage: some View {
-        Group {
-            if let imageData = user.imageUrl?.data(using: .utf8) , let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
+            Group {
+                if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                    AsyncImage(url: imageUrl) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                        case .failure:
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 32, height: 32)
+                                .foregroundColor(.gray)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                        .foregroundColor(.gray)
+                }
             }
         }
-    }
 }
 
 #Preview {

@@ -6,30 +6,42 @@ import PhotosUI
 struct FireChatListView: View {
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
+    @State  var currentUser: FireUserModel!
     @State private var searchText = ""
     @State private var showingSettings = false
-
+    @State  var isProfilePicPresented = false
     var body: some View {
-        NavigationStack {
-            VStack {
-                scrollViewChatUsers
-                    .scrollIndicators(.hidden)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
-                        ToolbarItemGroup { toolbarButtons }
+
+            NavigationStack {
+                ZStack {
+                    VStack {
+                        scrollViewChatUsers
+                            .scrollIndicators(.hidden)
+                            .toolbar {
+                                ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
+                                ToolbarItemGroup { toolbarButtons }
+                            }
+                            .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
+                            .toolbarBackground(.white, for: .navigationBar)
+                            .toolbarColorScheme(.light, for: .navigationBar)
                     }
-                    .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
-                    .toolbarBackground(.white, for: .navigationBar)
-                    .toolbarColorScheme(.light, for: .navigationBar)
+                    if isProfilePicPresented {
+                        ProfilePicOverlay(user: currentUser) {
+                                    withAnimation { isProfilePicPresented = false }
+                                }
+                            }
+                }
+            }
+            .onAppear {
+                Task {
+                    await userViewModel.fetchUsers()  
+                    userViewModel.setupUsersListener()
+                }
             }
         }
-        .onAppear {
-            Task {
-                await userViewModel.fetchUsers()  // Initial fetch
-                userViewModel.setupUsersListener()  // Set up real-time updates
-            }
-        }
-    }
+
+
+
     // MARK: - Computed Properties
 
     // MARK: - Components
@@ -76,7 +88,7 @@ struct FireChatListView: View {
                         .padding()
                 } else {
                     ForEach(userViewModel.users) { user in
-                        FireChatRow(user: user)
+                        FireChatRow(user: user , currentUser: $currentUser,isProfilePicPresented: $isProfilePicPresented )
                     }
                 }
             }

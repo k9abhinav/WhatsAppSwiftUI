@@ -273,25 +273,39 @@ struct ProfileDetailsView: View {
     // MARK: - Helper Views
 
     private var profileImage: some View {
-        Group {
-//            if let imageData = user.imageData,
-            if let imageData = user.imageUrl?.data(using: .utf8),
-                let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
+            Group {
+                if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                    AsyncImage(url: imageUrl) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                        case .failure:
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.gray)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 80, height: 80)
+                        .clipShape(Circle())
+                        .foregroundColor(.gray)
+                }
             }
         }
-    }
+
 
     private func actionButton(iconName: String, title: String) -> some View {
         VStack {

@@ -53,16 +53,16 @@ struct EditProfileView: View {
             userStatus = tempStatus
             userViewModel.updateUserName(userId: user.id , newName: tempName ){ error in
                 if let error = error {
-                    print("Failed to update email: \(error.localizedDescription)")
+                    print("Failed to update name: \(error.localizedDescription)")
                 } else {
-                    print("Email updated successfully in Firestore!")
+                    print("User name updated successfully in Firestore!")
                 }
             }
             userViewModel.updateUserStatus(userId: user.id , newStatus: tempStatus ){ error in
                 if let error = error {
-                    print("Failed to update email: \(error.localizedDescription)")
+                    print("Failed to update status about info: \(error.localizedDescription)")
                 } else {
-                    print("Email updated successfully in Firestore!")
+                    print("status about info updated successfully in Firestore!")
                 }
             }
 

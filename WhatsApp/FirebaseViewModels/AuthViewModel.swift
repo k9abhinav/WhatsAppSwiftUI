@@ -34,7 +34,7 @@ import SwiftUI
             if Auth.auth().currentUser == nil {
                 print("DEBUG: User no longer exists in Firebase Auth.")
                 isAuthenticated = false
-                try await Auth.auth().signOut()
+                try Auth.auth().signOut()
                 return
             }
 

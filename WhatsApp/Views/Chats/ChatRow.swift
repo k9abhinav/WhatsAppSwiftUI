@@ -6,8 +6,8 @@ struct ChatRow: View {
 
     let user: User
     @State private var isProfilePicPresented = false
-
     var body: some View {
+
         NavigationLink( destination: ChatDetailView(user:user) )
         {
             HStack {
