@@ -30,7 +30,7 @@ struct SettingsView: View {
             } message: { Text("Your profile image has been updated.") }
             .sheet(isPresented: $showingEdit) {
                 EditProfileView(
-                    user: viewModel.fireuser!,
+                    user: viewModel.currentLoggedInUser!,
                     userName: $userName,
                     userStatus: $userStatus
                 ).presentationDetents([.medium])
@@ -39,10 +39,19 @@ struct SettingsView: View {
                 loadImage(newValue)
             }
             .onAppear {
-                userId = viewModel.fireuser?.id
-                userName = viewModel.fireuser?.name ?? "Error in loading user name"
-                userStatus = viewModel.fireuser?.aboutInfo ?? ""
-                userImageData = viewModel.fireuser?.imageUrl?.data(using: .utf8)
+                userId = viewModel.currentLoggedInUser?.id
+                userName = viewModel.currentLoggedInUser?.name ?? "Error in loading user name"
+                userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
+                if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                        loadImageFromURL(imageUrl)
+                    }
+            }
+            .onChange(of: showingEdit) { oldValue, newValue in
+                Task{
+                    await viewModel.loadCurrentUser()
+                    userName = viewModel.currentLoggedInUser?.name ?? "Error in loading user name"
+                    userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
+                }
             }
         }
     }
@@ -90,14 +99,14 @@ struct SettingsView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .onChange(of: selectedPhoto) { oldItem,newItem in
-//            if let newItem = newItem {
-//                Task {
-//                    if let data = try? await newItem.loadTransferable(type: Data.self),
-//                       let uiImage = UIImage(data: data) {
-//                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
-//                    }
-//                }
-//            }
+            if let newItem = newItem {
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
+                    }
+                }
+            }
 
         }
     }
@@ -110,24 +119,48 @@ struct SettingsView: View {
             .foregroundColor(.white.opacity(0.9))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
+//    private var profileImageView: some View {
+//        Group {
+//            if let imageData = userImageData, let uiImage = UIImage(data: imageData) {
+//                        Image(uiImage: uiImage)
+//                            .resizable()
+//                            .scaledToFill()
+//                            .frame(width: 80, height: 80)
+//                            .clipShape(Circle())
+//                    } else {
+//                        Image(systemName: "person.circle.fill")
+//                            .resizable()
+//                            .scaledToFill()
+//                            .frame(width: 80, height: 80)
+//                            .clipShape(Circle())
+//                            .foregroundColor(.gray)
+//                    }
+//                }
+//    }
     private var profileImageView: some View {
-        Group {
-            if let imageData = userImageData, let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 80, height: 80)
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 80, height: 80)
-                            .clipShape(Circle())
-                            .foregroundColor(.gray)
-                    }
-                }
+        AsyncImage(url: URL(string: viewModel.currentLoggedInUser?.imageUrl ?? "")) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .clipShape(Circle())
+            case .failure:
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .clipShape(Circle())
+                    .foregroundColor(.gray)
+            case .empty:
+                ProgressView()
+                    .frame(width: 80, height: 80)
+            @unknown default:
+                EmptyView()
+            }
+        }
     }
+
 
     private var settingsSection: some View {
         Section {
@@ -150,10 +183,10 @@ struct SettingsView: View {
                 }
             }
             .foregroundColor(.red)
-            if viewModel.authType == .email {
+            if viewModel.typeOfAuth == .email {
                 Button("Update Password") {  }
                 Button("Update Name") {}
-            } else if viewModel.authType == .phone {
+            } else if viewModel.typeOfAuth == .phone {
                 Button("Delete your phone number") {}
             }
             Button("Connect with other Meta accounts") {}
@@ -171,6 +204,19 @@ struct SettingsView: View {
             }
         }
     }
+    private func loadImageFromURL(_ url: URL) {
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                await MainActor.run {
+                    userImageData = data
+                }
+            } catch {
+                print("Failed to load image: \(error)")
+            }
+        }
+    }
+
 }
 
 

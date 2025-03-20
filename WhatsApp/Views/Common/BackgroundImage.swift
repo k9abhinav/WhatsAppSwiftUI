@@ -12,7 +12,7 @@ struct BackgroundImage: View {
         Image("bgChats")
             .resizable()
             .opacity(0.3)
-            .edgesIgnoringSafeArea(.all)
+            .ignoresSafeArea()
     }
 }
 

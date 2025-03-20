@@ -3,8 +3,18 @@ import Lottie
 
 struct LottieWhatsAppView: View {
     var body: some View {
-        LottieView(filename: "whatsappLogo", width: 120, height: 120)
-            .frame(width: 120, height: 120) // ✅ Now this works
+        LottieView(filename: "whatsApp", width: 120, height: 120)
+    }
+}
+
+struct LottieStarsAnimationView:View {
+    var body: some View {
+        LottieView(filename: "starsAnimation", width: 120, height: 120)
+    }
+}
+struct LottieMessageDotsAnimationView:View {
+    var body: some View {
+        LottieView(filename: "messageDots", width: 120, height: 120)
     }
 }
 

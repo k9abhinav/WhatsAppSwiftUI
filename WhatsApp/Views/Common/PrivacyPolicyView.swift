@@ -99,7 +99,7 @@ struct PrivacyPolicyView: View {
     }
 //    --- Components
     private var backGroundImage: some View {
-        Image("whatsapp")
+        Image("logo")
             .resizable()
             .scaledToFit()
 //            .scaleEffect(1.4)

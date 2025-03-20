@@ -16,11 +16,7 @@ struct SignInWithEmailView: View {
                 VStack {
                     // Header
                     VStack(spacing: 20) {
-                        Image("logo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 70, height: 70)
-                            .foregroundColor(.customGreen)
+
 
                         Text("Welcome Back!")
                             .font(.largeTitle)
@@ -104,14 +100,15 @@ struct SignInWithEmailView: View {
                                     }
                                 }
                             )
-                            .fontWeight(.semibold)
+                            .buttonStyle(PrimaryButtonStyle())
                             .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color(#colorLiteral(red: 0.262745098, green: 0.5254901961, blue: 0.9607843137, alpha: 1)))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-                            .foregroundStyle(.white)
-                            .buttonStyle(.automatic)
+//                            .frame(maxWidth: .infinity)
+//                            .background(Color(#colorLiteral(red: 0.262745098, green: 0.5254901961, blue: 0.9607843137, alpha: 1)))
+//                            .background(Color.customGreen)
+//                            .cornerRadius(10)
+//                            .padding(.horizontal)
+//                            .foregroundStyle(.white)
+//                            .buttonStyle(.automatic)
                         
 //                            SocialButton(image: "g.circle.fill", action: {})
 //                            SocialButton(image: "phone.fill", action: {})
@@ -129,13 +126,13 @@ struct SignInWithEmailView: View {
                         Button("Sign Up") {
                             presentationMode.wrappedValue.dismiss()
                         }
-                        .foregroundColor(.customGreen)
                         .fontWeight(.semibold)
-                    }
+                        .foregroundColor(.customGreen)
+                                            }
                     .padding(.bottom, 30)
                 }
 
-                if viewModel.isAuthenticated {
+                if viewModel.userIsAuthenticated {
                     Text("Authentication successful!")
                         .font(.headline)
                         .padding()

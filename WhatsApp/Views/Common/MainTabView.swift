@@ -14,6 +14,7 @@ struct MainTabView: View {
                     Label("Chats", systemImage: "ellipsis.message.fill")
                 }
                 .tag(0)
+                .badge(1)
 
             UpdatesView()
                 .tabItem {
@@ -32,7 +33,6 @@ struct MainTabView: View {
                     Label("Calls", systemImage: "phone.fill")
                 }
                 .tag(3)
-                .badge(5)
         }
 
         .tint(.customGreen)

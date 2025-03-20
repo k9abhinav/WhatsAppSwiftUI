@@ -164,7 +164,7 @@ struct SignInWithPhoneView: View {
                     //                    .padding(.bottom, 30)
                 }
 
-                if viewModel.isAuthenticated {
+                if viewModel.userIsAuthenticated {
                     Text("Authentication successful!")
                         .font(.headline)
                         .padding()

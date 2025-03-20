@@ -6,6 +6,7 @@ import PhotosUI
 struct FireChatListView: View {
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
+    @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
     @State  var currentUser: FireUserModel!
     @State private var searchText = ""
     @State private var showingSettings = false
@@ -87,8 +88,8 @@ struct FireChatListView: View {
                         .foregroundColor(.gray)
                         .padding()
                 } else {
-                    ForEach(userViewModel.users) { user in
-                        FireChatRow(user: user , currentUser: $currentUser,isProfilePicPresented: $isProfilePicPresented )
+                    ForEach(userViewModel.users.filter { $0.id != authViewModel.currentLoggedInUser?.id }) { user in
+                        FireChatRow(user: user, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
                     }
                 }
             }

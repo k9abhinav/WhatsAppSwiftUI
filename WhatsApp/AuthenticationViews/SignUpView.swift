@@ -19,18 +19,15 @@ struct SignUpView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                BackgroundImage()
+//                BackgroundImage()
                 VStack {
                     // Header
                     VStack(spacing: 12  ) {
-                        Image("logo")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 90, height: 90)
+
 
                         Text("Create Account")
                             .font(.largeTitle)
-                            .foregroundStyle(Color.customGreen)
+//                            .foregroundStyle(Color.customGreen)
                             .fontWeight(.bold)
 
                         Text("Sign up to get started with WhatsApp Clone")
@@ -38,7 +35,7 @@ struct SignUpView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                    }
+                    }.padding(.top,20)
 
                     // Form Fields
                     VStack(spacing: 20) {
@@ -82,7 +79,7 @@ struct SignUpView: View {
                             Text("Sign Up")
                             Image(systemName: "chevron.right")
 
-                        }.fontWeight(.bold)
+                        }
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .padding(.horizontal)
@@ -121,14 +118,15 @@ struct SignUpView: View {
                                 }
                             }
                         )
-                        .fontWeight(.semibold)
+                        .buttonStyle(PrimaryButtonStyle())
                         .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color(#colorLiteral(red: 0.262745098, green: 0.5254901961, blue: 0.9607843137, alpha: 1)))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                        .foregroundStyle(.white)
-                        .buttonStyle(.automatic)
+//                        .frame(maxWidth: .infinity)
+//                        .background(Color(#colorLiteral(red: 0.262745098, green: 0.5254901961, blue: 0.9607843137, alpha: 1)))
+//                        .background(Color.customGreen)
+//                        .cornerRadius(10)
+//                        .padding(.horizontal)
+//                        .foregroundStyle(.white)
+//                        .buttonStyle(.automatic)
                     }
                     .padding(.vertical)
 
@@ -148,7 +146,7 @@ struct SignUpView: View {
                     .padding(.bottom, 30)
                 }
 
-                if viewModel.isAuthenticated {
+                if viewModel.userIsAuthenticated {
                     Text("Authentication successful!")
                         .font(.headline)
                         .padding()
@@ -159,10 +157,14 @@ struct SignUpView: View {
             }
             .navigationBarHidden(true)
             .fullScreenCover(isPresented: $isShowingSignIn) {
-                SignInWithEmailView()
+                withAnimation(.smooth) {
+                    SignInWithEmailView()
+                }
             }
             .navigationDestination(isPresented: $signUpViewActive, destination:{
-                SignUpView()
+                withAnimation(.smooth) {
+                    SignUpView()
+                }
             })
 
             .navigationDestination(isPresented: $otpViewVisibilty, destination:{

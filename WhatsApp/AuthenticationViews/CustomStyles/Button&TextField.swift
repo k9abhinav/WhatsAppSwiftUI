@@ -15,6 +15,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .background(Color.customGreen)
             .foregroundColor(.white)
+            .fontWeight(.semibold)
             .cornerRadius(8)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .opacity(configuration.isPressed ? 0.9 : 1)

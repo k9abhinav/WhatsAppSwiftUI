@@ -17,46 +17,46 @@ struct WelcomeView: View {
             ZStack {
                 BackgroundImage()
                 VStack(spacing: 24) {
-                    // Logo and app name
-                    VStack(spacing: 16) {
-//                        Image("whatsapp")
-//                            .resizable()
-                                    LottieWhatsAppView()
-                            .frame(maxWidth: 80, maxHeight: 80)
-                            .rotationEffect(.degrees(25))
 
-//                            .aspectRatio(contentMode: .fit)
+                    VStack(spacing: 16) {
+
+//                                                LottieWhatsAppView()
+                        LottieMessageDotsAnimationView()
+//                        Image("welcome_image")
+//                            .resizable()
+//                            .scaledToFill()
 //                            .frame(width: 80, height: 80)
-//                            .foregroundColor(.green)
-//                            .padding()
-//                            .background(
-//                                Circle()
-//                                    .fill(colorScheme == .dark ? Color.black.opacity(0.6) : Color.white)
-//                                    .shadow(color: .black.opacity(0.1), radius: 10)
-//                            )
-                        
+//                            .border(Color.gray, width: 1)
+
                         Text("Welcome to WhatsApp Clone.")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
-                        
+
+
                         Text("Simple. Secure. Reliable messaging.")
                             .font(.headline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
+
+//                        LottieStarsAnimationView()
+//                            .scaleEffect(2)
+
                     }
-                    .padding(.top, 60)
-                    
+                    .padding(.top, 40)
+
                     Spacer()
-                    
+
                     // Privacy policy section
                     VStack(spacing: 16) {
+
+
                         Text("Read our Privacy Policy. Tap \"Continue\" to accept the Terms of Service.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        
+
                         Button {
                             showPrivacyPolicy = true
                         } label: {
@@ -67,7 +67,7 @@ struct WelcomeView: View {
                         }
                         .padding(.bottom, 8)
                     }
-                    
+
                     // Continue button
                     Button {
                         showSignUpView = true
@@ -88,10 +88,15 @@ struct WelcomeView: View {
                 }
                 .padding()
                 .navigationDestination(isPresented: $showSignUpView) {
-                    SignUpView()
+                    withAnimation(.smooth) {
+                        SignUpView()
+                    }
                 }
                 .sheet(isPresented: $showPrivacyPolicy) {
-                    PrivacyPolicyView()
+                    withAnimation(.smooth) {
+                        PrivacyPolicyView()
+                    }
+                
                 }
             }
         }

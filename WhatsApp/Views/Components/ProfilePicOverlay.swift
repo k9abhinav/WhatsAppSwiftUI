@@ -1,70 +1,67 @@
 import SwiftUI
 
 struct ProfilePicOverlay: View {
-//    let user: User
     let user: FireUserModel
     let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            Color.secondary.opacity(0.85) // Background dim effect
-                .edgesIgnoringSafeArea(.all)
-            ZStack {
-                Text(user.name)
-                    .background(Color.black.opacity(0.8))
-                    .frame(width:300 , alignment: .leading)
-                    .font(.title)
-                    .frame(maxWidth: .greatestFiniteMagnitude ,maxHeight: .greatestFiniteMagnitude, alignment: .topLeading)
-                    .foregroundStyle(.white)
-                    .zIndex(1)
-                VStack{
+            // Background with fade effect
+            Color.black
+                .ignoresSafeArea()
+                // Tap anywhere to dismiss
 
-                        //                    if let imageData = user.imageData,
-                        if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                            AsyncImage(url: imageUrl) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 300, height: 300) // Adjust size as needed
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        .shadow(radius: 10)
-                                case .failure:
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 100, height: 100)
-                                        .foregroundColor(.gray)
-                                @unknown default:
-                                    EmptyView()
-                                }
-                            }
-                        }
-                        else {
+            VStack {
+                // Close button at top left
+
+
+                Spacer()
+
+                // Profile Image
+                if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                    AsyncImage(url: imageUrl) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: 400) // Adjust height as needed
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .shadow(radius: 10)
+                                .padding()
+                        case .failure:
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 150, height: 150)
                                 .foregroundColor(.gray)
-
+                        @unknown default:
+                            EmptyView()
                         }
-
-
+                    }
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 150, height: 150)
+                        .foregroundColor(.gray)
                 }
-//                .background(Color.customGreen)
 
+                // User Name Display
+                Text(user.name)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.top, 10)
+
+                Spacer()
             }
-            .frame(width: 300,height: 300)
-          
         }
-        .frame(maxWidth: .infinity - 300, alignment: .center )
+        .zIndex(10)
         .onTapGesture { onDismiss() }
         .transition(.opacity) // Smooth fade-in effect
+        .animation(.easeInOut(duration: 0.3), value: user.imageUrl) // Smooth appearance
     }
-}
-#Preview {
-
 }

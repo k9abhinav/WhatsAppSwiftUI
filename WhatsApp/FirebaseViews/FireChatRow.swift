@@ -8,6 +8,7 @@ struct FireChatRow: View {
     @Binding var isProfilePicPresented:Bool
     @State private var lastMessage: FireChatModel?
     @Environment(FireChatViewModel.self) private var chatViewModel
+    @Environment(AuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
     var body: some View {
         NavigationLink( destination: FireChatDetailView(user:user) )
@@ -47,8 +48,14 @@ struct FireChatRow: View {
     }
     private var userProfileNameandContent: some View {
         VStack(alignment: .leading,spacing: 6) {
-            Text(user.name)
-                .font(.headline)
+            HStack {
+                Text(user.name)
+                    .font(.headline)
+                if(user.id == authViewModel.currentLoggedInUser?.id){
+                    Text("(You)")
+                        .font(.headline)
+                }
+            }
 
             HStack(spacing:12 ){
                 Image("doubleCheck")
