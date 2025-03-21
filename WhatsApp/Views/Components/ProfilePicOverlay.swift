@@ -7,8 +7,10 @@ struct ProfilePicOverlay: View {
     var body: some View {
         ZStack {
             // Background with fade effect
-            Color.black
-                .ignoresSafeArea()
+            VStack{
+                Color.black
+                    .ignoresSafeArea(.all)
+            }
                 // Tap anywhere to dismiss
 
             VStack {

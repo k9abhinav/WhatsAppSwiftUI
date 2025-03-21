@@ -120,6 +120,8 @@ struct FireChatListView: View {
 }
 
 #Preview {
-//    FireChatListView()
-//        .environment(FireUserViewModel())
+    FireChatListView()
+        .environment(FireUserViewModel())
+        .environment(ChatsViewModel())
+        .environment(AuthViewModel())
 }

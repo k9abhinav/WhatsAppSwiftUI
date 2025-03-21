@@ -18,6 +18,36 @@
             endingLineNumber = "10"
             landmarkName = "NewCommunityView"
             landmarkType = "14">
+            <Locations>
+               <Location
+                  uuid = "D2E25CC0-CD3D-4056-B8D1-D13D8EED1B3E - 66b47dcf288b63ff"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "WhatsApp.NewCommunityView.init() -&gt; WhatsApp.NewCommunityView"
+                  moduleName = "WhatsApp.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/abhinavakrishna/Desktop/WhatsApp/WhatsApp/Views/Community/NewCommunityView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "11"
+                  endingLineNumber = "11">
+               </Location>
+               <Location
+                  uuid = "D2E25CC0-CD3D-4056-B8D1-D13D8EED1B3E - 41f212eea72de525"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "WhatsApp.NewCommunityView.init(dismiss: SwiftUI.Environment&lt;SwiftUI.DismissAction&gt;) -&gt; WhatsApp.NewCommunityView"
+                  moduleName = "WhatsApp.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/abhinavakrishna/Desktop/WhatsApp/WhatsApp/Views/Community/NewCommunityView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "12"
+                  endingLineNumber = "12">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

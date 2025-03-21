@@ -374,8 +374,7 @@ import SwiftUI
             print("DEBUG: User document successfully deleted from Firestore")
             try await firebaseUser.delete()
             print("DEBUG: User successfully deleted from Firebase Authentication")
-            userIsAuthenticated = false
-            currentLoggedInUser = nil
+            signOut()
         } catch {
             showError(error.localizedDescription)
             print("DEBUG: Error deleting user - \(error.localizedDescription)")

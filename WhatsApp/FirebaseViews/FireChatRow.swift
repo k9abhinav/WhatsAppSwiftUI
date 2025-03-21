@@ -29,17 +29,30 @@ struct FireChatRow: View {
             //            .cornerRadius(10)
         }
         .buttonStyle(.plain)
-        .onAppear{
-            Task{
-                lastMessage = await chatViewModel.fetchLastChat(for: user.id)
+        .onAppear {
+            Task {
+                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" , otherUserId: user.id ) { latestMessage in
+                    if let message = latestMessage {
+                        lastMessage = message
+                    }
+                }
                 profileImageURLString = user.imageUrl
             }
+        }
+        .onChange(of: chatViewModel.chatMessages.count){
+            Task{
+                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" , otherUserId: user.id ) { latestMessage in
+                    if let message = latestMessage {
+                        lastMessage = message
+                    }
+                }
             }
+        }
     }
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {
         VStack {
-            let date: Date = user.lastSeen ??  .now
+            let date: Date = user.lastMessageTime ??  .now
             Text(timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
@@ -51,9 +64,10 @@ struct FireChatRow: View {
             HStack {
                 Text(user.name)
                     .font(.headline)
-                if(user.id == authViewModel.currentLoggedInUser?.id){
+                if user.id == authViewModel.currentLoggedInUser?.id {
                     Text("(You)")
                         .font(.headline)
+                        .foregroundColor(.gray)
                 }
             }
 
@@ -74,37 +88,28 @@ struct FireChatRow: View {
         }
     }
     private var userProfilePictureView: some View {
-            Group {
-                if let imageUrlString = profileImageURLString , let imageUrl = URL(string: imageUrlString) {
-                    AsyncImage(url: imageUrl) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView() // Show a loading indicator
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        case .failure:
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .foregroundColor(.gray)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 50, height: 50)
-                        .foregroundColor(.gray)
-                }
+        AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
+            switch phase {
+            case .empty:
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .foregroundColor(.gray)
+
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
+            case .failure:
+                ProgressView() // Show loading indicator
+            @unknown default:
+                EmptyView()
             }
         }
+    }
     // MARK: HELPER FUNCTIONS -------------------------------
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current
@@ -126,5 +131,9 @@ struct FireChatRow: View {
 }
 
 #Preview {
-    
+    FireChatRow(user: FireUserModel(id: "123", phone: "", name: "Test User", imageUrl: nil),
+                currentUser: .constant(nil),
+                isProfilePicPresented: .constant(false))
+    .environment(FireChatViewModel())
+    .environment(AuthViewModel())
 }

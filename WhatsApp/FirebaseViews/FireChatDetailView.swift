@@ -2,8 +2,10 @@ import PhotosUI
 import SwiftUI
 
 struct FireChatDetailView: View {
+
     let user: FireUserModel
     @Environment(FireChatViewModel.self) private var chatViewModel
+    @Environment(AuthViewModel.self) private var authViewModel
     @Environment(\.presentationMode) private var presentationMode
     @State private var lastMessage : FireChatModel?
     @FocusState private var isTextFieldFocused: Bool
@@ -39,28 +41,26 @@ struct FireChatDetailView: View {
             .toolbarBackground(.white, for: .navigationBar)
             .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
-            .onAppear{
-                Task{
-                    await chatViewModel.fetchChats(for: user.id)
-                    lastMessage = await chatViewModel.fetchLastChat(for: user.id)
-                }
-            }
             .onAppear {
-                chatViewModel.listenForChatUpdates(for: user.id)
+                Task {
+                    await chatViewModel.fetchChats(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id)
+                    lastMessage = chatViewModel.chatMessages.last
+                }
+                chatViewModel.listenForChatUpdates(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id)
             }
-            .onDisappear {
-                chatViewModel.stopListening()
-            }
-            
-            .onDisappear {
-                withAnimation(.spring) { UITabBar.appearance().isHidden = false }
+           .onDisappear {
+               chatViewModel.stopListening()
+                DispatchQueue.main.async {
+                    UITabBar.appearance().isHidden = false
+                }
             }
 
             if isProfileImagePresented {
-                        ProfilePicOverlay(user: user) {
-                            withAnimation { isProfileImagePresented = false }
-                        }
-                    }
+                ProfilePicOverlay(user: user) {
+                    withAnimation(.easeInOut(duration: 0.3)) { isProfileImagePresented = false }
+                }
+                .transition(.opacity)
+            }
         }
 
 
@@ -69,9 +69,12 @@ struct FireChatDetailView: View {
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
 
     private func sendMessage() async {
+        guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
         dismissKeyboard()
-        await chatViewModel.sendMessage(  for:user.id , content:messageText , isFromCurrentUser: true)
+        await chatViewModel.sendMessage(senderUserId: authViewModel.currentLoggedInUser?.id ?? "" , receiverUserId: user.id, content: messageText)
         messageText = ""
+
         isTyping = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             isTyping = false
@@ -133,10 +136,9 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    ForEach( chatViewModel.messages , id: \.id) { message in
-                        FireChatBubble(message: message)
+                    ForEach( chatViewModel.chatMessages , id: \.id) { message in
+                        FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
                             .id(message.id)
-
                     }
 
                     if isTyping {
@@ -157,7 +159,7 @@ struct FireChatDetailView: View {
                     scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                 }
             }
-            .onChange(of: chatViewModel.messages.count ) { _, _ in
+            .onChange(of: chatViewModel.chatMessages.count ) { _, _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if let lastMessage = lastMessage {
                         withTransaction(Transaction(animation: nil)) {
@@ -220,38 +222,29 @@ struct FireChatDetailView: View {
     }
 
     private var profileImage: some View {
-            Group {
-                if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                    AsyncImage(url: imageUrl) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 32, height: 32)
-                                .clipShape(Circle())
-                        case .failure:
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 32, height: 32)
-                                .foregroundColor(.gray)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 32, height: 32)
-                        .clipShape(Circle())
-                        .foregroundColor(.gray)
-                }
+        AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
+            switch phase {
+            case .empty:
+                defaultProfileImage
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+            default:
+                ProgressView()
             }
         }
+    }
+    private var defaultProfileImage: some View {
+        Image(systemName: "person.crop.circle.fill")
+            .resizable()
+            .scaledToFill()
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
+            .foregroundColor(.gray)
+    }
 }
 
 #Preview {

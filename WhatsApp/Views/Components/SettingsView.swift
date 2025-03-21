@@ -146,15 +146,15 @@ struct SettingsView: View {
                     .frame(width: 80, height: 80)
                     .clipShape(Circle())
             case .failure:
+                ProgressView()
+                    .frame(width: 80, height: 80)
+            case .empty:
                 Image(systemName: "person.circle.fill")
                     .resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
                     .clipShape(Circle())
                     .foregroundColor(.gray)
-            case .empty:
-                ProgressView()
-                    .frame(width: 80, height: 80)
             @unknown default:
                 EmptyView()
             }

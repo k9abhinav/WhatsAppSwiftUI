@@ -8,110 +8,155 @@ class FireChatViewModel {
     // MARK: - Properties
     var chatMessages: [FireChatModel] = []
     private let firestoreDB = Firestore.firestore()
-    private var firestoreListener: ListenerRegistration?
+    private var firestoreListeners: [ListenerRegistration] = []
     private let chatCollection = "chats"
 
     // MARK: - Constants
     private struct QueryFields {
-        static let userId = "userId"
+        static let senderUserId = "senderUserId"
+        static let receiverUserId = "receiverUserId"
         static let timestamp = "timestamp"
-    }
-
-    private struct Constants {
-        static let replyDelay: TimeInterval = 3.0
     }
 
     // MARK: - Firestore Real-time Updates
 
-    /// Fetch all chats for a specific user in real-time
-    func listenForChatUpdates(for userId: String) {
-        stopListening() // Remove previous listener if exists
+    /// Listen for chat updates between two users
+    func listenForChatUpdates(currentUserId: String, otherUserId: String) {
+           stopListening() // Remove previous listeners
 
-        firestoreListener = createChatQuery(for: userId)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self else { return }
-                guard let snapshot = snapshot else {
-                    print("Error listening for chat updates: \(error?.localizedDescription ?? "Unknown error")")
-                    return
-                }
+           let query1 = firestoreDB.collection(chatCollection)
+               .whereField(QueryFields.senderUserId, isEqualTo: currentUserId)
+               .whereField(QueryFields.receiverUserId, isEqualTo: otherUserId)
 
-                Task { @MainActor in
-                    self.chatMessages = self.parseChatsFromSnapshot(snapshot)
-                }
-            }
-    }
+           let query2 = firestoreDB.collection(chatCollection)
+               .whereField(QueryFields.senderUserId, isEqualTo: otherUserId)
+               .whereField(QueryFields.receiverUserId, isEqualTo: currentUserId)
 
-    /// Stop listening when view is closed
+           let listener1 = query1.addSnapshotListener { [weak self] snapshot, error in
+               self?.handleSnapshot(snapshot, error: error)
+           }
+
+           let listener2 = query2.addSnapshotListener { [weak self] snapshot, error in
+               self?.handleSnapshot(snapshot, error: error)
+           }
+
+           firestoreListeners = [listener1, listener2]
+       }
+
     func stopListening() {
-        firestoreListener?.remove()
-        firestoreListener = nil
+        for listener in firestoreListeners {
+            listener.remove()
+        }
+        firestoreListeners.removeAll()
     }
+    private func handleSnapshot(_ snapshot: QuerySnapshot?, error: Error?) {
+            guard let snapshot = snapshot else {
+                print("Error listening for chat updates: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            Task { @MainActor in
+                var uniqueMessages = Set(chatMessages) // Prevent duplicates
+                uniqueMessages.formUnion(snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) })
+                self.chatMessages = uniqueMessages.sorted(by: { $0.timestamp < $1.timestamp })
+            }
+        }
 
     // MARK: - Fetch Operations
 
-    /// Fetch all chats for a specific user
-    @MainActor func fetchChats(for userId: String) async {
+    /// Fetch all chat messages between two users
+    @MainActor
+    func fetchChats(currentUserId: String, otherUserId: String) async {
         do {
-            let snapshot = try await createChatQuery(for: userId).getDocuments()
-            self.chatMessages = parseChatsFromSnapshot(snapshot)
-            print("Messages count: \(chatMessages.count)")
+            let query1 = firestoreDB.collection(chatCollection)
+                .whereField("senderUserId", isEqualTo: currentUserId)
+                .whereField("receiverUserId", isEqualTo: otherUserId)
+
+            let query2 = firestoreDB.collection(chatCollection)
+                .whereField("senderUserId", isEqualTo: otherUserId)
+                .whereField("receiverUserId", isEqualTo: currentUserId)
+
+            let snapshot1 = try await query1.getDocuments()
+            let snapshot2 = try await query2.getDocuments()
+
+            // Merge messages from both queries
+            // Use a Set to ensure unique messages
+            var uniqueMessages = Set<FireChatModel>()
+
+            // Append without duplicates
+            uniqueMessages.formUnion(snapshot1.documents.compactMap { try? $0.data(as: FireChatModel.self) })
+            uniqueMessages.formUnion(snapshot2.documents.compactMap { try? $0.data(as: FireChatModel.self) })
+
+            // Convert back to sorted array
+            self.chatMessages = uniqueMessages.sorted(by: { $0.timestamp < $1.timestamp })
+
         } catch {
             print("Error fetching chats: \(error.localizedDescription)")
         }
     }
 
-    /// Fetch most recent chat for a specific user
-    @MainActor func fetchLastChat(for userId: String) async -> FireChatModel? {
-        do {
-            let snapshot = try await firestoreDB.collection(chatCollection)
-                .whereField(QueryFields.userId, isEqualTo: userId)
-                .order(by: QueryFields.timestamp, descending: true)
-                .limit(to: 1)
-                .getDocuments()
+    /// Fetch most recent chat between two users
+    func listenAndFetchLastChat(currentUserId: String, otherUserId: String, completion: @escaping (FireChatModel?) -> Void) {
+        stopListening() // Ensure we don't duplicate listeners
 
-            return snapshot.documents.first.flatMap { try? $0.data(as: FireChatModel.self) }
-        } catch {
-            print("Error fetching last chat: \(error.localizedDescription)")
-            return nil
+        let query1 = firestoreDB.collection(chatCollection)
+            .whereField(QueryFields.senderUserId, isEqualTo: currentUserId)
+            .whereField(QueryFields.receiverUserId, isEqualTo: otherUserId)
+            .order(by: QueryFields.timestamp, descending: true) // Get latest message first
+            .limit(to: 1)
+
+        let query2 = firestoreDB.collection(chatCollection)
+            .whereField(QueryFields.senderUserId, isEqualTo: otherUserId)
+            .whereField(QueryFields.receiverUserId, isEqualTo: currentUserId)
+            .order(by: QueryFields.timestamp, descending: true)
+            .limit(to: 1)
+
+        let listener1 = query1.addSnapshotListener { [weak self] snapshot, error in
+            if let message = snapshot?.documents.compactMap({ try? $0.data(as: FireChatModel.self) }).first {
+                completion(message) // Send update when a new message arrives
+            }
         }
+
+        let listener2 = query2.addSnapshotListener { [weak self] snapshot, error in
+            if let message = snapshot?.documents.compactMap({ try? $0.data(as: FireChatModel.self) }).first {
+                completion(message)
+            }
+        }
+
+        firestoreListeners = [listener1, listener2] // Store listeners to remove later
     }
+
 
     // MARK: - Message Operations
 
-    /// Send a new message and automatically generate a reply
-    func sendMessage(for userId: String, content: String, isFromCurrentUser: Bool) async {
-        // Send user message
-        let userMessage = createChatMessage(
+    /// Send a new message from the current user to another user
+    func sendMessage(senderUserId: String, receiverUserId: String, content: String) async {
+        let message = FireChatModel(
+            id: UUID().uuidString,
             content: content,
-            isFromCurrentUser: isFromCurrentUser,
-            userId: userId
+            senderUserId: senderUserId,
+            receiverUserId: receiverUserId,
+            timestamp: Date()
         )
 
         do {
-            try await saveChatMessage(userMessage)
-
-            // Schedule automated reply
-            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.replyDelay) {
-                Task {
-                    // Create and send reply message
-                    let replyMessage = self.createChatMessage(
-                        content: self.generateReply(for: content),
-                        isFromCurrentUser: false,
-                        userId: userId
-                    )
-
-                    try? await self.saveChatMessage(replyMessage)
-                }
-            }
+            try await saveChatMessage(message)
         } catch {
             print("Error sending message: \(error.localizedDescription)")
         }
     }
 
     /// Delete a chat message
-    func deleteMessage(for messageId: String) async {
+    func deleteMessage(for messageId: String, senderUserId: String, receiverUserId: String) async {
+        let query = firestoreDB.collection(chatCollection)
+            .whereField("id", isEqualTo: messageId)
+            .whereField("senderUserId", isEqualTo: senderUserId)
+            .whereField("receiverUserId", isEqualTo: receiverUserId)
+
         do {
-            try await firestoreDB.collection(chatCollection).document(messageId).delete()
+            let snapshot = try await query.getDocuments()
+            for document in snapshot.documents {
+                try await document.reference.delete()
+            }
         } catch {
             print("Error deleting message: \(error.localizedDescription)")
         }
@@ -119,11 +164,29 @@ class FireChatViewModel {
 
     // MARK: - Helper Methods
 
-    /// Create a standard Firestore query for chat messages
-    private func createChatQuery(for userId: String) -> Query {
-        return firestoreDB.collection(chatCollection)
-            .whereField(QueryFields.userId, isEqualTo: userId)
-            .order(by: QueryFields.timestamp, descending: false)
+    /// Create a query for retrieving messages between two users
+    private func fetchChatsBetweenUsers(currentUserId: String, otherUserId: String) async -> [FireChatModel] {
+        do {
+            let query1 = firestoreDB.collection(chatCollection)
+                .whereField(QueryFields.senderUserId, isEqualTo: currentUserId)
+                .whereField(QueryFields.receiverUserId, isEqualTo: otherUserId)
+
+            let query2 = firestoreDB.collection(chatCollection)
+                .whereField(QueryFields.senderUserId, isEqualTo: otherUserId)
+                .whereField(QueryFields.receiverUserId, isEqualTo: currentUserId)
+
+            let snapshot1 = try await query1.getDocuments()
+            let snapshot2 = try await query2.getDocuments()
+
+            var messages: [FireChatModel] = []
+            messages.append(contentsOf: snapshot1.documents.compactMap { try? $0.data(as: FireChatModel.self) })
+            messages.append(contentsOf: snapshot2.documents.compactMap { try? $0.data(as: FireChatModel.self) })
+
+            return messages.sorted(by: { $0.timestamp < $1.timestamp }) // Oldest first
+        } catch {
+            print("Error fetching chats: \(error.localizedDescription)")
+            return []
+        }
     }
 
     /// Parse documents from a snapshot into FireChatModel objects
@@ -133,36 +196,8 @@ class FireChatViewModel {
         }
     }
 
-    /// Create a new chat message model
-    private func createChatMessage(content: String, isFromCurrentUser: Bool, userId: String) -> FireChatModel {
-        return FireChatModel(
-            id: UUID().uuidString,
-            content: content,
-            isFromCurrentUser: isFromCurrentUser,
-            timestamp: Date(),
-            userId: userId
-        )
-    }
-
     /// Save a chat message to Firestore
     private func saveChatMessage(_ message: FireChatModel) async throws {
         try firestoreDB.collection(chatCollection).document(message.id).setData(from: message)
-    }
-
-    /// Generate an automated reply message
-    private func generateReply(for userMessage: String) -> String {
-        let replies = [
-            "Happy to see you! This is a long message to test scrolling behavior.",
-            "Hello! How are you?",
-            "Ok bye! 👋",
-            "That's interesting!",
-            "Tell me more!",
-            "😭",
-            "It's okay!",
-            "😂",
-            "Let's catch up soon!",
-            "👍"
-        ]
-        return replies.randomElement() ?? "Error in chat reply generation."
     }
 }

@@ -1,34 +1,29 @@
-//
-//  FireChatBubble.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 13/03/25.
-//
-
 import SwiftUI
 
 struct FireChatBubble: View {
     let message: FireChatModel
+    let currentUserId: String // Inject the logged-in user's ID
+
+    private var isFromCurrentUser: Bool {
+        message.senderUserId == currentUserId
+    }
 
     var body: some View {
         HStack(alignment: .bottom) {
-
-            VStack(alignment: message.isFromCurrentUser ? .trailing : .leading, spacing: 2) {
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 2) {
                 Text(message.content)
                     .padding(12)
-                    .background(message.isFromCurrentUser ? Color.green : Color.gray.opacity(0.2))
-                    .foregroundColor(message.isFromCurrentUser ? .white : .black)
+                    .background(isFromCurrentUser ? Color.green : Color.gray.opacity(0.2))
+                    .foregroundColor(isFromCurrentUser ? .white : .black)
                     .cornerRadius(16)
                     .font(.body)
 
                 Text(timeString(from: message.timestamp))
                     .font(.caption2)
                     .foregroundColor(.gray)
-                    .padding(message.isFromCurrentUser ? .trailing : .leading, 4)
-
+                    .padding(isFromCurrentUser ? .trailing : .leading, 4)
             }
-            .frame(maxWidth: UIScreen.main.bounds.width * 0.95, alignment: message.isFromCurrentUser ? .trailing : .leading)
-
+            .frame(maxWidth: UIScreen.main.bounds.width * 0.95, alignment: isFromCurrentUser ? .trailing : .leading)
         }
     }
 
@@ -40,5 +35,8 @@ struct FireChatBubble: View {
 }
 
 #Preview {
-    
+    FireChatBubble(
+        message: FireChatModel(id: "1", content: "Hello!", senderUserId: "123", receiverUserId: "456", timestamp: Date()),
+        currentUserId: "123"
+    )
 }

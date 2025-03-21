@@ -278,7 +278,11 @@ struct ProfileDetailsView: View {
                     AsyncImage(url: imageUrl) { phase in
                         switch phase {
                         case .empty:
-                            ProgressView()
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.gray)
                         case .success(let image):
                             image
                                 .resizable()
@@ -286,11 +290,7 @@ struct ProfileDetailsView: View {
                                 .frame(width: 80, height: 80)
                                 .clipShape(Circle())
                         case .failure:
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(.gray)
+                            ProgressView()
                         @unknown default:
                             EmptyView()
                         }

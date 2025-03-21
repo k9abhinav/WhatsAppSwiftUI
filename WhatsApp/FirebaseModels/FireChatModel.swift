@@ -1,13 +1,13 @@
 import Foundation
 
-struct FireChatModel: Codable, Identifiable {
+struct FireChatModel: Codable, Identifiable, Hashable {
     var id: String
     var content: String
-    var isFromCurrentUser: Bool
+    var senderUserId: String
+    var receiverUserId: String
     var timestamp: Date
-    var userId: String 
 
     enum CodingKeys: String, CodingKey {
-        case id, content, isFromCurrentUser, timestamp, userId
+        case id, content, senderUserId, receiverUserId, timestamp
     }
 }
