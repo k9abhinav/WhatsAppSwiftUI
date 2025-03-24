@@ -7,12 +7,13 @@ struct FireChatDetailView: View {
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(AuthViewModel.self) private var authViewModel
     @Environment(\.presentationMode) private var presentationMode
-    @State private var lastMessage : FireChatModel?
+    @State private var lastMessage : FireMessageModel?
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
     @State private var isTyping: Bool = false
+    @State private var onlineStatus: Bool = false
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
@@ -42,14 +43,10 @@ struct FireChatDetailView: View {
             .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
             .onAppear {
-                Task {
-                    await chatViewModel.fetchChats(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id)
-                    lastMessage = chatViewModel.chatMessages.last
-                }
-                chatViewModel.listenForChatUpdates(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id)
+
             }
            .onDisappear {
-               chatViewModel.stopListening()
+
                 DispatchQueue.main.async {
                     UITabBar.appearance().isHidden = false
                 }
@@ -72,7 +69,13 @@ struct FireChatDetailView: View {
         guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
         dismissKeyboard()
-        await chatViewModel.sendMessage(senderUserId: authViewModel.currentLoggedInUser?.id ?? "" , receiverUserId: user.id, content: messageText)
+        await chatViewModel.sendMessage(
+                                    chatId: chatId,
+                                    senderId: authViewModel.currentLoggedInUser?.id ?? "",
+                                    receiverId: user.id,
+                                    content: messageText,
+                                    messageType: .text
+                                )
         messageText = ""
 
         isTyping = true
@@ -83,16 +86,6 @@ struct FireChatDetailView: View {
 
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-
-    private func scrollToBottom(_ scrollProxy: ScrollViewProxy) {
-        guard let lastMessage = lastMessage
-        else { return }
-        DispatchQueue.main.async {
-            withAnimation(.smooth) {
-                scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-            }
-        }
     }
 
     //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
@@ -117,7 +110,7 @@ struct FireChatDetailView: View {
                 }
             VStack(alignment: .leading) {
                 Text(user.name).font(.headline)
-                Text("Online").font(.caption).foregroundColor(.gray)
+                Text(user.onlineStatus ?? false ? "Online" : "Offline").font(.caption).foregroundColor(.gray)
             }
             .onTapGesture {
                 isProfileDetailPresented.toggle()
@@ -136,8 +129,8 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    ForEach( chatViewModel.chatMessages , id: \.id) { message in
-                        FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+                    ForEach( chatViewModel.messages , id: \.id) { message in
+                        FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error" )
                             .id(message.id)
                     }
 
@@ -154,12 +147,11 @@ struct FireChatDetailView: View {
             }
             .scrollIndicators(.hidden)
             .onAppear {
-
                 if let lastMessage = lastMessage {
                     scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                 }
             }
-            .onChange(of: chatViewModel.chatMessages.count ) { _, _ in
+            .onChange(of: chatViewModel.messages.count ) { _, _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if let lastMessage = lastMessage {
                         withTransaction(Transaction(animation: nil)) {

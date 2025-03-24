@@ -44,7 +44,7 @@ struct SettingsView: View {
                 userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
                 if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
                         loadImageFromURL(imageUrl)
-                    }
+                }
             }
             .onChange(of: showingEdit) { oldValue, newValue in
                 Task{

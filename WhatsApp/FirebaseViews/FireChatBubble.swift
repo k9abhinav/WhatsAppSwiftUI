@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct FireChatBubble: View {
-    let message: FireChatModel
-    let currentUserId: String // Inject the logged-in user's ID
-
+    let message: FireMessageModel
+    let currentUserId: String 
     private var isFromCurrentUser: Bool {
         message.senderUserId == currentUserId
     }
@@ -36,7 +35,7 @@ struct FireChatBubble: View {
 
 #Preview {
     FireChatBubble(
-        message: FireChatModel(id: "1", content: "Hello!", senderUserId: "123", receiverUserId: "456", timestamp: Date()),
+        message: FireMessageModel(id: "1", content: "Hello!", senderUserId: "123", receiverUserId: "456", timestamp: Date()),
         currentUserId: "123"
     )
 }

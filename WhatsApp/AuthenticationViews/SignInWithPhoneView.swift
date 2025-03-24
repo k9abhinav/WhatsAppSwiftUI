@@ -109,7 +109,7 @@ struct SignInWithPhoneView: View {
                                     isLoading = true
                                     if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                                        let rootVC = scene.windows.first?.rootViewController {
-                                        await viewModel.signUppWithGoogle(presenting: rootVC)
+                                        await viewModel.signUpWithGoogle(presenting: rootVC)
                                     }
                                 }
                             }, label: {

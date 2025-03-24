@@ -11,35 +11,59 @@ struct FireChatListView: View {
     @State private var searchText = ""
     @State private var showingSettings = false
     @State  var isProfilePicPresented = false
+    @State var showingContactUsers: Bool = false
     var body: some View {
 
-            NavigationStack {
-                ZStack {
-                    VStack {
-                        scrollViewChatUsers
-                            .scrollIndicators(.hidden)
-                            .toolbar {
-                                ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
-                                ToolbarItemGroup { toolbarButtons }
-                            }
-                            .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
-                            .toolbarBackground(.white, for: .navigationBar)
-                            .toolbarColorScheme(.light, for: .navigationBar)
+        NavigationStack {
+            ZStack {
+                VStack {
+                    scrollViewChatUsers
+                        .scrollIndicators(.hidden)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
+                            ToolbarItemGroup { toolbarButtons }
+                        }
+                        .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
+                        .toolbarBackground(.white, for: .navigationBar)
+                        .toolbarColorScheme(.light, for: .navigationBar)
+                }
+                if isProfilePicPresented {
+                    ProfilePicOverlay(user: currentUser) {
+                        withAnimation { isProfilePicPresented = false }
                     }
-                    if isProfilePicPresented {
-                        ProfilePicOverlay(user: currentUser) {
-                                    withAnimation { isProfilePicPresented = false }
-                                }
-                            }
+                }
+
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showingContactUsers = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.customGreen)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                    }
                 }
             }
-            .onAppear {
-                Task {
-                    await userViewModel.fetchUsers()  
-                    userViewModel.setupUsersListener()
-                }
+            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersView() })
+        }
+        .onAppear {
+            Task {
+                await userViewModel.fetchUsers()
+                userViewModel.setupUsersListener()
+//                if let chatId = await chatVM.getOrCreateChatId(loggedInUserId: loggedInUserId, otherUserId: user.id) 
             }
         }
+    }
 
 
 

@@ -1,11 +1,9 @@
 
 import SwiftUI
-import PhotosUI
 
-struct FireChatRow: View {
+struct FireNewChatRow: View {
     let user: FireUserModel
-    @Binding var currentUser: FireUserModel?
-    @Binding var isProfilePicPresented:Bool
+
     @State private var lastMessage: FireMessageModel?
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(AuthViewModel.self) private var authViewModel
@@ -14,16 +12,9 @@ struct FireChatRow: View {
         NavigationLink( destination: FireChatDetailView(user:user) )
         {
             HStack {
-                Button(
-                    action: {
-                        currentUser = user
-                        isProfilePicPresented.toggle()
-                    },
-                    label: { userProfilePictureView }
-                ).buttonStyle(PlainButtonStyle())
+                 userProfilePictureView
                 userProfileNameandContent
                 Spacer()
-                userLastSeenTime
             }
             .padding(.vertical,5)
             //            .cornerRadius(10)
@@ -31,25 +22,7 @@ struct FireChatRow: View {
         .buttonStyle(.plain)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id) { latestMessage in
-                    if let message = latestMessage {
-                        lastMessage = message
-                        print("Debug: Last message fetched - \(message.content)")
-                    } else {
-                        print("Debug: No last message found for user \(user.name)")
-                    }
-                }
                 profileImageURLString = user.imageUrl
-            }
-        }
-        .onChange(of: chatViewModel.chatMessages ){
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" , otherUserId: user.id ) { latestMessage in
-                    if let message = latestMessage {
-                        lastMessage = message
-                        print("Debug: ---- \(String(describing: lastMessage))")
-                    }
-                }
             }
         }
     }
@@ -74,20 +47,12 @@ struct FireChatRow: View {
                         .foregroundColor(.gray)
                 }
             }
-
-            HStack(spacing:12 ){
-                Image("doubleCheck")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 5, height: 5)
-                    .scaleEffect(3.5)
-
-                Text(lastMessage?.content ?? "No Message")
+                Text(user.aboutInfo ?? "Error in loading about")
                     .font(.subheadline)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .foregroundColor(.gray)
-            }
+
             .padding(.leading,5)
         }
     }
@@ -135,9 +100,7 @@ struct FireChatRow: View {
 }
 
 #Preview {
-    FireChatRow(user: FireUserModel(id: "123", phone: "", name: "Test User", imageUrl: nil),
-                currentUser: .constant(nil),
-                isProfilePicPresented: .constant(false))
+    FireNewChatRow(user: FireUserModel(id: "123", phone: "", name: "Test User", imageUrl: nil))
     .environment(FireChatViewModel())
     .environment(AuthViewModel())
 }

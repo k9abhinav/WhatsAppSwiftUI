@@ -7,6 +7,7 @@ import FirebaseStorage
 final class FireUserViewModel {
     // MARK: - Properties
     var users: [FireUserModel] = []
+    var allUsers: [FireUserModel] = []
 
     // MARK: - Firebase References
     private let db = Firestore.firestore()
@@ -47,14 +48,15 @@ final class FireUserViewModel {
 
         for doc in snapshot.documents {
             do {
-                let user = try doc.data(as: FireUserModel.self)
+                var user = try doc.data(as: FireUserModel.self)
+                user.lastSeenTime = await fetchLastMessageTime(for: user.id)
                 fetchedUsers.append(user)
             } catch {
                 print("Error decoding document \(doc.documentID): \(error)")
             }
         }
 
-        self.users = fetchedUsers
+        self.users = sortUsersByLastMessage(fetchedUsers)
         print("Users updated. Count: \(users.count)")
     }
 
@@ -70,10 +72,11 @@ final class FireUserViewModel {
             print("Document count: \(snapshot.documents.count)")
 
             var fetchedUsers: [FireUserModel] = []
+            self.allUsers = fetchedUsers
             for doc in snapshot.documents {
                 do {
                     var user = try doc.data(as: FireUserModel.self)
-                    user.lastMessageTime = await fetchLastMessageTime(for: user.id)
+                    user.lastSeenTime = await fetchLastMessageTime(for: user.id)
                     fetchedUsers.append(user)
                 } catch {
                     print("Error decoding document \(doc.documentID): \(error)")
@@ -91,13 +94,13 @@ final class FireUserViewModel {
     private func fetchLastMessageTime(for userId: String) async -> Date? {
         do {
             let lastMessageQuery = chatsCollection
-                .whereField("userId", isEqualTo: userId)
+                .whereField("senderUserId", isEqualTo: userId) // Changed to senderUserId
                 .order(by: "timestamp", descending: true)
                 .limit(to: 1)
 
             let lastMessageSnapshot = try await lastMessageQuery.getDocuments()
             if let lastMessageDoc = lastMessageSnapshot.documents.first {
-                let lastMessage = try lastMessageDoc.data(as: FireChatModel.self)
+                let lastMessage = try lastMessageDoc.data(as: FireMessageModel.self)
                 return lastMessage.timestamp
             }
         } catch {
@@ -108,7 +111,7 @@ final class FireUserViewModel {
 
     private func sortUsersByLastMessage(_ users: [FireUserModel]) -> [FireUserModel] {
         return users.sorted {
-            ($0.lastMessageTime ?? .distantPast) > ($1.lastMessageTime ?? .distantPast)
+            ($0.lastSeenTime ?? .distantPast) > ($1.lastSeenTime ?? .distantPast)
         }
     }
 
@@ -153,11 +156,15 @@ final class FireUserViewModel {
     }
 
     func updateUserPhone(userId: String, newPhone: String, completion: @escaping (Error?) -> Void) {
-        updateUserField(userId: userId, fieldName: "phone", value: newPhone, completion: completion)
+        updateUserField(userId: userId, fieldName: "phoneNumber", value: newPhone, completion: completion) // Changed to phoneNumber
     }
 
     func updateUserStatus(userId: String, newStatus: String, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "aboutInfo", value: newStatus, completion: completion)
+    }
+
+    func updateUserOnlineStatus(userId: String, newStatus: Bool, completion: @escaping (Error?) -> Void) {
+        updateUserField(userId: userId, fieldName: "onlineStatus", value: newStatus, completion: completion)
     }
 
     // MARK: - Helper Methods

@@ -1,13 +1,23 @@
+
 import Foundation
 
-struct FireChatModel: Codable, Identifiable, Hashable {
-    var id: String
-    var content: String
-    var senderUserId: String
-    var receiverUserId: String
-    var timestamp: Date
+struct FireChatModel : Identifiable, Codable {
+    var id: String = UUID().uuidString
+    var chatType: ChatType
+    var partcipants: [FireUserModel]
+    var creationDate: Date
+    var groupName: String?
+    var groupPictureStringURL: String?
+    var groupAdminId: String?
+    var groupDescription: String?
+    var lastMessageId: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, content, senderUserId, receiverUserId, timestamp
+        case id, chatType, partcipants, creationDate, groupName, groupPictureStringURL, groupAdminId, groupDescription, lastMessageId
     }
+}
+
+enum ChatType: String, Codable {
+    case group
+    case single
 }

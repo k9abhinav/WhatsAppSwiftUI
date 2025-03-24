@@ -100,12 +100,15 @@ import SwiftUI
             // Set current user
             currentLoggedInUser = FireUserModel(
                 id: firebaseUser.uid,
-                phone: phoneNumber,
+                phoneNumber: phoneNumber,
                 name: fullName,
                 imageUrl: nil,
                 aboutInfo: defaultAboutInfo,
+                createdDate: Date(),
                 email: email,
-                typeOfAuth: .email
+                typeOfAuth: .email,
+                lastSeenTime: nil,
+                onlineStatus: false
             )
             userIsAuthenticated = true
         } catch {
@@ -140,12 +143,15 @@ import SwiftUI
 
             currentLoggedInUser = FireUserModel(
                 id: firebaseUser.uid,
-                phone: data?["phone"] as? String ?? "",
+                phoneNumber: data?["phoneNumber"] as? String ?? "",
                 name: data?["name"] as? String ?? "",
                 imageUrl: data?["imageUrl"] as? String,
                 aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
+                createdDate: (data?["createdDate"] as? Timestamp)?.dateValue(),
                 email: email,
-                typeOfAuth: .email
+                typeOfAuth: .email,
+                lastSeenTime: (data?["lastSeenTime"] as? Timestamp)?.dateValue(),
+                onlineStatus: data?["onlineStatus"] as? Bool
             )
             userIsAuthenticated = true
         } catch {
@@ -263,12 +269,13 @@ import SwiftUI
 
             currentLoggedInUser = FireUserModel(
                 id: firebaseUser.uid,
-                phone: data?["phone"] as? String ?? "",
+                phoneNumber: data?["phone"] as? String ?? "",
                 name: data?["name"] as? String ?? "",
                 imageUrl: data?["imageUrl"] as? String,
                 aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
                 email: email,
-                typeOfAuth: .google
+                typeOfAuth: .google,
+                onlineStatus: data?["onlineStatus"] as? Bool ?? nil
             )
             userIsAuthenticated = true
         } catch {
@@ -278,7 +285,8 @@ import SwiftUI
     }
 
     // MARK: - Sign Up With Google
-    func signUppWithGoogle(presenting viewController: UIViewController) async {
+    // MARK: - Sign Up With Google (with account checking and linking flow)
+    func signUpWithGoogle(presenting viewController: UIViewController) async {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             showError("Missing Firebase Client ID")
             return
@@ -288,8 +296,52 @@ import SwiftUI
         GIDSignIn.sharedInstance.configuration = config
 
         do {
+            // Get Google sign-in result
             let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+            guard let email = googleUser.user.profile?.email else {
+                showError("Failed to retrieve email from Google account")
+                return
+            }
 
+            // Check if user exists in Firestore with this email
+            let snapshot = try await getUserByEmail(email)
+
+            if !snapshot.documents.isEmpty {
+                // User already exists with this email
+                let userDoc = snapshot.documents.first!
+                let userData = userDoc.data()
+                let authType = userData["authType"] as? String ?? "unknown"
+
+                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+
+                if authType == "email" {
+                    // Set a flag to indicate account linking is needed
+                    // This is the key improvement - automatically notify the user that account linking is available
+                    DispatchQueue.main.async {
+                        self.typeOfAuth = .email  // Store the existing account type
+
+                        // Store the Google credentials for later linking after email password auth
+                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
+                            withIDToken: googleUser.user.idToken!.tokenString,
+                            accessToken: googleUser.user.accessToken.tokenString
+                        )
+
+                        // Show a specific message to guide the user
+                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+
+                        // Here you would transition to a special UI for account linking
+                        // For example, showing a password entry field for the existing account
+                        self.showAccountLinkingPrompt = true
+                    }
+                    return
+                } else if authType == "google" {
+                    // Already registered with Google, just sign in
+                    await signInWithGoogle(presenting: viewController)
+                    return
+                }
+            }
+
+            // No existing user, proceed with normal Google sign up
             let credential = GoogleAuthProvider.credential(
                 withIDToken: googleUser.user.idToken!.tokenString,
                 accessToken: googleUser.user.accessToken.tokenString
@@ -300,43 +352,78 @@ import SwiftUI
             let userRef = getUserRef(userId: firebaseUser.uid)
 
             let fullName = googleUser.user.profile?.name ?? "Unknown User"
-            let email = googleUser.user.profile?.email
             let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
             let phoneNumber = firebaseUser.phoneNumber ?? ""
 
-            let document = try await userRef.getDocument()
-            if document.exists {
-                print("DEBUG: User already exists in Firestore")
-            } else {
-                print("DEBUG: Creating new user in Firestore")
-
-                let userData = createUserData(
-                    id: firebaseUser.uid,
-                    phone: phoneNumber,
-                    name: fullName,
-                    imageUrl: profileImageURL,
-                    email: email ?? "",
-                    authType: "google"
-                )
-
-                try await userRef.setData(userData)
-                print("DEBUG: User successfully created in Firestore")
-            }
-
-            currentLoggedInUser = FireUserModel(
+            // Create user in Firestore
+            let userData = createUserData(
                 id: firebaseUser.uid,
                 phone: phoneNumber,
                 name: fullName,
                 imageUrl: profileImageURL,
-                aboutInfo: defaultAboutInfo,
                 email: email,
-                typeOfAuth: .google
+                authType: "google"
             )
 
+            try await userRef.setData(userData)
+            print("DEBUG: New user successfully created in Firestore")
+
+            currentLoggedInUser = FireUserModel(
+                id: firebaseUser.uid,
+                phoneNumber: phoneNumber,
+                name: fullName,
+                imageUrl: profileImageURL,
+                aboutInfo: defaultAboutInfo,
+                email: email,
+                typeOfAuth: .google,
+                onlineStatus: false
+            )
             userIsAuthenticated = true
         } catch {
-            print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
+            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
             showError(error.localizedDescription)
+        }
+    }
+
+    // Add these properties to your AuthViewModel
+    var pendingGoogleCredential: AuthCredential?
+    var showAccountLinkingPrompt = false
+
+    // MARK: - Complete Google Account Linking (after password verification)
+    func completeGoogleAccountLinking(email: String, password: String) async {
+        guard let pendingCredential = pendingGoogleCredential else {
+            showError("No pending Google account to link")
+            return
+        }
+
+        do {
+            // First authenticate with email/password
+            let authResult = try await auth.signIn(withEmail: email, password: password)
+            let firebaseUser = authResult.user
+
+            // Then link the Google credential
+            try await firebaseUser.link(with: pendingCredential)
+
+            // Update user data in Firestore
+            try await getUserRef(userId: firebaseUser.uid).updateData([
+                "typeOfAuth": "linkedWithGoogle",
+                "linkedProviders": FieldValue.arrayUnion(["google"])
+
+
+            ])
+
+            // Refresh user data
+            await loadCurrentUser()
+
+            // Reset the pending credential
+            pendingGoogleCredential = nil
+            showAccountLinkingPrompt = false
+
+            print("DEBUG: Successfully linked Google account")
+            // Show success message
+        } catch {
+            print("DEBUG: Error during account linking: \(error.localizedDescription)")
+            showError("Failed to link accounts: \(error.localizedDescription)")
         }
     }
 
@@ -410,13 +497,15 @@ import SwiftUI
     private func createUserModel(firebaseUser: FirebaseAuth.User, data: [String: Any]) -> FireUserModel {
         return FireUserModel(
             id: firebaseUser.uid,
-            phone: data["phone"] as? String ?? "",
+            phoneNumber: data["phoneNumber"] as? String ?? "",
             name: data["name"] as? String ?? firebaseUser.displayName ?? "",
             imageUrl: data["imageUrl"] as? String,
             aboutInfo: data["aboutInfo"] as? String ?? defaultAboutInfo,
+            createdDate: (data["createdDate"] as? Timestamp)?.dateValue(),
             email: firebaseUser.email,
             typeOfAuth: getAuthType(for: firebaseUser),
-            lastMessageTime: (data["lastMessage"] as? Timestamp)?.dateValue()
+            lastSeenTime: (data["lastSeenTime"] as? Timestamp)?.dateValue(),
+            onlineStatus: data["onlineStatus"] as? Bool
         )
     }
 
@@ -426,22 +515,26 @@ import SwiftUI
         name: String,
         imageUrl: String? = nil,
         email: String,
-        authType: String
+        authType: String,
+        onlineStatus: Bool? = nil
     ) -> [String: Any] {
         return [
             "id": id,
-            "phone": phone,
+            "phoneNumber": phone,
             "name": name,
             "imageUrl": imageUrl ?? "",
             "aboutInfo": defaultAboutInfo,
+            "createdDate": Timestamp(date: Date()),
             "email": email,
-            "authType": authType
+            "authType": authType,
+            "lastSeenTime": Date() ,
+            "onlineStatus": false
         ]
     }
 
     private func signInWithGoogleHelper(presenting viewController: UIViewController) async throws -> GIDSignInResult {
         let userAuth = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
-        guard let idToken = userAuth.user.idToken?.tokenString else {
+        guard (userAuth.user.idToken?.tokenString) != nil else {
             throw NSError(domain: "AuthError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve Google ID Token"])
         }
         return userAuth
