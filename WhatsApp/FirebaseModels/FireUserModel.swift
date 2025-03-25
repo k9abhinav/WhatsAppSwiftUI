@@ -2,7 +2,7 @@ import Foundation
 
 struct FireUserModel: Identifiable, Codable {
     var id: String = UUID().uuidString
-    var phoneNumber: String
+    var phoneNumber: String?
     var name: String
     var imageUrl: String?
     var aboutInfo: String?

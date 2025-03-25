@@ -1,5 +1,4 @@
 
-
 import SwiftUI
 import PhotosUI
 
@@ -7,10 +6,10 @@ struct FireChatListView: View {
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
     @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
-    @State  var currentUser: FireUserModel!
+    @State var currentUser: FireUserModel!
     @State private var searchText = ""
     @State private var showingSettings = false
-    @State  var isProfilePicPresented = false
+    @State var isProfilePicPresented = false
     @State var showingContactUsers: Bool = false
     var body: some View {
 
@@ -58,9 +57,8 @@ struct FireChatListView: View {
         }
         .onAppear {
             Task {
-                await userViewModel.fetchUsers()
                 userViewModel.setupUsersListener()
-//                if let chatId = await chatVM.getOrCreateChatId(loggedInUserId: loggedInUserId, otherUserId: user.id) 
+                await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
             }
         }
     }

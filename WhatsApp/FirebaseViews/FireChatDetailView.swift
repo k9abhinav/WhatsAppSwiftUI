@@ -6,6 +6,7 @@ struct FireChatDetailView: View {
     let user: FireUserModel
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(\.presentationMode) private var presentationMode
     @State private var lastMessage : FireMessageModel?
     @FocusState private var isTextFieldFocused: Bool
@@ -14,11 +15,11 @@ struct FireChatDetailView: View {
     @State private var isProfileImagePresented: Bool = false
     @State private var isTyping: Bool = false
     @State private var onlineStatus: Bool = false
+    @State private var chatExists: Bool? = nil
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
-
         ZStack {
             VStack {
                 ZStack {
@@ -43,10 +44,22 @@ struct FireChatDetailView: View {
             .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
             .onAppear {
-
+                Task{
+                    chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                    if chatExists == true {
+                        await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                        print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+                    } else{
+                        await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                        await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                        print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+                    }
+                    messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
+                    await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
+                }
             }
            .onDisappear {
-
+               messageViewModel.removeMessageListener()
                 DispatchQueue.main.async {
                     UITabBar.appearance().isHidden = false
                 }
@@ -66,26 +79,21 @@ struct FireChatDetailView: View {
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
 
     private func sendMessage() async {
-        guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        Task{
+            guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            dismissKeyboard()
+            await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
+            messageText = ""
+        }
 
-        dismissKeyboard()
-        await chatViewModel.sendMessage(
-                                    chatId: chatId,
-                                    senderId: authViewModel.currentLoggedInUser?.id ?? "",
-                                    receiverId: user.id,
-                                    content: messageText,
-                                    messageType: .text
-                                )
-        messageText = ""
-
-        isTyping = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            isTyping = false
+        if isTextFieldFocused {
+            isTyping = true
         }
     }
 
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        isTyping = false
     }
 
     //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
@@ -129,7 +137,7 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    ForEach( chatViewModel.messages , id: \.id) { message in
+                    ForEach( messageViewModel.messages , id: \.id) { message in
                         FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error" )
                             .id(message.id)
                     }
@@ -151,7 +159,7 @@ struct FireChatDetailView: View {
                     scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                 }
             }
-            .onChange(of: chatViewModel.messages.count ) { _, _ in
+            .onChange(of: messageViewModel.messages.count ) { _, _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if let lastMessage = lastMessage {
                         withTransaction(Transaction(animation: nil)) {

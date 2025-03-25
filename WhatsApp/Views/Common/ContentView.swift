@@ -1,8 +1,8 @@
 
-
 import SwiftUI
 import SwiftData
 import FirebaseAuth
+
 struct ContentView: View {
     @State private var splashViewActive = true
     @State private var isUserLoggedIn: Bool = Auth.auth().currentUser != nil
@@ -18,7 +18,7 @@ struct ContentView: View {
                     withAnimation(.easeIn(duration: 0.3)) {
                         ZStack {
                             if isLoading { LoadingView() }
-                            else { MainTabView()  }
+                            else {  MainTabView()  }
                         }
                     }
                 }
@@ -46,10 +46,10 @@ struct ContentView: View {
 
     }
 }
+
 extension Color {
     static let customGreen = Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0))
 }
-import SwiftUI
 
 extension Color {
     static var rainbow: some ShapeStyle {

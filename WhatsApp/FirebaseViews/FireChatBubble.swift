@@ -35,7 +35,7 @@ struct FireChatBubble: View {
 
 #Preview {
     FireChatBubble(
-        message: FireMessageModel(id: "1", content: "Hello!", senderUserId: "123", receiverUserId: "456", timestamp: Date()),
+        message: FireMessageModel(id: "1",chatId: "", messageType: .text, content: "Hello!", senderUserId: "123", receiverUserId: "456", timestamp: Date(), isForwarded: false),
         currentUserId: "123"
     )
 }

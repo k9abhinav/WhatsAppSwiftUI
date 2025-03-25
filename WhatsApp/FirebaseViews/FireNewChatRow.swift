@@ -29,7 +29,7 @@ struct FireNewChatRow: View {
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {
         VStack {
-            let date: Date = user.lastMessageTime ??  .now
+            let date: Date = user.lastSeenTime ??  .now
             Text(timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
@@ -39,7 +39,7 @@ struct FireNewChatRow: View {
     private var userProfileNameandContent: some View {
         VStack(alignment: .leading,spacing: 6) {
             HStack {
-                Text(user.name)
+                Text(user.name )
                     .font(.headline)
                 if user.id == authViewModel.currentLoggedInUser?.id {
                     Text("(You)")
@@ -100,7 +100,7 @@ struct FireNewChatRow: View {
 }
 
 #Preview {
-    FireNewChatRow(user: FireUserModel(id: "123", phone: "", name: "Test User", imageUrl: nil))
+    FireNewChatRow(user: FireUserModel(id: "123", phoneNumber: "99", name: "Test User", imageUrl: nil))
     .environment(FireChatViewModel())
     .environment(AuthViewModel())
 }

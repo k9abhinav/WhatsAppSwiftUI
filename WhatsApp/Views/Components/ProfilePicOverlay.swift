@@ -52,7 +52,7 @@ struct ProfilePicOverlay: View {
                 }
 
                 // User Name Display
-                Text(user.name)
+                Text(user.name ?? "Error")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)

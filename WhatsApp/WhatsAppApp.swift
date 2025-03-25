@@ -13,6 +13,7 @@ struct WhatsAppApp: App {
     @State private var chatsViewModel = ChatsViewModel()
     @State private var chatViewModel :FireChatViewModel
     @State private var userViewModel  :FireUserViewModel
+    @State private var messageViewModel : FireMessageViewModel
     //    @State private var contactsManager = ContactsManager()
     let container: ModelContainer
 
@@ -33,12 +34,14 @@ struct WhatsAppApp: App {
         authViewModel = AuthViewModel()
         chatViewModel = FireChatViewModel()
         userViewModel = FireUserViewModel()
+        messageViewModel = FireMessageViewModel()
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(authViewModel)
+                .environment(messageViewModel)
                 .environment(chatsViewModel)
                 .environment(callsViewModel)
                 .environment(communityViewModel)

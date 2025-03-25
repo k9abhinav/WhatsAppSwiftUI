@@ -102,7 +102,7 @@ struct ProfileDetailsView: View {
                 .onTapGesture {
                     profileImageIsActive.toggle()
                 }
-            Text(user.name)
+            Text(user.name ?? "Error")
                 .font(.title2)
                 .fontWeight(.bold)
 

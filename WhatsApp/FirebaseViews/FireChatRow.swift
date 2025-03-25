@@ -6,10 +6,12 @@ struct FireChatRow: View {
     let user: FireUserModel
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
-    @State private var lastMessage: FireMessageModel?
+    @State private var lastMessageContent : String?
     @Environment(FireChatViewModel.self) private var chatViewModel
+    @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
+    @State private var lastSeenTimeStamp: Date? = nil
     var body: some View {
         NavigationLink( destination: FireChatDetailView(user:user) )
         {
@@ -19,44 +21,36 @@ struct FireChatRow: View {
                         currentUser = user
                         isProfilePicPresented.toggle()
                     },
-                    label: { userProfilePictureView }
-                ).buttonStyle(PlainButtonStyle())
+                    label: { userProfilePictureView } )
+                .buttonStyle(PlainButtonStyle())
                 userProfileNameandContent
                 Spacer()
                 userLastSeenTime
             }
             .padding(.vertical,5)
-            //            .cornerRadius(10)
         }
         .buttonStyle(.plain)
         .onAppear {
+            Task{
+                chatViewModel.setupChatListener()
+                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id ]).timestamp
+                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id ]).content
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id) { latestMessage in
-                    if let message = latestMessage {
-                        lastMessage = message
-                        print("Debug: Last message fetched - \(message.content)")
-                    } else {
-                        print("Debug: No last message found for user \(user.name)")
-                    }
-                }
+
                 profileImageURLString = user.imageUrl
             }
         }
-        .onChange(of: chatViewModel.chatMessages ){
+        .onChange(of: messageViewModel.messages ){
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                chatViewModel.listenAndFetchLastChat(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" , otherUserId: user.id ) { latestMessage in
-                    if let message = latestMessage {
-                        lastMessage = message
-                        print("Debug: ---- \(String(describing: lastMessage))")
-                    }
-                }
+
             }
         }
     }
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {
         VStack {
-            let date: Date = user.lastMessageTime ??  .now
+            let date: Date = lastSeenTimeStamp ??  .now
             Text(timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
@@ -82,7 +76,7 @@ struct FireChatRow: View {
                     .frame(width: 5, height: 5)
                     .scaleEffect(3.5)
 
-                Text(lastMessage?.content ?? "No Message")
+                Text(lastMessageContent ?? "No Message")
                     .font(.subheadline)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -135,7 +129,7 @@ struct FireChatRow: View {
 }
 
 #Preview {
-    FireChatRow(user: FireUserModel(id: "123", phone: "", name: "Test User", imageUrl: nil),
+    FireChatRow(user: FireUserModel(id: "123", phoneNumber: "9900",  name: "Test User", imageUrl: nil),
                 currentUser: .constant(nil),
                 isProfilePicPresented: .constant(false))
     .environment(FireChatViewModel())
