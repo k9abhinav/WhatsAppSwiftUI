@@ -11,6 +11,7 @@ struct FireChatListView: View {
     @State private var showingSettings = false
     @State var isProfilePicPresented = false
     @State var showingContactUsers: Bool = false
+    @Binding var selectView: Bool
     var body: some View {
 
         NavigationStack {
@@ -22,7 +23,7 @@ struct FireChatListView: View {
                             ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                             ToolbarItemGroup { toolbarButtons }
                         }
-                        .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
+                        .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView) })
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
                 }
@@ -142,8 +143,8 @@ struct FireChatListView: View {
 }
 
 #Preview {
-    FireChatListView()
-        .environment(FireUserViewModel())
-        .environment(ChatsViewModel())
-        .environment(AuthViewModel())
+//    FireChatListView()
+//        .environment(FireUserViewModel())
+//        .environment(ChatsViewModel())
+//        .environment(AuthViewModel())
 }

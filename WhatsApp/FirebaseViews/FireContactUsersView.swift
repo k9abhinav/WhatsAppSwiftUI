@@ -5,14 +5,14 @@ struct FireContactUsersView: View {
     @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isLoading = true // Add loading state
+    @State private var isLoading = true
 
     var body: some View {
         VStack {
             if isLoading {
-                ProgressView() // Show progress view while loading
+                ProgressView()
             } else {
-                // User list
+
                 List {
                     Section {
                         NewRows(imageSysName: "person.2.badge.plus.fill", text: "New Group")
@@ -36,8 +36,8 @@ struct FireContactUsersView: View {
         }
         .onAppear {
             Task {
-                await userViewModel.fetchAllUsersContacts() // Adjusted to match your fetch function.
-                isLoading = false // Set loading to false after data is loaded
+                await userViewModel.fetchAllUsersContacts()
+                isLoading = false 
             }
         }
         .navigationTitle("New Chat")
@@ -51,6 +51,10 @@ struct NewRows: View {
     var body: some View {
         HStack {
             Image(systemName: imageSysName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+            Spacer()
             Text(text)
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)

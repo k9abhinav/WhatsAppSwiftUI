@@ -2,13 +2,14 @@ import PhotosUI
 import SwiftUI
 
 struct FireChatDetailView: View {
-
+    
     let user: FireUserModel
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(AuthViewModel.self) private var authViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
+    @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(\.presentationMode) private var presentationMode
-    @State private var lastMessage : FireMessageModel?
+    @State private var lastMessage : FireMessageModel? = nil
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
@@ -16,9 +17,9 @@ struct FireChatDetailView: View {
     @State private var isTyping: Bool = false
     @State private var onlineStatus: Bool = false
     @State private var chatExists: Bool? = nil
-
+    
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
-
+    
     var body: some View {
         ZStack {
             VStack {
@@ -30,7 +31,7 @@ struct FireChatDetailView: View {
                     .background(Color.white)
                     .ignoresSafeArea()
             }
-            .modifier(KeyBoardViewModifier())
+//            .modifier(KeyBoardViewModifier())
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
@@ -56,15 +57,19 @@ struct FireChatDetailView: View {
                     }
                     messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
                     await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
+                    userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){
+                        // fix
+                    }
+                    lastMessage = messageViewModel.messages.last
                 }
             }
-           .onDisappear {
-               messageViewModel.removeMessageListener()
+            .onDisappear {
+                messageViewModel.removeMessageListener()
                 DispatchQueue.main.async {
                     UITabBar.appearance().isHidden = false
                 }
             }
-
+            
             if isProfileImagePresented {
                 ProfilePicOverlay(user: user) {
                     withAnimation(.easeInOut(duration: 0.3)) { isProfileImagePresented = false }
@@ -72,44 +77,44 @@ struct FireChatDetailView: View {
                 .transition(.opacity)
             }
         }
-
-
+        
+        
     }
-
+    
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
-
+    
     private func sendMessage() async {
         Task{
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-            dismissKeyboard()
+//            dismissKeyboard()
             await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
-
+        
         if isTextFieldFocused {
             isTyping = true
         }
     }
-
+    
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isTyping = false
     }
-
+    
     //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
-
+    
     private var backGroundImage: some View {
         Image("bgChats")
             .resizable()
             .scaleEffect(1.4)
             .opacity(0.5)
     }
-
+    
     private var backButton: some View {
         Button(action: { presentationMode.wrappedValue.dismiss() })
         {  Image(systemName: "arrow.backward")  }
     }
-
+    
     private var topLeftNavItems: some View {
         HStack {
             profileImage
@@ -125,23 +130,23 @@ struct FireChatDetailView: View {
             }
         }
     }
-
+    
     private var topRightNavItems: some View {
         HStack {
             Button(action: { print("Video call tapped") }) { Image(systemName: "video") }
             Button(action: { print("Phone call tapped") }) { Image(systemName: "phone") }
         }
     }
-
+    
     private var mainScrollChatsView: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    ForEach( messageViewModel.messages , id: \.id) { message in
+                    ForEach( messageViewModel.messages ) { message in
                         FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error" )
                             .id(message.id)
                     }
-
+                    
                     if isTyping {
                         HStack {
                             ChatTypingIndicator()
@@ -155,8 +160,10 @@ struct FireChatDetailView: View {
             }
             .scrollIndicators(.hidden)
             .onAppear {
-                if let lastMessage = lastMessage {
-                    scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                DispatchQueue.main.async {
+                    if let lastMessage = lastMessage {
+                        scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
                 }
             }
             .onChange(of: messageViewModel.messages.count ) { _, _ in
@@ -179,19 +186,19 @@ struct FireChatDetailView: View {
             }
             .onChange(of: isTyping) { _, newValue in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-
+                    
                     if newValue {
                         scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
                     } else if let lastMessage = lastMessage {
                         scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
-
+                    
                 }
             }
-
+            
         }
     }
-
+    
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
             PhotosPicker(
@@ -220,7 +227,7 @@ struct FireChatDetailView: View {
         .padding(.top, 8)
         .padding(.bottom, 5)
     }
-
+    
     private var profileImage: some View {
         AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
             switch phase {
@@ -248,5 +255,5 @@ struct FireChatDetailView: View {
 }
 
 #Preview {
-
+    
 }

@@ -31,21 +31,21 @@ struct FireChatRow: View {
         }
         .buttonStyle(.plain)
         .onAppear {
-            Task{
+            Task {  
                 chatViewModel.setupChatListener()
-                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id ]).timestamp
-                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id ]).content
+                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
+                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-
                 profileImageURLString = user.imageUrl
             }
-        }
-        .onChange(of: messageViewModel.messages ){
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-
+        }.onChange(of: chatViewModel.triggeredUpdate) {
+            Task {
+                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
+                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
             }
         }
+
     }
     // MARK: SUB-COMPONENTS -----
     private var userLastSeenTime: some View {

@@ -9,7 +9,7 @@ struct ChatListView: View {
     @Query private var users: [User]
     @State private var searchText = ""
     @State private var showingSettings = false
-
+    @Binding var selectView: Bool
     var body: some View {
         NavigationStack {
             VStack {
@@ -19,7 +19,7 @@ struct ChatListView: View {
                         ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                         ToolbarItemGroup { toolbarButtons }
                     }
-                    .navigationDestination(isPresented: $showingSettings, destination: { SettingsView() })
+                    .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView) })
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)
             }

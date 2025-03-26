@@ -3,7 +3,7 @@ import SwiftData
 import PhotosUI
 
 struct ChatDetailView: View {
-
+    
     let user: User
     @Environment(ChatsViewModel.self) private var viewModel: ChatsViewModel
     @Environment(\.modelContext) private var context : ModelContext
@@ -12,44 +12,43 @@ struct ChatDetailView: View {
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isTyping: Bool = false
-
+    
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
-
+    
     var body: some View {
-
-            VStack {
-                ZStack {
-                    backGroundImage
-                    mainScrollChatsView
-                }
-                inputMessageTabBar
-                    .background(Color.white)
-                    .ignoresSafeArea()
+        
+        VStack {
+            ZStack {
+                backGroundImage
+                mainScrollChatsView
             }
-            .modifier(KeyBoardViewModifier())
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
-//                ProfileDetailsView(user: user)
-            })
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
-                ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
-            }
-            .toolbarBackground(.white, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
-            .toolbar(.hidden, for: .tabBar)
-            .onDisappear {
-                withAnimation(.spring) { UITabBar.appearance().isHidden = false }
-            }
-
-
+            inputMessageTabBar
+                .background(Color.white)
+                .ignoresSafeArea()
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
+            //                ProfileDetailsView(user: user)
+        })
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
+            ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
+        }
+        .toolbarBackground(.white, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .onDisappear {
+            withAnimation(.spring) { UITabBar.appearance().isHidden = false }
+        }
+        
+        
     }
-
+    
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
-
+    
     private func sendMessage() {
-        dismissKeyboard()
+//        dismissKeyboard()
         viewModel.sendMessage(user: user, messageText: messageText, context: context)
         messageText = ""
         isTyping = true
@@ -57,11 +56,11 @@ struct ChatDetailView: View {
             isTyping = false
         }
     }
-
+    
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
-
+    
     private func scrollToBottom(_ scrollProxy: ScrollViewProxy) {
         guard let lastMessage = user.chats.last else { return }
         DispatchQueue.main.async {
@@ -70,21 +69,21 @@ struct ChatDetailView: View {
             }
         }
     }
-
+    
     //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
-
+    
     private var backGroundImage: some View {
         Image("bgChats")
             .resizable()
             .scaleEffect(1.4)
             .opacity(0.5)
     }
-
+    
     private var backButton: some View {
         Button(action: { presentationMode.wrappedValue.dismiss() })
         {  Image(systemName: "arrow.backward")  }
     }
-
+    
     private var topLeftNavItems: some View {
         HStack {
             profileImage
@@ -97,14 +96,14 @@ struct ChatDetailView: View {
             }
         }
     }
-
+    
     private var topRightNavItems: some View {
         HStack {
             Button(action: { print("Video call tapped") }) { Image(systemName: "video") }
             Button(action: { print("Phone call tapped") }) { Image(systemName: "phone") }
         }
     }
-
+    
     private var mainScrollChatsView: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -112,9 +111,9 @@ struct ChatDetailView: View {
                     ForEach(user.chats, id: \.id) { message in
                         ChatBubble(message: message)
                             .id(message.id)
-
+                        
                     }
-
+                    
                     if isTyping {
                         HStack {
                             ChatTypingIndicator()
@@ -128,7 +127,6 @@ struct ChatDetailView: View {
             }
             .scrollIndicators(.hidden)
             .onAppear {
-
                 if let lastMessage = user.chats.last {
                     scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                 }
@@ -153,19 +151,19 @@ struct ChatDetailView: View {
             }
             .onChange(of: isTyping) { _, newValue in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-
+                    
                     if newValue {
                         scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
                     } else if let lastMessage = user.chats.last {
                         scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
-
+                    
                 }
             }
-
+            
         }
     }
-
+    
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
             PhotosPicker(
@@ -194,7 +192,7 @@ struct ChatDetailView: View {
         .padding(.top, 8)
         .padding(.bottom, 5)
     }
-
+    
     private var profileImage: some View {
         Group {
             if let imageData = user.imageData, let uiImage = UIImage(data: imageData) {
@@ -213,5 +211,5 @@ struct ChatDetailView: View {
             }
         }
     }
-
+    
 }

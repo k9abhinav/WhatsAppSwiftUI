@@ -15,7 +15,7 @@ struct ContentView: View {
                 SplashView(splashViewActive: $splashViewActive)
             } else  {
                 if isUserLoggedIn {
-                    withAnimation(.easeIn(duration: 0.3)) {
+                    withAnimation(.smooth(duration: 0.75)) {
                         ZStack {
                             if isLoading { LoadingView() }
                             else {  MainTabView()  }

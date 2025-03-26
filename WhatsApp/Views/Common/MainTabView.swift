@@ -4,17 +4,25 @@ import SwiftUI
 struct MainTabView: View {
 
     @State private var selectedTab = 0
-
+    @State var selectView: Bool = true
     var body: some View {
 
         TabView(selection: $selectedTab) {
-//            ChatListView()
-            FireChatListView()
-                .tabItem {
-                    Label("Chats", systemImage: "ellipsis.message.fill")
-                }
-                .tag(0)
-                .badge(1)
+            if selectView {
+                FireChatListView(selectView: $selectView)
+                    .tabItem {
+                        Label("Chats", systemImage: "ellipsis.message.fill")
+                    }
+                    .tag(0)
+                    .badge(1)
+            } else {
+                ChatListView(selectView: $selectView)
+                    .tabItem {
+                        Label("Chats", systemImage: "ellipsis.message.fill")
+                    }
+                    .tag(0)
+                    .badge(1)
+            }
 
             UpdatesView()
                 .tabItem {

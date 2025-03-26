@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseCore
 
 struct FireMessageModel: Codable, Identifiable, Hashable {
     var id: String = UUID().uuidString
@@ -21,6 +22,20 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id,chatId,messageType, content, senderUserId, receiverUserId, timestamp, replyToMessageId,isForwarded
+    }
+
+    func asDictionary() -> [String: Any] {
+        return [
+            "id": id,
+            "chatId": chatId,
+            "messageType": messageType.rawValue,
+            "content": content,
+            "senderUserId": senderUserId,
+            "receiverUserId": receiverUserId,
+            "timestamp": Timestamp(date: timestamp),
+            "replyToMessageId": replyToMessageId ?? NSNull(),
+            "isForwarded": isForwarded
+        ]
     }
 }
 

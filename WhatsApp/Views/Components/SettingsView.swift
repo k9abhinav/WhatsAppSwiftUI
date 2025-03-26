@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage("userName") private var userName = "Error~User"
     @AppStorage("userStatus") private var userStatus = "No~data!"
     @AppStorage("userImageKey") private var userImageData: Data?
+    @Binding var selectView: Bool
+    @State var istoggleOn: Bool = false
     @State private var showingEdit = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
@@ -20,6 +22,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 profileSection
+                toggeleViewSection
                 settingsSection
                 actionsSection
             }
@@ -72,6 +75,21 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
+    private var toggeleViewSection: some View {
+           Section {
+               Toggle(isOn: $istoggleOn) {
+                   Text("Toggle Views")
+               }
+               .onChange(of: istoggleOn){ old, new in
+                   selectView.toggle()
+               }
+           } header: {
+               Text("Toggle Your View Mode")
+                   .padding(.bottom, 5)
+                   .frame(maxWidth: .infinity, alignment: .center)
+                   .foregroundColor(.secondary)
+           }
+       }
     private var userDetailsAndEditButton: some View {
         Button(action: { showingEdit = true }) {
             VStack(spacing:10) {
