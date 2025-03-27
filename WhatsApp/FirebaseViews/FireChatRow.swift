@@ -12,42 +12,33 @@ struct FireChatRow: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
     @State private var lastSeenTimeStamp: Date? = nil
+
     var body: some View {
         NavigationLink( destination: FireChatDetailView(user:user) )
         {
-            HStack {
-                Button(
-                    action: {
-                        currentUser = user
-                        isProfilePicPresented.toggle()
-                    },
-                    label: { userProfilePictureView } )
-                .buttonStyle(PlainButtonStyle())
-                userProfileNameandContent
+            HStack { profilePicViewButton ; userProfileNameandContent
                 Spacer()
                 userLastSeenTime
             }
             .padding(.vertical,5)
         }
         .buttonStyle(.plain)
-        .onAppear {
-            Task {  
-                chatViewModel.setupChatListener()
-                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
-                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                profileImageURLString = user.imageUrl
-            }
-        }.onChange(of: chatViewModel.triggeredUpdate) {
-            Task {
-                lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
-                lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
-            }
+        .onAppear { onAppearFunctions() }
+        .onChange(of: chatViewModel.triggeredUpdate) {
+            onChangeOfFunctions()
         }
-
     }
+
     // MARK: SUB-COMPONENTS -----
+    private var profilePicViewButton: some View {
+        Button(
+            action: {
+                currentUser = user
+                isProfilePicPresented.toggle()
+            },
+            label: { userProfilePictureView } )
+        .buttonStyle(PlainButtonStyle())
+    }
     private var userLastSeenTime: some View {
         VStack {
             let date: Date = lastSeenTimeStamp ??  .now
@@ -109,6 +100,22 @@ struct FireChatRow: View {
         }
     }
     // MARK: HELPER FUNCTIONS -------------------------------
+    private func onChangeOfFunctions(){
+        Task {
+            lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
+            lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
+        }
+    }
+    private func onAppearFunctions(){
+        Task {
+            chatViewModel.setupChatListener()
+            lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
+            lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            profileImageURLString = user.imageUrl
+        }
+    }
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current
         let formatter = DateFormatter()

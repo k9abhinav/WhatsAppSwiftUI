@@ -12,8 +12,8 @@ struct FireChatListView: View {
     @State var isProfilePicPresented = false
     @State var showingContactUsers: Bool = false
     @Binding var selectView: Bool
+    
     var body: some View {
-
         NavigationStack {
             ZStack {
                 VStack {
@@ -27,48 +27,57 @@ struct FireChatListView: View {
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
                 }
-                if isProfilePicPresented {
-                    ProfilePicOverlay(user: currentUser) {
-                        withAnimation { isProfilePicPresented = false }
-                    }
-                }
-
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            showingContactUsers = true
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(width: 60, height: 60)
-                                .background(Color.customGreen)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
-                    }
-                }
+              profilePicOverlayZStack
+            plusButtonToStartANewChat
             }
-            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersView() })
+            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersListView() })
         }
         .onAppear {
-            Task {
-                userViewModel.setupUsersListener()
-                await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
-            }
+         onAppearFunctions()
         }
     }
 
+    // MARK: - HELPER FUNCTIONS
 
+    private func onAppearFunctions() {
+        Task {
+            userViewModel.setupUsersListener()
+            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+        }
+    }
 
-    // MARK: - Computed Properties
-
-    // MARK: - Components
+    // MARK: - COMPONENTS
+    private var plusButtonToStartANewChat: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                Button(action: {
+                    showingContactUsers = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(width: 60, height: 60)
+                        .background(Color.customGreen)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+                .padding(.trailing, 20)
+                .padding(.bottom, 20)
+            }
+        }
+    }
+    private var profilePicOverlayZStack: some View {
+        Group{
+            if isProfilePicPresented {
+                ProfilePicOverlay(user: currentUser) {
+                    withAnimation { isProfilePicPresented = false }
+                }
+            }
+        }
+    }
     private var whatsAppTitle: some View {
         Text("WhatsApp")
             .font(.title)
@@ -111,7 +120,7 @@ struct FireChatListView: View {
                         .foregroundColor(.gray)
                         .padding()
                 } else {
-                    ForEach(userViewModel.users.filter { $0.id != authViewModel.currentLoggedInUser?.id }) { user in
+                    ForEach(userViewModel.users) { user in
                         FireChatRow(user: user, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
                     }
                 }
@@ -143,8 +152,9 @@ struct FireChatListView: View {
 }
 
 #Preview {
-//    FireChatListView()
-//        .environment(FireUserViewModel())
-//        .environment(ChatsViewModel())
-//        .environment(AuthViewModel())
+    @Previewable @State var selectView: Bool = false
+    FireChatListView(selectView: $selectView)
+        .environment(FireUserViewModel())
+        .environment(ChatsViewModel())
+        .environment(AuthViewModel())
 }

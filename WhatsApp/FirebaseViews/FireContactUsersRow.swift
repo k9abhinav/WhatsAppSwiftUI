@@ -1,7 +1,7 @@
 
 import SwiftUI
 
-struct FireNewChatRow: View {
+struct FireContactUsersRow: View {
     let user: FireUserModel
 
     @State private var lastMessage: FireMessageModel?
@@ -12,12 +12,11 @@ struct FireNewChatRow: View {
         NavigationLink( destination: FireChatDetailView(user:user) )
         {
             HStack {
-                 userProfilePictureView
+                userProfilePictureView
                 userProfileNameandContent
                 Spacer()
             }
             .padding(.vertical,5)
-            //            .cornerRadius(10)
         }
         .buttonStyle(.plain)
         .onAppear {
@@ -26,7 +25,8 @@ struct FireNewChatRow: View {
             }
         }
     }
-    // MARK: SUB-COMPONENTS -----
+
+    // MARK: SUB-COMPONENTS -----------
     private var userLastSeenTime: some View {
         VStack {
             let date: Date = user.lastSeenTime ??  .now
@@ -47,13 +47,13 @@ struct FireNewChatRow: View {
                         .foregroundColor(.gray)
                 }
             }
-                Text(user.aboutInfo ?? "Error in loading about")
-                    .font(.subheadline)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundColor(.gray)
+            Text(user.aboutInfo ?? "Error in loading about")
+                .font(.subheadline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundColor(.gray)
 
-            .padding(.leading,5)
+                .padding(.leading,5)
         }
     }
     private var userProfilePictureView: some View {
@@ -100,7 +100,7 @@ struct FireNewChatRow: View {
 }
 
 #Preview {
-    FireNewChatRow(user: FireUserModel(id: "123", phoneNumber: "99", name: "Test User", imageUrl: nil))
-    .environment(FireChatViewModel())
-    .environment(AuthViewModel())
+    FireContactUsersRow(user: FireUserModel(id: "123", phoneNumber: "99", name: "Test User", imageUrl: nil))
+        .environment(FireChatViewModel())
+        .environment(AuthViewModel())
 }

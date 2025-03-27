@@ -13,22 +13,18 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.316251288934-i8n9orq0i1nv3qv4q0cdm597jm6kt2m9</string>
+				<string>com.googleusercontent.apps.1088112225591-s3k2n8s6ccvimbqqftcvi0e8v5qed9bb</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string></string>
+			<string>Apple Encoded ID</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-1-316251288934-ios-0e263877c66fbd43dd04a7</string>
+				<string>app-1-1088112225591-ios-e1244729ff19b1e14d3eb2</string>
 			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
 		</dict>
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>

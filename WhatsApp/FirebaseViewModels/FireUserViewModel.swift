@@ -32,7 +32,7 @@ final class FireUserViewModel {
                 return
             }
 
-            self.allUsers = documents.compactMap { try? $0.data(as: FireUserModel.self) }
+            self.allUsers = documents.compactMap {  try? $0.data(as: FireUserModel.self)  }
             print("Users listener triggered, allUsers count: \(self.allUsers.count)") // Debug: Listener triggered
         }
         print("Users listener setup") // Debug: Listener setup
@@ -63,7 +63,7 @@ final class FireUserViewModel {
                 .filter { chat in chat.participants.contains(loggedInUserId) }
                 .flatMap { $0.participants }
 
-            let uniqueUserIds = Set(userIdsWithChats).subtracting([loggedInUserId])
+            let uniqueUserIds = Set(userIdsWithChats)
             self.users = allUsers.filter { uniqueUserIds.contains($0.id) }
             print("Fetched users with chats, count: \(self.users.count)") // Debug: Fetched users with chats
         } catch {

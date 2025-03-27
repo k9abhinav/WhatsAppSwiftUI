@@ -2,7 +2,7 @@ import PhotosUI
 import SwiftUI
 
 struct FireChatDetailView: View {
-    
+
     let user: FireUserModel
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(AuthViewModel.self) private var authViewModel
@@ -15,11 +15,11 @@ struct FireChatDetailView: View {
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
     @State private var isTyping: Bool = false
-    @State private var onlineStatus: Bool = false
+    @State private var onlineStatus: Bool? = nil
     @State private var chatExists: Bool? = nil
-    
+
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
-    
+
     var body: some View {
         ZStack {
             VStack {
@@ -31,7 +31,6 @@ struct FireChatDetailView: View {
                     .background(Color.white)
                     .ignoresSafeArea()
             }
-//            .modifier(KeyBoardViewModifier())
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
@@ -45,76 +44,99 @@ struct FireChatDetailView: View {
             .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
             .onAppear {
-                Task{
-                    chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                    if chatExists == true {
-                        await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                        print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
-                    } else{
-                        await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                        await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                        print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
-                    }
-                    messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
-                    await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
-                    userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){
-                        // fix
-                    }
-                    lastMessage = messageViewModel.messages.last
-                }
+                onAppearFunctions()
+            }
+            .onChange(of: onlineStatus) {
+                onChangeOfOnlineStatusFunction()
             }
             .onDisappear {
-                messageViewModel.removeMessageListener()
-                DispatchQueue.main.async {
-                    UITabBar.appearance().isHidden = false
+                onDisappearFunctions()
+            }
+            profilePicOverlayZStack
+        }
+
+
+    }
+
+    // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
+    private func onChangeOfOnlineStatusFunction(){
+        Task {
+            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){ error in
+                if let error = error {
+                    print("Error updating user online status: \(error.localizedDescription)")
                 }
             }
-            
-            if isProfileImagePresented {
-                ProfilePicOverlay(user: user) {
-                    withAnimation(.easeInOut(duration: 0.3)) { isProfileImagePresented = false }
-                }
-                .transition(.opacity)
+            await authViewModel.loadCurrentUser()
+            onlineStatus = user.onlineStatus
+        }
+    }
+    private func onDisappearFunctions(){
+        userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: false ){ error in
+            if let error = error {
+                print("Error updating user online status: \(error.localizedDescription)")
             }
         }
-        
-        
+        messageViewModel.removeMessageListener()
+        DispatchQueue.main.async {
+            UITabBar.appearance().isHidden = false
+        }
     }
-    
-    // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
-    
+    private func onAppearFunctions(){
+        Task{
+            chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+            if chatExists == true {
+                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+            } else{
+                await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+            }
+            messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
+            await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
+            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){ error in
+                if let error = error {
+                    print("Error updating user online status: \(error.localizedDescription)")
+                }
+            }
+            await authViewModel.loadCurrentUser()
+            onlineStatus = user.onlineStatus
+            lastMessage = messageViewModel.messages.last
+        }
+    }
     private func sendMessage() async {
         Task{
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-//            dismissKeyboard()
+            //            dismissKeyboard()
             await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
-        
+
         if isTextFieldFocused {
             isTyping = true
         }
     }
-    
+
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isTyping = false
     }
-    
-    //  -----------------------------------------MARK: COMPONENTS -----------------------------------------------------------
-    
+
+    //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    // MARK: BG IMG
     private var backGroundImage: some View {
         Image("bgChats")
             .resizable()
             .scaleEffect(1.4)
             .opacity(0.5)
     }
-    
+    // MARK: BACK BUTTON NAV --- NAVV ITEMS
     private var backButton: some View {
         Button(action: { presentationMode.wrappedValue.dismiss() })
         {  Image(systemName: "arrow.backward")  }
     }
-    
+
     private var topLeftNavItems: some View {
         HStack {
             profileImage
@@ -123,21 +145,21 @@ struct FireChatDetailView: View {
                 }
             VStack(alignment: .leading) {
                 Text(user.name).font(.headline)
-                Text(user.onlineStatus ?? false ? "Online" : "Offline").font(.caption).foregroundColor(.gray)
+                Text(onlineStatus ?? false ? "Online" : "Offline").font(.caption).foregroundColor(.gray)
             }
             .onTapGesture {
                 isProfileDetailPresented.toggle()
             }
         }
     }
-    
+
     private var topRightNavItems: some View {
         HStack {
             Button(action: { print("Video call tapped") }) { Image(systemName: "video") }
             Button(action: { print("Phone call tapped") }) { Image(systemName: "phone") }
         }
     }
-    
+    // MARK: SCROLLVIEW
     private var mainScrollChatsView: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -146,7 +168,7 @@ struct FireChatDetailView: View {
                         FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error" )
                             .id(message.id)
                     }
-                    
+
                     if isTyping {
                         HStack {
                             ChatTypingIndicator()
@@ -186,19 +208,30 @@ struct FireChatDetailView: View {
             }
             .onChange(of: isTyping) { _, newValue in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    
+
                     if newValue {
                         scrollProxy.scrollTo("TypingIndicator", anchor: .bottom)
                     } else if let lastMessage = lastMessage {
                         scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
-                    
+
                 }
             }
-            
+
         }
     }
-    
+    // MARK: PROFILE PIC OVERLAY
+    private var profilePicOverlayZStack: some View {
+        Group {
+            if isProfileImagePresented {
+                ProfilePicOverlay(user: user) {
+                    withAnimation(.easeInOut(duration: 0.3)) { isProfileImagePresented = false }
+                }
+                .transition(.opacity)
+            }
+        }
+    }
+    // MARK: Message Tab Bar
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
             PhotosPicker(
@@ -227,7 +260,7 @@ struct FireChatDetailView: View {
         .padding(.top, 8)
         .padding(.bottom, 5)
     }
-    
+    // MARK: PROFILE IMAGE
     private var profileImage: some View {
         AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
             switch phase {
@@ -244,6 +277,7 @@ struct FireChatDetailView: View {
             }
         }
     }
+    // MARK: DEFAULT PROFILE IMAGE
     private var defaultProfileImage: some View {
         Image(systemName: "person.crop.circle.fill")
             .resizable()
@@ -255,5 +289,5 @@ struct FireChatDetailView: View {
 }
 
 #Preview {
-    
+
 }

@@ -6,7 +6,7 @@ import FirebaseAuth
 
 @main
 struct WhatsAppApp: App {
-//    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+//    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @State private var authViewModel : AuthViewModel
     @State private var callsViewModel = CallsViewModel()
     @State private var communityViewModel = CommunityViewModel()
@@ -22,8 +22,8 @@ struct WhatsAppApp: App {
 
         if let firebaseApp = FirebaseApp.app() { print("Firebase configured successfully: \(firebaseApp)") }
         else {  print("Firebase configuration failed!") }
-        Auth.auth().settings?.isAppVerificationDisabledForTesting = false
-        print("Firebase Auth settings updated (Testing mode enabled)")
+//        Auth.auth().settings?.isAppVerificationDisabledForTesting = false
+//        print("Firebase Auth settings updated (Testing mode enabled)")
         do {
             let schema = Schema([User.self,Chat.self])
             container = try ModelContainer(for: schema)
@@ -58,3 +58,11 @@ struct WhatsAppApp: App {
     }
 }
 
+//class AppDelegate: NSObject, UIApplicationDelegate {
+//  func application(_ application: UIApplication,
+//                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+//    FirebaseApp.configure()
+//
+//    return true
+//  }
+//}

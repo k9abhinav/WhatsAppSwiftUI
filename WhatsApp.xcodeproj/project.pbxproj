@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C606DC542D7EAC750072B6B9 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC532D7EAC750072B6B9 /* GoogleSignIn */; };
 		C606DC562D7EAC750072B6B9 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C606DC552D7EAC750072B6B9 /* GoogleSignInSwift */; };
+		C60ABA262D957F8F009574A1 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = C60ABA252D957F82009574A1 /* .gitignore */; };
 		C67C79692D7ABDBF009B1BA2 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = C67C79682D7ABDBF009B1BA2 /* FirebaseAnalytics */; };
 		C67C796B2D7ABDBF009B1BA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796A2D7ABDBF009B1BA2 /* FirebaseAuth */; };
 		C67C796D2D7ABDBF009B1BA2 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C67C796C2D7ABDBF009B1BA2 /* FirebaseDatabase */; };
@@ -38,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C60ABA252D957F82009574A1 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		C6B8C6092D682FFA00827362 /* About.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = About.txt; sourceTree = "<group>"; };
 		C6F556102D5DA67E00296758 /* WhatsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WhatsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6F556202D5DA67E00296758 /* WhatsAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhatsAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,6 +122,7 @@
 		C6F556072D5DA67E00296758 = {
 			isa = PBXGroup;
 			children = (
+				C60ABA252D957F82009574A1 /* .gitignore */,
 				C6B8C6092D682FFA00827362 /* About.txt */,
 				C6F556122D5DA67E00296758 /* WhatsApp */,
 				C6F556232D5DA67E00296758 /* WhatsAppTests */,
@@ -275,6 +278,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C6B8C60A2D68302000827362 /* About.txt in Resources */,
+				C60ABA262D957F8F009574A1 /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -477,7 +481,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.WhatsApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.Whatsapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -511,7 +515,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.WhatsApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codezyng.Whatsapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
