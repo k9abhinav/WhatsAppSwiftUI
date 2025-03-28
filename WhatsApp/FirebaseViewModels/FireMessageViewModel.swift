@@ -86,6 +86,8 @@ final class FireMessageViewModel {
 
             try await messagesCollection.document(newMessage.id).setData(newMessage.asDictionary())
             try await chatsCollection.document(chatId).updateData(["lastMessageId": newMessage.id])
+            try await chatsCollection.document(chatId).updateData(["lastSeenTimeStamp": newMessage.timestamp])
+            try await chatsCollection.document(chatId).updateData(["lastMessageContent": newMessage.content])
             print("Message sent successfully, messageId: \(newMessage.id)") // Debug: Message sent
         } catch {
             print("Failed to send message: \(error.localizedDescription)") // Debug: Error sending message

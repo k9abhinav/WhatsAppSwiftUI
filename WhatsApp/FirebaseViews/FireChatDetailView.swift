@@ -17,7 +17,7 @@ struct FireChatDetailView: View {
     @State private var isTyping: Bool = false
     @State private var onlineStatus: Bool? = nil
     @State private var chatExists: Bool? = nil
-
+    @Binding var navigationPath: NavigationPath
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
@@ -28,8 +28,7 @@ struct FireChatDetailView: View {
                     mainScrollChatsView
                 }
                 inputMessageTabBar
-                    .background(Color.white)
-                    .ignoresSafeArea()
+                    
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
@@ -107,7 +106,6 @@ struct FireChatDetailView: View {
     private func sendMessage() async {
         Task{
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-            //            dismissKeyboard()
             await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
@@ -133,7 +131,7 @@ struct FireChatDetailView: View {
     }
     // MARK: BACK BUTTON NAV --- NAVV ITEMS
     private var backButton: some View {
-        Button(action: { presentationMode.wrappedValue.dismiss() })
+        Button(action: { navigationPath = NavigationPath() })
         {  Image(systemName: "arrow.backward")  }
     }
 
@@ -169,7 +167,7 @@ struct FireChatDetailView: View {
                             .id(message.id)
                     }
 
-                    if isTyping {
+                    if (isTyping && user.id != authViewModel.currentLoggedInUser?.id ) {
                         HStack {
                             ChatTypingIndicator()
                             Spacer()
@@ -259,6 +257,8 @@ struct FireChatDetailView: View {
         .padding(.horizontal)
         .padding(.top, 8)
         .padding(.bottom, 5)
+        .background(Color.white)
+        .ignoresSafeArea()
     }
     // MARK: PROFILE IMAGE
     private var profileImage: some View {

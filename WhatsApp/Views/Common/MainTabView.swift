@@ -4,7 +4,7 @@ import SwiftUI
 struct MainTabView: View {
 
     @State private var selectedTab = 0
-    @State var selectView: Bool = true
+    @State var selectView: Bool = false
     var body: some View {
 
         TabView(selection: $selectedTab) {

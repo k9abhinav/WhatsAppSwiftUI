@@ -12,9 +12,9 @@ struct FireChatListView: View {
     @State var isProfilePicPresented = false
     @State var showingContactUsers: Bool = false
     @Binding var selectView: Bool
-    
+    @State private var navigationPath = NavigationPath()
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 VStack {
                     scrollViewChatUsers
@@ -27,13 +27,16 @@ struct FireChatListView: View {
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
                 }
-              profilePicOverlayZStack
-            plusButtonToStartANewChat
+                profilePicOverlayZStack
+                plusButtonToStartANewChat
             }
-            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersListView() })
+            .navigationDestination(for: FireUserModel.self) { user in
+                FireChatDetailView(user: user, navigationPath: $navigationPath)
+            }
+            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersListView(navigationPath: $navigationPath) })
         }
         .onAppear {
-         onAppearFunctions()
+            onAppearFunctions()
         }
     }
 
@@ -121,7 +124,7 @@ struct FireChatListView: View {
                         .padding()
                 } else {
                     ForEach(userViewModel.users) { user in
-                        FireChatRow(user: user, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
+                        FireChatRow(user: user, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented,navigationPath: $navigationPath)
                     }
                 }
             }
@@ -151,10 +154,10 @@ struct FireChatListView: View {
     }
 }
 
-#Preview {
-    @Previewable @State var selectView: Bool = false
-    FireChatListView(selectView: $selectView)
-        .environment(FireUserViewModel())
-        .environment(ChatsViewModel())
-        .environment(AuthViewModel())
-}
+//#Preview {
+//    @Previewable @State var selectView: Bool = false
+//    FireChatListView(selectView: $selectView)
+//        .environment(FireUserViewModel())
+//        .environment(ChatsViewModel())
+//        .environment(AuthViewModel())
+//}

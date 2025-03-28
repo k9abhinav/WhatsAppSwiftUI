@@ -12,15 +12,16 @@ struct FireChatRow: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
     @State private var lastSeenTimeStamp: Date? = nil
+    @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        NavigationLink( destination: FireChatDetailView(user:user) )
-        {
-            HStack { profilePicViewButton ; userProfileNameandContent
-                Spacer()
-                userLastSeenTime
-            }
-            .padding(.vertical,5)
+        HStack { profilePicViewButton ; userProfileNameandContent
+            Spacer()
+            userLastSeenTime
+        }
+        .padding(.vertical,5)
+        .onTapGesture {
+            navigationPath.append(user)
         }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
@@ -76,6 +77,7 @@ struct FireChatRow: View {
             .padding(.leading,5)
         }
     }
+
     private var userProfilePictureView: some View {
         AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
             switch phase {
@@ -93,7 +95,7 @@ struct FireChatRow: View {
                     .frame(width: 50, height: 50)
                     .clipShape(Circle())
             case .failure:
-                ProgressView() // Show loading indicator
+                ProgressView()
             @unknown default:
                 EmptyView()
             }
@@ -108,7 +110,7 @@ struct FireChatRow: View {
     }
     private func onAppearFunctions(){
         Task {
-            chatViewModel.setupChatListener()
+            chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
             lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
             lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
         }
@@ -131,14 +133,13 @@ struct FireChatRow: View {
             return formatter.string(from: date)  // Example: "Mar 4, 2025"
         }
     }
-
-
 }
 
-#Preview {
-    FireChatRow(user: FireUserModel(id: "123", phoneNumber: "9900",  name: "Test User", imageUrl: nil),
-                currentUser: .constant(nil),
-                isProfilePicPresented: .constant(false))
-    .environment(FireChatViewModel())
-    .environment(AuthViewModel())
-}
+//#Preview {
+//    @Previewable @State var navigationPath: NavigationPath = NavigationPath()
+//    FireChatRow(user: FireUserModel(id: "123", phoneNumber: "9900",  name: "Test User", imageUrl: nil),
+//                currentUser: .constant(nil),
+//                isProfilePicPresented: .constant(false), navigationPath: $navigationPath)
+//    .environment(FireChatViewModel())
+//    .environment(AuthViewModel())
+//}

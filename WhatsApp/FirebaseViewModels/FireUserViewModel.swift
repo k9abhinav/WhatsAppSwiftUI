@@ -70,6 +70,48 @@ final class FireUserViewModel {
             print("Failed to fetch users with chats: \(error.localizedDescription)") // Debug: Error fetching users with chats
         }
     }
+//    func fetchUsersWithChats(loggedInUserId: String) async {
+//        do {
+//            let snapshot = try await chatsCollection.getDocuments()
+//            let chatDocuments = snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) }
+//            for chat in chatDocuments {
+//                print("Chat ID: \(chat.id), Participants: \(chat.participants)")
+//            }
+//
+//            // Filter chats involving the logged-in user
+//            let relevantChats = chatDocuments.filter { chat in chat.participants.contains(loggedInUserId) }
+//            
+//            // Extract user IDs and last message timestamps
+//            var userChatTimestamps: [(String, Date)] = []
+//            for chat in relevantChats {
+//                print("Chat ID: \(chat.id), Last Message Timestamp: \(chat.lastSeenTimeStamp ?? Date.distantPast)")
+//            }
+//
+//            for chat in relevantChats {
+//                guard let lastMessageTimestamp = chat.lastSeenTimeStamp else { continue }
+//                for participant in chat.participants where participant != loggedInUserId {
+//                    userChatTimestamps.append((participant, lastMessageTimestamp))
+//                }
+//            }
+//
+//            // Sort by last message timestamp (latest first)
+//            let sortedUserIds = userChatTimestamps
+//                .sorted { $0.1 > $1.1 } // Sort descending by timestamp
+//                .map { $0.0 }
+//
+//            // Fetch users based on sorted user IDs
+//            self.users = sortedUserIds.compactMap { userId in
+//                allUsers.first { $0.id == userId }
+//            }
+//            print("Sorted User IDs: \(sortedUserIds)")
+//            print("All Users: \(allUsers.map { $0.id })")
+//
+//            print("Fetched and sorted users with chats, count: \(self.users.count)") // Debug
+//        } catch {
+//            print("Failed to fetch users with chats: \(error.localizedDescription)") // Debug
+//        }
+//    }
+
 
     // MARK: - Profile Image Handling
     func changeProfileImage(userId: String, image: UIImage) async {

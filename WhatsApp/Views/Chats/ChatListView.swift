@@ -25,23 +25,10 @@ struct ChatListView: View {
             }
         }
         .onAppear {
-//            createSampleUsersAndInsert()
+//
         }
     }
 
-//    func createSampleUsersAndInsert() {
-//        let chat1 = Chat(content: "Hello!", isFromCurrentUser: true, user: nil)
-//        let user1 = User(id: UUID().uuidString, phone: "123-456-7890", name: "Alice Smith", password: "password123", chats: [chat1])
-//
-//        // Insert into context
-//        modelContext.insert(user1)
-//        do {
-//            try modelContext.save()
-//            print("User inserted successfully")
-//        } catch {
-//            print("Error inserting user: \(error)")
-//        }
-//    }
     // MARK: - Computed Properties
     private var filteredUsers: [User] {
         viewModel.filteredUsers(users: users, searchText: searchText)
@@ -52,7 +39,6 @@ struct ChatListView: View {
         Text("WhatsApp")
             .font(.title)
             .fontWeight(.semibold)
-//            .foregroundStyle(Color.rainbow)
             .foregroundColor(Color.customGreen)
     }
 

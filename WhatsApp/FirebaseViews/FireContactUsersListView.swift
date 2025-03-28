@@ -6,7 +6,7 @@ struct FireContactUsersListView: View {
     @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = true
-
+    @Binding var navigationPath: NavigationPath
     var body: some View {
         VStack {
             if isLoading { ProgressView() }
@@ -33,7 +33,7 @@ struct FireContactUsersListView: View {
             .padding(.vertical, 10)
         ) {
             ForEach(userViewModel.allUsers) { user in
-                FireContactUsersRow(user: user)
+                FireContactUsersRow(user: user,navigationPath: $navigationPath)
             }
         }
     }
