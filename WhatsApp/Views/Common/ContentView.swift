@@ -10,7 +10,7 @@ struct ContentView: View {
     @State private var isLoading = true
     //    @Environment(ContactsManager.self) var contactsManager:ContactsManager
     var body: some View {
-        Group {
+        VStack {
             if splashViewActive {
                 SplashView(splashViewActive: $splashViewActive)
             } else  {

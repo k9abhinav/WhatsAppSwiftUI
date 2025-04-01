@@ -23,17 +23,23 @@ final class FireMessageViewModel {
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self, let documents = snapshot?.documents, error == nil else {
+                    print("\n")
                     print("Error fetching messages: \(error?.localizedDescription ?? "Unknown error")") // Debug: Error fetching messages
                     return
                 }
                 self.messages = Array(documents.compactMap { try? $0.data(as: FireMessageModel.self) })
+                print("\n")
                 print("Messages listener triggered for chatId: \(chatId), message count: \(self.messages.count)") // Debug: Listener triggered
+                print("\n")
             }
+        print("\n")
         print("Messages listener setup for chatId: \(chatId)") // Debug: Listener setup
+        print("\n")
     }
 
     func removeMessageListener() {
         messageListener?.remove()
+        print("\n")
         print("Messages listener removed") // Debug: Listener removed
     }
 
@@ -45,8 +51,11 @@ final class FireMessageViewModel {
                 .getDocuments()
 
             self.messages = snapshot.documents.compactMap { try? $0.data(as: FireMessageModel.self) }
-            print("Fetched all messages for chatId: \(chatId), message count: \(self.messages.count)") // Debug: Fetched all messages
+            print("\n")
+            print("Fetched all messages for chatId: \(chatId), message count: \(self.messages.count)")
+            print("\n")// Debug: Fetched all messages
         } catch {
+            print("\n")
             print("Failed to fetch messages: \(error.localizedDescription)") // Debug: Error fetching messages
         }
     }
@@ -57,8 +66,9 @@ final class FireMessageViewModel {
         otherUserId: String,
         content: String
     ) async {
-        guard !content.trimmingCharacters(in: .whitespaces).isEmpty else {
-            print("Message cannot be empty") // Debug: Empty message
+        let trimmedContent = content.trimmingCharacters(in: .whitespaces)
+        guard !trimmedContent.isEmpty else {
+            print("Error: Message content is empty.")
             return
         }
 
@@ -68,7 +78,7 @@ final class FireMessageViewModel {
                   let participants = chatData["participants"] as? [String],
                   participants.contains(currentUserId),
                   participants.contains(otherUserId) else {
-                print("Invalid chat participants") // Debug: Invalid chat participants
+                print("Error: Invalid chat participants or chat document.")
                 return
             }
 
@@ -76,7 +86,7 @@ final class FireMessageViewModel {
                 id: UUID().uuidString,
                 chatId: chatId,
                 messageType: .text,
-                content: content,
+                content: trimmedContent,
                 senderUserId: currentUserId,
                 receiverUserId: otherUserId,
                 timestamp: Date(),
@@ -84,20 +94,33 @@ final class FireMessageViewModel {
                 isForwarded: false
             )
 
-            try await messagesCollection.document(newMessage.id).setData(newMessage.asDictionary())
-            try await chatsCollection.document(chatId).updateData(["lastMessageId": newMessage.id])
-            try await chatsCollection.document(chatId).updateData(["lastSeenTimeStamp": newMessage.timestamp])
-            try await chatsCollection.document(chatId).updateData(["lastMessageContent": newMessage.content])
-            print("Message sent successfully, messageId: \(newMessage.id)") // Debug: Message sent
+            try messagesCollection.document(newMessage.id).setData(from: newMessage)
+
+            let batch = chatsCollection.firestore.batch()
+
+            let chatDocRef = chatsCollection.document(chatId)
+            batch.updateData(["lastMessageId": newMessage.id,
+                                 "lastSeenTimeStamp": newMessage.timestamp,
+                                 "lastMessageContent": trimmedContent], forDocument: chatDocRef)
+
+            try await batch.commit()
+            print("\n")
+            print("Message sent successfully. Message ID: \(newMessage.id)")
+            print("\n")
+
         } catch {
-            print("Failed to send message: \(error.localizedDescription)") // Debug: Error sending message
+            print("\n")
+            print("Error sending message: \(error)")
+            print("\n")
         }
     }
 
     func deleteTextMessage(for messageId: String) async {
         do {
             try await messagesCollection.document(messageId).delete()
+            print("\n")
             print("Message deleted successfully, messageId: \(messageId)") // Debug: Message deleted
+            print("\n")
         } catch {
             print("Failed to delete message: \(error.localizedDescription)") // Debug: Error deleting message
         }

@@ -53,21 +53,14 @@ struct FireChatDetailView: View {
             }
             profilePicOverlayZStack
         }
-
-
     }
 
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
     private func onChangeOfOnlineStatusFunction(){
         Task {
-            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){ error in
-                if let error = error {
-                    print("Error updating user online status: \(error.localizedDescription)")
-                }
-            }
             await authViewModel.loadCurrentUser()
-            onlineStatus = user.onlineStatus
         }
+        onlineStatus = user.onlineStatus
     }
     private func onDisappearFunctions(){
         userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: false ){ error in
@@ -101,6 +94,9 @@ struct FireChatDetailView: View {
             await authViewModel.loadCurrentUser()
             onlineStatus = user.onlineStatus
             lastMessage = messageViewModel.messages.last
+            if isTextFieldFocused {
+                isTyping = true
+            }
         }
     }
     private func sendMessage() async {
@@ -109,10 +105,7 @@ struct FireChatDetailView: View {
             await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
-
-        if isTextFieldFocused {
-            isTyping = true
-        }
+        dismissKeyboard()
     }
 
     private func dismissKeyboard() {
@@ -261,19 +254,24 @@ struct FireChatDetailView: View {
         .ignoresSafeArea()
     }
     // MARK: PROFILE IMAGE
+
     private var profileImage: some View {
         AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
             switch phase {
             case .empty:
-                defaultProfileImage
+                ProgressView()
+                    .frame(width: 32, height: 32)
+
             case .success(let image):
-                image
-                    .resizable()
+                image.resizable()
                     .scaledToFill()
                     .frame(width: 32, height: 32)
                     .clipShape(Circle())
-            default:
-                ProgressView()
+
+            case .failure:
+                defaultProfileImage
+            @unknown default:
+                EmptyView()
             }
         }
     }

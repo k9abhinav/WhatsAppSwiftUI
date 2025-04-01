@@ -5,6 +5,7 @@ import SwiftData
 struct ChatListView: View {
 
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
+ 
     @Environment(\.modelContext) private var modelContext
     @Query private var users: [User]
     @State private var searchText = ""
@@ -23,9 +24,6 @@ struct ChatListView: View {
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)
             }
-        }
-        .onAppear {
-//
         }
     }
 

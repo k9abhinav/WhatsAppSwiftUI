@@ -3,16 +3,18 @@ import SwiftUI
 import PhotosUI
 
 struct FireChatListView: View {
+
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
     @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
     @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
-    @State var currentUser: FireUserModel!
     @State private var searchText = ""
     @State private var showingSettings = false
-    @State var isProfilePicPresented = false
     @State var showingContactUsers: Bool = false
     @Binding var selectView: Bool
     @State private var navigationPath = NavigationPath()
+    @Binding var currentUser: FireUserModel?
+    @Binding var isProfilePicPresented:Bool
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -27,7 +29,7 @@ struct FireChatListView: View {
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
                 }
-                profilePicOverlayZStack
+
                 plusButtonToStartANewChat
             }
             .navigationDestination(for: FireUserModel.self) { user in
@@ -38,6 +40,15 @@ struct FireChatListView: View {
         .onAppear {
             onAppearFunctions()
         }
+        .onChange(of: userViewModel.users){
+            Task{
+                await userViewModel.fetchAllUsersContacts()
+                await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+            }
+        }
+        .onDisappear {
+            onDisappearFunctions()
+        }
     }
 
     // MARK: - HELPER FUNCTIONS
@@ -45,10 +56,16 @@ struct FireChatListView: View {
     private func onAppearFunctions() {
         Task {
             userViewModel.setupUsersListener()
+            await userViewModel.fetchAllUsersContacts()
             await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
         }
     }
+    private func onDisappearFunctions() {
+        Task{
+            await userViewModel.fetchAllUsersContacts()
+            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
 
+        }    }
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
         VStack {
@@ -72,15 +89,7 @@ struct FireChatListView: View {
             }
         }
     }
-    private var profilePicOverlayZStack: some View {
-        Group{
-            if isProfilePicPresented {
-                ProfilePicOverlay(user: currentUser) {
-                    withAnimation { isProfilePicPresented = false }
-                }
-            }
-        }
-    }
+
     private var whatsAppTitle: some View {
         Text("WhatsApp")
             .font(.title)

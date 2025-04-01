@@ -6,11 +6,11 @@ struct FireChatRow: View {
     let user: FireUserModel
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
-    @State private var lastMessageContent : String?
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
+    @State private var lastMessageContent : String?
     @State private var lastSeenTimeStamp: Date? = nil
     @Binding var navigationPath: NavigationPath
 
@@ -25,6 +25,7 @@ struct FireChatRow: View {
         }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
+        .onDisappear { onDisappearFunctions() }
         .onChange(of: chatViewModel.triggeredUpdate) {
             onChangeOfFunctions()
         }
@@ -55,7 +56,7 @@ struct FireChatRow: View {
                 Text(user.name)
                     .font(.headline)
                 if user.id == authViewModel.currentLoggedInUser?.id {
-                    Text("(You)")
+                    Text("(YOU)")
                         .font(.headline)
                         .foregroundColor(.gray)
                 }
@@ -82,41 +83,57 @@ struct FireChatRow: View {
         AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
             switch phase {
             case .empty:
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFill()
+                ProgressView()
                     .frame(width: 50, height: 50)
-                    .foregroundColor(.gray)
 
             case .success(let image):
-                image
+                image.resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
+
+            case .failure:
+                Image(systemName: "person.circle.fill")
                     .resizable()
                     .scaledToFill()
                     .frame(width: 50, height: 50)
                     .clipShape(Circle())
-            case .failure:
-                ProgressView()
+                    .foregroundColor(.gray)
+
             @unknown default:
                 EmptyView()
             }
         }
     }
+
     // MARK: HELPER FUNCTIONS -------------------------------
+
     private func onChangeOfFunctions(){
-        Task {
-            lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
-            lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
-        }
-    }
-    private func onAppearFunctions(){
-        Task {
-            chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
-            lastMessageContent = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).content
-            lastSeenTimeStamp = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]).timestamp
-        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             profileImageURLString = user.imageUrl
         }
+        fetchLastMessage()
+    }
+
+    private func onAppearFunctions(){
+        chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+        fetchLastMessage()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            profileImageURLString = user.imageUrl
+        }
+    }
+    private func fetchLastMessage() {
+        Task { @MainActor in
+            let details = await chatViewModel.fetchLastMessageDetails(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+            if details.timestamp != lastSeenTimeStamp || details.content != lastMessageContent {
+                lastMessageContent = details.content
+                lastSeenTimeStamp = details.timestamp
+            }
+            print("DEBUG IN FIRE CHAT ROW : - Content: \(String(describing: lastMessageContent)) \n Timestamp: \(String(describing: lastSeenTimeStamp))")
+        }
+    }
+    private func onDisappearFunctions(){
+//        chatViewModel.removeChatListener()
     }
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current

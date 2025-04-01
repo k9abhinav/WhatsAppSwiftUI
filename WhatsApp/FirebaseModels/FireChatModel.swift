@@ -30,7 +30,7 @@ struct FireChatModel: Identifiable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, chatType, participants, creationDate, groupName, groupPictureStringURL, groupAdminId, groupDescription, lastMessageId, lastMessageContent
+        case id, chatType, participants, creationDate, groupName, groupPictureStringURL, groupAdminId, groupDescription, lastMessageId, lastMessageContent,lastSeenTimeStamp
     }
 }
 

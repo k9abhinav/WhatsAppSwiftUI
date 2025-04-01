@@ -3,9 +3,9 @@ import PhotosUI
 import SwiftData
 
 struct SettingsView: View {
-
+    @Environment(ContactsManager.self) private var contactsManager: ContactsManager
     @Environment(\.dismiss) var dismiss
-    @Environment(AuthViewModel.self) private var viewModel
+    @Environment(AuthViewModel.self) private var viewModel : AuthViewModel
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
     @State private var userId: String?
     @AppStorage("userName") private var userName = "Error~User"
@@ -29,8 +29,8 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Image Changed", isPresented: $showingImageChangeAlert) {
-                Button("OK", action: {})
-            } message: { Text("Your profile image has been updated.") }
+                Button("OK", action: { reloadToNewProfileImage() })
+            } message: { Text("Your profile image has been updated. Please wait it a moment to see the changes.") }
             .sheet(isPresented: $showingEdit) {
                 EditProfileView(
                     user: viewModel.currentLoggedInUser!,
@@ -40,6 +40,7 @@ struct SettingsView: View {
             }
             .onChange(of: selectedPhoto) { oldValue,newValue in
                 loadImage(newValue)
+
             }
             .onAppear {
                 userId = viewModel.currentLoggedInUser?.id
@@ -76,19 +77,25 @@ struct SettingsView: View {
         }
     }
     private var toggeleViewSection: some View {
-           Section {
-               Toggle(isOn: $istoggleOn) {
-                   Text("Toggle Views")
-               }
-               .onChange(of: istoggleOn){ old, new in
-                   selectView.toggle()
-               }
-           } header: {
-               Text("Toggle Your View Mode")
-                   .padding(.bottom, 5)
-                   .frame(maxWidth: .infinity, alignment: .center)
-                   .foregroundColor(.secondary)
-           }
+        Section {
+            Toggle(isOn: $istoggleOn) {
+                Text("Toggle Views")
+            }
+            .onChange(of: istoggleOn){ old, new in
+                selectView.toggle()
+            }
+            Button(action: {
+                contactsManager.requestAccess()
+            }, label: {
+                Text("Load All Contacts As Users")
+            }
+            )
+        } header: {
+            Text("Toggle Your View Mode")
+                .padding(.bottom, 5)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundColor(.secondary)
+        }
        }
     private var userDetailsAndEditButton: some View {
         Button(action: { showingEdit = true }) {
@@ -155,30 +162,33 @@ struct SettingsView: View {
 //                    }
 //                }
 //    }
+
     private var profileImageView: some View {
         AsyncImage(url: URL(string: viewModel.currentLoggedInUser?.imageUrl ?? "")) { phase in
             switch phase {
+            case .empty:
+                ProgressView()
+                    .frame(width: 80, height: 80)
+
             case .success(let image):
                 image.resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
                     .clipShape(Circle())
+
             case .failure:
-                ProgressView()
-                    .frame(width: 80, height: 80)
-            case .empty:
-                Image(systemName: "person.circle.fill")
+                Image(systemName: "person.circle.fill")  
                     .resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
                     .clipShape(Circle())
                     .foregroundColor(.gray)
+
             @unknown default:
                 EmptyView()
             }
         }
     }
-
 
     private var settingsSection: some View {
         Section {
@@ -210,7 +220,20 @@ struct SettingsView: View {
             Button("Connect with other Meta accounts") {}
         }
     }
+    private func reloadToNewProfileImage() {
+        Task {
+            sleep(10)
+            await viewModel.loadCurrentUser()
 
+              if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                  loadImageFromURL(imageUrl)
+              }
+
+        }
+    }
+    private func loadAllContacts(){
+        contactsManager.requestAccess()
+    }
     private func loadImage(_ newItem: PhotosPickerItem?) {
         Task {
             if let newItem = newItem,

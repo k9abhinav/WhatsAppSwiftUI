@@ -12,9 +12,10 @@ struct FireUserModel: Identifiable, Codable, Hashable {
     var typeOfAuth: AuthType?
     var lastSeenTime: Date?
     var onlineStatus: Bool?
+    var currentSessionId: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, phoneNumber, name, imageUrl, aboutInfo,createdDate, email,password, typeOfAuth, lastSeenTime, onlineStatus
+        case id, phoneNumber, name, imageUrl, aboutInfo,createdDate, email,password, typeOfAuth, lastSeenTime, onlineStatus,currentSessionId
     }
 }
 

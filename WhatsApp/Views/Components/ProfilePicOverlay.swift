@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProfilePicOverlay: View {
-    let user: FireUserModel
+    let user: FireUserModel?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -20,7 +20,7 @@ struct ProfilePicOverlay: View {
                 Spacer()
 
                 // Profile Image
-                if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                if let imageUrlString = user?.imageUrl, let imageUrl = URL(string: imageUrlString) {
                     AsyncImage(url: imageUrl) { phase in
                         switch phase {
                         case .empty:
@@ -52,7 +52,7 @@ struct ProfilePicOverlay: View {
                 }
 
                 // User Name Display
-                Text(user.name ?? "Error")
+                Text(user?.name ?? "Error")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -64,6 +64,6 @@ struct ProfilePicOverlay: View {
         .zIndex(10)
         .onTapGesture { onDismiss() }
         .transition(.opacity) // Smooth fade-in effect
-        .animation(.easeInOut(duration: 0.3), value: user.imageUrl) // Smooth appearance
+        .animation(.easeInOut(duration: 0.3), value: user?.imageUrl) // Smooth appearance
     }
 }

@@ -5,12 +5,11 @@ import SwiftData
 class ChatsViewModel {
     var chatCategories: [String] = ["All","Family","Friends","Work","Unread"]
 
-
     func filteredUsers(users: [User], searchText: String) -> [User] {
         guard !searchText.isEmpty else {
             return users.sorted {
                        ($0.chats.last?.timestamp ?? .distantPast) > ($1.chats.last?.timestamp ?? .distantPast)
-                   }
+            }
         }
 
         let searchTerms = searchText.lowercased().trimmingCharacters(in: .whitespaces)

@@ -14,7 +14,8 @@ struct WhatsAppApp: App {
     @State private var chatViewModel :FireChatViewModel
     @State private var userViewModel  :FireUserViewModel
     @State private var messageViewModel : FireMessageViewModel
-    //    @State private var contactsManager = ContactsManager()
+    @State private var contactsManager : ContactsManager
+    @Environment(\.modelContext) private var modelContext: ModelContext
     let container: ModelContainer
 
     init() {
@@ -31,10 +32,12 @@ struct WhatsAppApp: App {
         } catch {
             fatalError("Failed to initialize SwiftData container: \(error)")
         }
+        let modelContext = container.mainContext
         authViewModel = AuthViewModel()
         chatViewModel = FireChatViewModel()
         userViewModel = FireUserViewModel()
         messageViewModel = FireMessageViewModel()
+        contactsManager = ContactsManager(modelContext: modelContext)
     }
 
     var body: some Scene {
@@ -48,7 +51,7 @@ struct WhatsAppApp: App {
                 .environment(chatViewModel)
                 .environment(userViewModel)
                 .modelContainer(container)
-            //                .environment(contactsManager)
+                .environment(contactsManager)
             //            PhoneAuthTestView()
             //                .onOpenURL { url in
             //                          print("Received URL: \(url)")
@@ -57,6 +60,10 @@ struct WhatsAppApp: App {
         }
     }
 }
+
+
+
+
 
 //class AppDelegate: NSObject, UIApplicationDelegate {
 //  func application(_ application: UIApplication,
