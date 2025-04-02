@@ -1,6 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
-
+import FirebaseStorage
 @MainActor
 @Observable
 final class FireMessageViewModel {
@@ -125,4 +125,86 @@ final class FireMessageViewModel {
             print("Failed to delete message: \(error.localizedDescription)") // Debug: Error deleting message
         }
     }
+
+    func sendImageMessage(
+        chatId: String,
+        currentUserId: String,
+        otherUserId: String,
+        imageData: Data
+    ) async {
+        uploadImageToFirebaseStorage(imageData: imageData) { result in
+            switch result {
+            case .success(let imageURL):
+                Task {
+                    await self.sendMessageWithImage(chatId: chatId, currentUserId: currentUserId, otherUserId: otherUserId, imageURL: imageURL)
+                }
+            case .failure(let error):
+                print("Error uploading image: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func sendMessageWithImage(
+        chatId: String,
+        currentUserId: String,
+        otherUserId: String,
+        imageURL: String
+    ) async {
+        do {
+            let newMessage = FireMessageModel(
+                id: UUID().uuidString,
+                chatId: chatId,
+                messageType: .image,
+                content: imageURL,
+                senderUserId: currentUserId,
+                receiverUserId: otherUserId,
+                timestamp: Date(),
+                replyToMessageId: nil,
+                isForwarded: false
+            )
+
+            try messagesCollection.document(newMessage.id).setData(from: newMessage)
+
+            let batch = chatsCollection.firestore.batch()
+            let chatDocRef = chatsCollection.document(chatId)
+            batch.updateData([
+                "lastMessageId": newMessage.id,
+                "lastSeenTimeStamp": newMessage.timestamp,
+                "lastMessageContent": "[Image]"
+            ], forDocument: chatDocRef)
+
+            try await batch.commit()
+            print("Image message sent successfully. Message ID: \(newMessage.id)")
+
+        } catch {
+            print("Error sending image message: \(error)")
+        }
+    }
+
+    func uploadImageToFirebaseStorage(imageData: Data, completion: @escaping (Result<String, Error>) -> Void) {
+        let storageRef = Storage.storage().reference()
+        let imageRef = storageRef.child("chat_images/\(UUID().uuidString).jpg")
+
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+
+        imageRef.putData(imageData, metadata: metadata) { _, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            imageRef.downloadURL { url, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+
+                if let urlString = url?.absoluteString {
+                    completion(.success(urlString))
+                }
+            }
+        }
+    }
+
 }

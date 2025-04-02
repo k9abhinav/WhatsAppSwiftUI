@@ -40,7 +40,6 @@ struct SettingsView: View {
             }
             .onChange(of: selectedPhoto) { oldValue,newValue in
                 loadImage(newValue)
-
             }
             .onAppear {
                 userId = viewModel.currentLoggedInUser?.id

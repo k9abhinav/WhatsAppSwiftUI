@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FireContactUsersListView: View {
-
+    @Environment(\.presentationMode) var presentationMode
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
     @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
@@ -19,18 +19,33 @@ struct FireContactUsersListView: View {
         .onAppear {
             onAppearFunctions()
         }
-        .navigationTitle("New Chat")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarBackButtonHidden()
+        .toolbar{
+            ToolbarItemGroup(placement: .topBarLeading) {
+                backButton ; navBarContent
+            }
+        }
     }
 
     //    ------------------------------------- MARK : COMPONENTS ----------------------------------------------------
-
+    private var navBarContent: some View {
+        VStack(alignment: .leading){
+            Text("Select contact")
+                .font(.headline)
+            Text("\(userViewModel.allUsers.count) contacts")
+                .font(.caption)
+        }.foregroundStyle(.secondary).padding(.leading, 10)
+    }
+    private var backButton: some View {
+        Button(action: {  presentationMode.wrappedValue.dismiss()})
+        {  Image(systemName: "arrow.backward").tint(.secondary) }
+    }
     private var allContactUsersSection: some View {
         Section(header:
                     Text("Contacts on WhatsApp")
             .font(.headline)
             .padding(.leading, 10)
-            .padding(.vertical, 10)
+            .padding(.bottom, 10)
         ) {
             ForEach(userViewModel.allUsers) { user in
                 FireContactUsersRow(user: user,navigationPath: $navigationPath)

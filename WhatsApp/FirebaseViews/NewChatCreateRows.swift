@@ -9,6 +9,7 @@ struct NewChatCreateRows: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
+                .foregroundStyle(Color.customGreen)
             Spacer()
             Text(text)
                 .font(.headline)

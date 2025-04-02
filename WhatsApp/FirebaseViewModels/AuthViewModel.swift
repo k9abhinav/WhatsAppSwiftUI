@@ -29,7 +29,7 @@ import SwiftUI
         Task {
             await loadCurrentUser()
         }
-    }   
+    }
     // MARK: - Load Current User (updated with session validation)
     func loadCurrentUser() async {
         guard let firebaseUser = auth.currentUser else {
@@ -152,6 +152,85 @@ import SwiftUI
         }
     }
 
+    // MARK: - Sign In with Email (SESSION MANAGEMENT)
+    //    func signInWithEmail(email: String, password: String) async {
+    //        guard !email.isEmpty, !password.isEmpty else {
+    //            showError("Please enter both email and password")
+    //            return
+    //        }
+    //
+    //        do {
+    //            let snapshot = try await getUserByEmail(email)
+    //            if snapshot.documents.isEmpty {
+    //                showError("No account found with this email. Please sign up.")
+    //                return
+    //            }
+    //            // Check if user is already logged in elsewhere
+    //            if let userId = snapshot.documents.first?.documentID {
+    //                let (isActive, _) = await checkActiveSession(userId: userId)
+    //
+    //                if isActive {
+    //                    // Option 1: Prevent login and inform user
+    //                    // showError("This account is already logged in on another device. Please log out there first.")
+    //                    // return
+    //
+    //                    // Option 2: Force logout on other device and continue
+    //                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+    //                }
+    //            }
+    //            let authResult = try await auth.signIn(withEmail: email, password: password)
+    //            let firebaseUser = authResult.user
+    //
+    //            print("DEBUG: Firebase Email Sign-In successful. UID: \(firebaseUser.uid)")
+    //            let sessionId = await updateUserSession(userId: firebaseUser.uid)
+    //            let document = snapshot.documents.first
+    //            let data = document?.data()
+    //
+    //            currentLoggedInUser = FireUserModel(
+    //                id: firebaseUser.uid,
+    //                phoneNumber: data?["phoneNumber"] as? String ?? "",
+    //                name: data?["name"] as? String ?? "",
+    //                imageUrl: data?["imageUrl"] as? String,
+    //                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
+    //                createdDate: (data?["createdDate"] as? Timestamp)?.dateValue(),
+    //                email: email,
+    //                typeOfAuth: .email,
+    //                lastSeenTime: (data?["lastSeenTime"] as? Timestamp)?.dateValue(),
+    //                onlineStatus: data?["onlineStatus"] as? Bool,
+    //                currentSessionId: sessionId
+    //            )
+    //            userIsAuthenticated = true
+    //        } catch {
+    //            print("DEBUG: Error occurred during Email Sign-In - \(error.localizedDescription)")
+    //            showError(error.localizedDescription)
+    //        }
+    //    }
+
+    // MARK: - Sign Out (WITH SESSION MANAGAMENT)
+    //    func signOut() {
+    //        do {
+    //            // Clear the session ID when logging out
+    //            if let userId = currentLoggedInUser?.id {
+    //                Task {
+    //                    do {
+    //                        try await getUserRef(userId: userId).updateData([
+    //                            "currentSessionId": FieldValue.delete()
+    //                        ])
+    //                        print("DEBUG: Cleared session ID for user \(userId)")
+    //                    } catch {
+    //                        print("DEBUG: Failed to clear session: \(error.localizedDescription)")
+    //                    }
+    //                }
+    //            }
+    //
+    //            try auth.signOut()
+    //            userIsAuthenticated = false
+    //            currentLoggedInUser = nil
+    //        } catch {
+    //            showError(error.localizedDescription)
+    //        }
+    //    }
+
     // MARK: - Sign In with Email
     func signInWithEmail(email: String, password: String) async {
         guard !email.isEmpty, !password.isEmpty else {
@@ -165,24 +244,12 @@ import SwiftUI
                 showError("No account found with this email. Please sign up.")
                 return
             }
-            // Check if user is already logged in elsewhere
-            if let userId = snapshot.documents.first?.documentID {
-                let (isActive, _) = await checkActiveSession(userId: userId)
 
-                if isActive {
-                    // Option 1: Prevent login and inform user
-                    // showError("This account is already logged in on another device. Please log out there first.")
-                    // return
-
-                    // Option 2: Force logout on other device and continue
-                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
-                }
-            }
             let authResult = try await auth.signIn(withEmail: email, password: password)
             let firebaseUser = authResult.user
 
             print("DEBUG: Firebase Email Sign-In successful. UID: \(firebaseUser.uid)")
-            let sessionId = await updateUserSession(userId: firebaseUser.uid)
+
             let document = snapshot.documents.first
             let data = document?.data()
 
@@ -196,8 +263,7 @@ import SwiftUI
                 email: email,
                 typeOfAuth: .email,
                 lastSeenTime: (data?["lastSeenTime"] as? Timestamp)?.dateValue(),
-                onlineStatus: data?["onlineStatus"] as? Bool,
-                currentSessionId: sessionId
+                onlineStatus: data?["onlineStatus"] as? Bool
             )
             userIsAuthenticated = true
         } catch {
@@ -209,20 +275,6 @@ import SwiftUI
     // MARK: - Sign Out
     func signOut() {
         do {
-            // Clear the session ID when logging out
-            if let userId = currentLoggedInUser?.id {
-                Task {
-                    do {
-                        try await getUserRef(userId: userId).updateData([
-                            "currentSessionId": FieldValue.delete()
-                        ])
-                        print("DEBUG: Cleared session ID for user \(userId)")
-                    } catch {
-                        print("DEBUG: Failed to clear session: \(error.localizedDescription)")
-                    }
-                }
-            }
-
             try auth.signOut()
             userIsAuthenticated = false
             currentLoggedInUser = nil
@@ -230,6 +282,7 @@ import SwiftUI
             showError(error.localizedDescription)
         }
     }
+    // MARK: CREATE SESSION ID
     private func generateSessionId() -> String {
         return UUID().uuidString
     }
@@ -370,7 +423,81 @@ import SwiftUI
         }
     }
 
+    // MARK: - Sign In With Google (With session management)
+    //    func signInWithGoogle(presenting viewController: UIViewController) async {
+    //        guard let clientID = FirebaseApp.app()?.options.clientID else {
+    //            showError("Missing Firebase Client ID")
+    //            return
+    //        }
+    //
+    //        let config = GIDConfiguration(clientID: clientID)
+    //        GIDSignIn.sharedInstance.configuration = config
+    //
+    //        do {
+    //            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+    //            guard let email = googleUser.user.profile?.email else {
+    //                showError("Failed to retrieve email from Google account")
+    //                return
+    //            }
+    //
+    //            let snapshot = try await getUserByEmail(email)
+    //            if snapshot.documents.isEmpty {
+    //                showError("No account found with this email. Please sign up.")
+    //                return
+    //            }
+    //
+    //            // Check if user is already logged in elsewhere
+    //            if let userId = snapshot.documents.first?.documentID {
+    //                let (isActive, _) = await checkActiveSession(userId: userId)
+    //
+    //                if isActive {
+    //                    // Option 1: Prevent login and inform user
+    //                    // showError("This account is already logged in on another device. Please log out there first.")
+    //                    // return
+    //
+    //                    // Option 2: Force logout on other device and continue
+    //                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+    //                }
+    //            }
+    //
+    //            let credential = GoogleAuthProvider.credential(
+    //                withIDToken: googleUser.user.idToken!.tokenString,
+    //                accessToken: googleUser.user.accessToken.tokenString
+    //            )
+    //
+    //            let authResult = try await auth.signIn(with: credential)
+    //            let firebaseUser = authResult.user
+    //
+    //            print("DEBUG: Firebase Google Sign-In successful. UID: \(firebaseUser.uid)")
+    //
+    //            // Generate and save new session ID
+    //            let sessionId = await updateUserSession(userId: firebaseUser.uid)
+    //
+    //            let document = snapshot.documents.first
+    //            let data = document?.data()
+    //
+    //            currentLoggedInUser = FireUserModel(
+    //                id: firebaseUser.uid,
+    //                phoneNumber: data?["phone"] as? String ?? "",
+    //                name: data?["name"] as? String ?? "",
+    //                imageUrl: data?["imageUrl"] as? String,
+    //                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
+    //                email: email,
+    //                typeOfAuth: .google,
+    //                onlineStatus: data?["onlineStatus"] as? Bool ?? nil,
+    //                currentSessionId: sessionId // Add the session ID here
+    //            )
+    //            userIsAuthenticated = true
+    //
+    //            // Start monitoring for session changes
+    //            monitorSessionStatus()
+    //        } catch {
+    //            print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
+    //            showError(error.localizedDescription)
+    //        }
+    //    }
     // MARK: - Sign In With Google
+    // MARK: SIGN IN GOOGLE
     func signInWithGoogle(presenting viewController: UIViewController) async {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             showError("Missing Firebase Client ID")
@@ -393,20 +520,6 @@ import SwiftUI
                 return
             }
 
-            // Check if user is already logged in elsewhere
-            if let userId = snapshot.documents.first?.documentID {
-                let (isActive, _) = await checkActiveSession(userId: userId)
-
-                if isActive {
-                    // Option 1: Prevent login and inform user
-                    // showError("This account is already logged in on another device. Please log out there first.")
-                    // return
-
-                    // Option 2: Force logout on other device and continue
-                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
-                }
-            }
-
             let credential = GoogleAuthProvider.credential(
                 withIDToken: googleUser.user.idToken!.tokenString,
                 accessToken: googleUser.user.accessToken.tokenString
@@ -415,10 +528,7 @@ import SwiftUI
             let authResult = try await auth.signIn(with: credential)
             let firebaseUser = authResult.user
 
-            print("DEBUG: Firebase Google Sign-In successful. UID: \(firebaseUser.uid)")
-
-            // Generate and save new session ID
-            let sessionId = await updateUserSession(userId: firebaseUser.uid)
+            print("DEBUG: Firebase Sign-In successful. UID: \(firebaseUser.uid)")
 
             let document = snapshot.documents.first
             let data = document?.data()
@@ -431,18 +541,15 @@ import SwiftUI
                 aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
                 email: email,
                 typeOfAuth: .google,
-                onlineStatus: data?["onlineStatus"] as? Bool ?? nil,
-                currentSessionId: sessionId // Add the session ID here
+                onlineStatus: data?["onlineStatus"] as? Bool ?? nil
             )
             userIsAuthenticated = true
-
-            // Start monitoring for session changes
-            monitorSessionStatus()
         } catch {
             print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
             showError(error.localizedDescription)
         }
     }
+
     // MARK: - Complete Google Account Linking (updated with session management)
     func completeGoogleAccountLinking(email: String, password: String) async {
         guard let pendingCredential = pendingGoogleCredential else {
@@ -504,116 +611,204 @@ import SwiftUI
         }
     }
     // MARK: - Sign Up With Google (updated with session management)
-    func signUpWithGoogle(presenting viewController: UIViewController) async {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            showError("Missing Firebase Client ID")
-            return
-        }
+//    func signUpWithGoogle(presenting viewController: UIViewController) async {
+//        guard let clientID = FirebaseApp.app()?.options.clientID else {
+//            showError("Missing Firebase Client ID")
+//            return
+//        }
+//
+//        let config = GIDConfiguration(clientID: clientID)
+//        GIDSignIn.sharedInstance.configuration = config
+//
+//        do {
+//            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+//            guard let email = googleUser.user.profile?.email else {
+//                showError("Failed to retrieve email from Google account")
+//                return
+//            }
+//
+//            let snapshot = try await getUserByEmail(email)
+//
+//            if !snapshot.documents.isEmpty {
+//                let userDoc = snapshot.documents.first!
+//                let userData = userDoc.data()
+//                let authType = userData["authType"] as? String ?? "unknown"
+//
+//                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+//
+//                // Check if user is already logged in elsewhere
+//                let (isActive, _) = await checkActiveSession(userId: userDoc.documentID)
+//
+//                if isActive {
+//                    // Option 1: Prevent login and inform user
+//                    // showError("This account is already logged in on another device. Please log out there first.")
+//                    // return
+//
+//                    // Option 2: Force logout on other device and continue
+//                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+//                }
+//
+//                if authType == "email" {
+//                    DispatchQueue.main.async {
+//                        self.typeOfAuth = .email
+//
+//                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
+//                            withIDToken: googleUser.user.idToken!.tokenString,
+//                            accessToken: googleUser.user.accessToken.tokenString
+//                        )
+//
+//                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+//
+//                        self.showAccountLinkingPrompt = true
+//                    }
+//                    return
+//                } else if authType == "google" {
+//                    await signInWithGoogle(presenting: viewController)
+//                    return
+//                }
+//            }
+//
+//            let credential = GoogleAuthProvider.credential(
+//                withIDToken: googleUser.user.idToken!.tokenString,
+//                accessToken: googleUser.user.accessToken.tokenString
+//            )
+//
+//            let authResult = try await auth.signIn(with: credential)
+//            let firebaseUser = authResult.user
+//            let userRef = getUserRef(userId: firebaseUser.uid)
+//
+//            let fullName = googleUser.user.profile?.name ?? "Unknown User"
+//            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
+//            let phoneNumber = firebaseUser.phoneNumber ?? ""
+//
+//            // Generate a session ID for this new user
+//            let sessionId = generateSessionId()
+//
+//            // Add sessionId to user data
+//            var userData = createUserData(
+//                id: firebaseUser.uid,
+//                phone: phoneNumber,
+//                name: fullName,
+//                imageUrl: profileImageURL,
+//                email: email,
+//                authType: "google"
+//            )
+//            userData["currentSessionId"] = sessionId
+//            userData["lastDevice"] = UIDevice.current.name
+//
+//            try await userRef.setData(userData)
+//            print("DEBUG: New user successfully created in Firestore with session ID: \(sessionId)")
+//
+//            currentLoggedInUser = FireUserModel(
+//                id: firebaseUser.uid,
+//                phoneNumber: phoneNumber,
+//                name: fullName,
+//                imageUrl: profileImageURL,
+//                aboutInfo: defaultAboutInfo,
+//                email: email,
+//                typeOfAuth: .google,
+//                onlineStatus: false,
+//                currentSessionId: sessionId
+//            )
+//            userIsAuthenticated = true
+//
+//            // Start monitoring for session changes
+//            monitorSessionStatus()
+//        } catch {
+//            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
+//            showError(error.localizedDescription)
+//        }
+//    }
 
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-
-        do {
-            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
-            guard let email = googleUser.user.profile?.email else {
-                showError("Failed to retrieve email from Google account")
+    // MARK: - Sign Up With Google (with account checking and linking flow)
+        func signUpWithGoogle(presenting viewController: UIViewController) async {
+            guard let clientID = FirebaseApp.app()?.options.clientID else {
+                showError("Missing Firebase Client ID")
                 return
             }
 
-            let snapshot = try await getUserByEmail(email)
+            let config = GIDConfiguration(clientID: clientID)
+            GIDSignIn.sharedInstance.configuration = config
 
-            if !snapshot.documents.isEmpty {
-                let userDoc = snapshot.documents.first!
-                let userData = userDoc.data()
-                let authType = userData["authType"] as? String ?? "unknown"
-
-                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
-
-                // Check if user is already logged in elsewhere
-                let (isActive, _) = await checkActiveSession(userId: userDoc.documentID)
-
-                if isActive {
-                    // Option 1: Prevent login and inform user
-                    // showError("This account is already logged in on another device. Please log out there first.")
-                    // return
-
-                    // Option 2: Force logout on other device and continue
-                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+            do {
+                let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+                guard let email = googleUser.user.profile?.email else {
+                    showError("Failed to retrieve email from Google account")
+                    return
                 }
 
-                if authType == "email" {
-                    DispatchQueue.main.async {
-                        self.typeOfAuth = .email
+                let snapshot = try await getUserByEmail(email)
 
-                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
-                            withIDToken: googleUser.user.idToken!.tokenString,
-                            accessToken: googleUser.user.accessToken.tokenString
-                        )
+                if !snapshot.documents.isEmpty {
 
-                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+                    let userDoc = snapshot.documents.first!
+                    let userData = userDoc.data()
+                    let authType = userData["authType"] as? String ?? "unknown"
 
-                        self.showAccountLinkingPrompt = true
+                    print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+
+                    if authType == "email" {
+
+                        DispatchQueue.main.async {
+                            self.typeOfAuth = .email
+
+                            self.pendingGoogleCredential = GoogleAuthProvider.credential(
+                                withIDToken: googleUser.user.idToken!.tokenString,
+                                accessToken: googleUser.user.accessToken.tokenString
+                            )
+
+                            self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+
+                            self.showAccountLinkingPrompt = true
+                        }
+                        return
+                    } else if authType == "google" {
+                        await signInWithGoogle(presenting: viewController)
+                        return
                     }
-                    return
-                } else if authType == "google" {
-                    await signInWithGoogle(presenting: viewController)
-                    return
                 }
+
+                let credential = GoogleAuthProvider.credential(
+                    withIDToken: googleUser.user.idToken!.tokenString,
+                    accessToken: googleUser.user.accessToken.tokenString
+                )
+
+                let authResult = try await auth.signIn(with: credential)
+                let firebaseUser = authResult.user
+                let userRef = getUserRef(userId: firebaseUser.uid)
+
+                let fullName = googleUser.user.profile?.name ?? "Unknown User"
+                let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
+                let phoneNumber = firebaseUser.phoneNumber ?? ""
+
+                let userData = createUserData(
+                    id: firebaseUser.uid,
+                    phone: phoneNumber,
+                    name: fullName,
+                    imageUrl: profileImageURL,
+                    email: email,
+                    authType: "google"
+                )
+
+                try await userRef.setData(userData)
+                print("DEBUG: New user successfully created in Firestore")
+
+                currentLoggedInUser = FireUserModel(
+                    id: firebaseUser.uid,
+                    phoneNumber: phoneNumber,
+                    name: fullName,
+                    imageUrl: profileImageURL,
+                    aboutInfo: defaultAboutInfo,
+                    email: email,
+                    typeOfAuth: .google,
+                    onlineStatus: false
+                )
+                userIsAuthenticated = true
+            } catch {
+                print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
+                showError(error.localizedDescription)
             }
-
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: googleUser.user.idToken!.tokenString,
-                accessToken: googleUser.user.accessToken.tokenString
-            )
-
-            let authResult = try await auth.signIn(with: credential)
-            let firebaseUser = authResult.user
-            let userRef = getUserRef(userId: firebaseUser.uid)
-
-            let fullName = googleUser.user.profile?.name ?? "Unknown User"
-            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
-            let phoneNumber = firebaseUser.phoneNumber ?? ""
-
-            // Generate a session ID for this new user
-            let sessionId = generateSessionId()
-
-            // Add sessionId to user data
-            var userData = createUserData(
-                id: firebaseUser.uid,
-                phone: phoneNumber,
-                name: fullName,
-                imageUrl: profileImageURL,
-                email: email,
-                authType: "google"
-            )
-            userData["currentSessionId"] = sessionId
-            userData["lastDevice"] = UIDevice.current.name
-
-            try await userRef.setData(userData)
-            print("DEBUG: New user successfully created in Firestore with session ID: \(sessionId)")
-
-            currentLoggedInUser = FireUserModel(
-                id: firebaseUser.uid,
-                phoneNumber: phoneNumber,
-                name: fullName,
-                imageUrl: profileImageURL,
-                aboutInfo: defaultAboutInfo,
-                email: email,
-                typeOfAuth: .google,
-                onlineStatus: false,
-                currentSessionId: sessionId
-            )
-            userIsAuthenticated = true
-
-            // Start monitoring for session changes
-            monitorSessionStatus()
-        } catch {
-            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
-            showError(error.localizedDescription)
         }
-    }
-
-
     // MARK: - Send OTP
     func sendOTP(phoneNumber: String) async {
         do {
@@ -705,7 +900,7 @@ import SwiftUI
         authType: String,
         onlineStatus: Bool? = nil
     ) -> [String: Any] {
-        return [
+         [
             "id": id,
             "phoneNumber": phone,
             "name": name,

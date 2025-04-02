@@ -112,6 +112,32 @@ struct FireChatDetailView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isTyping = false
     }
+    private var renderMessages : some View{
+        ForEach(messageViewModel.messages) { message in
+            FireChatBubble(
+                message: message,
+                currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
+                onReply: {
+                    // Handle reply action
+                    // For example, you might want to quote the message and focus the text field
+                    messageText = "Replying to: \"\(message.content)\"\n"
+//                                isTextFieldFocused = true
+                },
+                onForward: {
+                    // Handle forward action
+                    // This could open a user selection sheet to forward the message to
+                    print("Forward message: \(message.content)")
+                },
+                onDelete: {
+                    // Handle delete action
+                    Task {
+                       //
+                    }
+                }
+            )
+            .id(message.id)
+        }
+    }
 
     //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -155,20 +181,8 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    ForEach( messageViewModel.messages ) { message in
-                        FireChatBubble(message: message , currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error" )
-                            .id(message.id)
-                    }
-
-                    if (isTyping && user.id != authViewModel.currentLoggedInUser?.id ) {
-                        HStack {
-                            ChatTypingIndicator()
-                            Spacer()
-                        }
-                        .padding(.leading, 20)
-                        .transition(.opacity)
-                        .id("TypingIndicator")
-                    }
+                    renderMessages
+                    typingIndicator
                 }
             }
             .scrollIndicators(.hidden)
@@ -253,25 +267,43 @@ struct FireChatDetailView: View {
         .background(Color.white)
         .ignoresSafeArea()
     }
+    private var typingIndicator: some View {
+        Group{
+            if (isTyping && user.id != authViewModel.currentLoggedInUser?.id ) {
+                HStack {
+                    ChatTypingIndicator()
+                    Spacer()
+                }
+                .padding(.leading, 20)
+                .transition(.opacity)
+                .id("TypingIndicator")
+            }
+        }
+    }
     // MARK: PROFILE IMAGE
 
     private var profileImage: some View {
-        AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
-                    .frame(width: 32, height: 32)
-
-            case .success(let image):
-                image.resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-
-            case .failure:
+        Group{
+            // Profile Image
+            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString),!imageUrlString.hasSuffix(".svg") {
+                AsyncImage(url: imageUrl) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                    case .failure:
+                        defaultProfileImage
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            } else {
                 defaultProfileImage
-            @unknown default:
-                EmptyView()
             }
         }
     }

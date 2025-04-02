@@ -13,7 +13,7 @@ struct FireChatRow: View {
     @State private var lastMessageContent : String?
     @State private var lastSeenTimeStamp: Date? = nil
     @Binding var navigationPath: NavigationPath
-
+    
     var body: some View {
         HStack { profilePicViewButton ; userProfileNameandContent
             Spacer()
@@ -30,7 +30,7 @@ struct FireChatRow: View {
             onChangeOfFunctions()
         }
     }
-
+    
     // MARK: SUB-COMPONENTS -----
     private var profilePicViewButton: some View {
         Button(
@@ -61,14 +61,14 @@ struct FireChatRow: View {
                         .foregroundColor(.gray)
                 }
             }
-
+            
             HStack(spacing:12 ){
                 Image("doubleCheck")
                     .resizable()
                     .scaledToFill()
                     .frame(width: 5, height: 5)
                     .scaleEffect(3.5)
-
+                
                 Text(lastMessageContent ?? "No Message")
                     .font(.subheadline)
                     .lineLimit(1)
@@ -78,43 +78,54 @@ struct FireChatRow: View {
             .padding(.leading,5)
         }
     }
-
+    private var defaultProfileImage: some View {
+        Image(systemName: "person.circle.fill")
+            .resizable()
+            .scaledToFill()
+            .frame(width: 50, height: 50)
+            .clipShape(Circle())
+            .foregroundColor(.gray)
+    }
     private var userProfilePictureView: some View {
-        AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
-                    .frame(width: 50, height: 50)
+        Group {
+            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                AsyncImage(url: imageUrl) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 50,height: 50)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 50,height: 50)
+                            .clipShape(Circle())
 
-            case .success(let image):
-                image.resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
+                    case .failure:
+                        defaultProfileImage
+                    @unknown default:
+                        EmptyView()
+                            .frame(width: 50,height: 50)
+                    }
+                }
 
-            case .failure:
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
-
-            @unknown default:
-                EmptyView()
             }
+            else{
+                defaultProfileImage
+            }
+
         }
     }
-
+    
     // MARK: HELPER FUNCTIONS -------------------------------
-
+    
     private func onChangeOfFunctions(){
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             profileImageURLString = user.imageUrl
         }
         fetchLastMessage()
     }
-
+    
     private func onAppearFunctions(){
         chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
         fetchLastMessage()
@@ -133,12 +144,12 @@ struct FireChatRow: View {
         }
     }
     private func onDisappearFunctions(){
-//        chatViewModel.removeChatListener()
+        //        chatViewModel.removeChatListener()
     }
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current
         let formatter = DateFormatter()
-
+        
         if calendar.isDateInToday(date) {
             formatter.timeStyle = .short
             return formatter.string(from: date)  // Example: "2:30 PM"

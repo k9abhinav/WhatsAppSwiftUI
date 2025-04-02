@@ -59,27 +59,37 @@ struct FireContactUsersRow: View {
         }
     }
     private var userProfilePictureView: some View {
-        AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
-            switch phase {
-            case .empty:
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(.gray)
+        Group{
+            if(user.imageUrl != ""){
+                AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
+                    switch phase {
+                    case .empty:
+                       defaultProfileImage
 
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-            case .failure:
-                ProgressView() // Show loading indicator
-            @unknown default:
-                EmptyView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 50, height: 50)
+                            .clipShape(Circle())
+                    case .failure:
+                        ProgressView() // Show loading indicator
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+            else{
+                defaultProfileImage
             }
         }
+    }
+    private var defaultProfileImage: some View {
+        Image(systemName: "person.crop.circle.fill")
+            .resizable()
+            .scaledToFill()
+            .frame(width: 50, height: 50)
+            .foregroundColor(.gray)
     }
     // MARK: HELPER FUNCTIONS -------------------------------
     private func timeString(from date: Date) -> String {

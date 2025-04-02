@@ -11,6 +11,7 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
     var timestamp: Date
     var replyToMessageId: String?
     var isForwarded:Bool
+    var imageUrl:String?
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -21,7 +22,7 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id,chatId,messageType, content, senderUserId, receiverUserId, timestamp, replyToMessageId,isForwarded
+        case id,chatId,messageType, content, senderUserId, receiverUserId, timestamp, replyToMessageId,isForwarded,imageUrl
     }
 
     func asDictionary() -> [String: Any] {
@@ -34,7 +35,8 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
             "receiverUserId": receiverUserId,
             "timestamp": Timestamp(date: timestamp),
             "replyToMessageId": replyToMessageId ?? NSNull(),
-            "isForwarded": isForwarded
+            "isForwarded": isForwarded,
+            "imageUrl": imageUrl ?? NSNull()
         ]
     }
 }

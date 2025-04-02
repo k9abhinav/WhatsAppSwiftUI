@@ -39,9 +39,33 @@ final class FireUserViewModel {
             print("Users listener triggered, allUsers count: \(self.allUsers.count)") // Debug: Listener triggered
             print("\n")
         }
-        print("\n")
-        print("Users listener SETUP complete") // Debug: Listener setup
-        print("\n")
+        setupChatsListener()
+    }
+    private func setupChatsListener() {
+        chatsCollection.addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self, let documents = snapshot?.documents, error == nil else {
+                print("Error fetching chats: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+
+            let chatDocuments = documents.compactMap { try? $0.data(as: FireChatModel.self) }
+            var userChatTimestamps: [String: Date] = [:]
+
+            for chat in chatDocuments {
+                let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
+                for participant in chat.participants {
+                    userChatTimestamps[participant] = lastMessageTimestamp
+                }
+            }
+
+            // ✅ Sort users based on latest message
+            let sortedUserIds = userChatTimestamps.sorted { $0.value > $1.value }.map { $0.key }
+            self.users = sortedUserIds.compactMap { userId in
+                self.allUsers.first { $0.id == userId }
+            }
+
+            print("Chats listener triggered, updated users count: \(self.users.count)")
+        }
     }
 
     func removeListener() {
@@ -103,13 +127,12 @@ final class FireUserViewModel {
     }
 
 
-
-
     // MARK: - Profile Image Handling
     func changeProfileImage(userId: String, image: UIImage) async {
         if let imageUrl = await uploadProfileImage(userId: userId, image: image) {
             await updateProfileImage(userId: userId, imageUrl: imageUrl)
         }
+        await AuthViewModel().loadCurrentUser()
     }
 
     func uploadProfileImage(userId: String, image: UIImage) async -> String? {

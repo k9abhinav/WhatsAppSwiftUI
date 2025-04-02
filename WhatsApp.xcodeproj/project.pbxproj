@@ -458,7 +458,7 @@
 		C6F556352D5DA67E00296758 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcons;
+				ASSETCATALOG_COMPILER_APPICON_NAME = WhatsAppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -492,7 +492,7 @@
 		C6F556362D5DA67E00296758 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcons;
+				ASSETCATALOG_COMPILER_APPICON_NAME = WhatsAppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WhatsApp/WhatsApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
