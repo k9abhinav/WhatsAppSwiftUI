@@ -10,7 +10,7 @@ struct SettingsView: View {
     @State private var userId: String?
     @AppStorage("userName") private var userName = "Error~User"
     @AppStorage("userStatus") private var userStatus = "No~data!"
-    @AppStorage("userImageKey") private var userImageData: Data?
+    @State private var userImageURLString: String?
     @Binding var selectView: Bool
     @State var istoggleOn: Bool = false
     @State private var showingEdit = false
@@ -29,7 +29,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Image Changed", isPresented: $showingImageChangeAlert) {
-                Button("OK", action: { reloadToNewProfileImage() })
+                Button("OK", action: {  })
             } message: { Text("Your profile image has been updated. Please wait it a moment to see the changes.") }
             .sheet(isPresented: $showingEdit) {
                 EditProfileView(
@@ -38,8 +38,11 @@ struct SettingsView: View {
                     userStatus: $userStatus
                 ).presentationDetents([.medium])
             }
-            .onChange(of: selectedPhoto) { oldValue,newValue in
-                loadImage(newValue)
+            .onChange(of: userViewModel.triggerProfilePicUpdated) { oldValue, newValue in
+                if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                    print("Loading image from URL....")
+                    loadImageFromURL(imageUrl)
+                }
             }
             .onAppear {
                 userId = viewModel.currentLoggedInUser?.id
@@ -116,25 +119,30 @@ struct SettingsView: View {
         PhotosPicker(
             selection: $selectedPhoto,
             matching: .images,
-            photoLibrary: .shared())
-        {
+            photoLibrary: .shared()
+        ) {
             ZStack { profileImageView; cameraIconOverlay }
-            .frame(width: 90, height: 90)
+                .frame(width: 90, height: 90)
         }
         .buttonStyle(PlainButtonStyle())
-        .onChange(of: selectedPhoto) { oldItem,newItem in
+        .onChange(of: selectedPhoto) { oldItem, newItem in
             if let newItem = newItem {
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage)
+
+                        // Upload Image and Get New URL
+                        if let newImageUrl = await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage) {
+                            await MainActor.run {
+                                userImageURLString = newImageUrl
+                            }
+                        }
                     }
                 }
             }
-
         }
     }
-    
+
     private var cameraIconOverlay: some View {
         Image(systemName: "camera.fill")
             .padding(7)
@@ -143,27 +151,8 @@ struct SettingsView: View {
             .foregroundColor(.white.opacity(0.9))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
-//    private var profileImageView: some View {
-//        Group {
-//            if let imageData = userImageData, let uiImage = UIImage(data: imageData) {
-//                        Image(uiImage: uiImage)
-//                            .resizable()
-//                            .scaledToFill()
-//                            .frame(width: 80, height: 80)
-//                            .clipShape(Circle())
-//                    } else {
-//                        Image(systemName: "person.circle.fill")
-//                            .resizable()
-//                            .scaledToFill()
-//                            .frame(width: 80, height: 80)
-//                            .clipShape(Circle())
-//                            .foregroundColor(.gray)
-//                    }
-//                }
-//    }
-
     private var profileImageView: some View {
-        AsyncImage(url: URL(string: viewModel.currentLoggedInUser?.imageUrl ?? "")) { phase in
+        AsyncImage(url: URL(string: userImageURLString ?? "")) { phase in
             switch phase {
             case .empty:
                 ProgressView()
@@ -176,7 +165,7 @@ struct SettingsView: View {
                     .clipShape(Circle())
 
             case .failure:
-                Image(systemName: "person.circle.fill")  
+                Image(systemName: "person.circle.fill")
                     .resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
@@ -188,6 +177,7 @@ struct SettingsView: View {
             }
         }
     }
+
 
     private var settingsSection: some View {
         Section {
@@ -219,40 +209,13 @@ struct SettingsView: View {
             Button("Connect with other Meta accounts") {}
         }
     }
-    private func reloadToNewProfileImage() {
-        Task {
-            sleep(10)
-            await viewModel.loadCurrentUser()
-
-              if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                  loadImageFromURL(imageUrl)
-              }
-
-        }
-    }
     private func loadAllContacts(){
         contactsManager.requestAccess()
     }
-    private func loadImage(_ newItem: PhotosPickerItem?) {
-        Task {
-            if let newItem = newItem,
-               let data = try? await newItem.loadTransferable(type: Data.self) {
-                await MainActor.run {
-                    userImageData = data
-                    showingImageChangeAlert = true
-                }
-            }
-        }
-    }
     private func loadImageFromURL(_ url: URL) {
         Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                await MainActor.run {
-                    userImageData = data
-                }
-            } catch {
-                print("Failed to load image: \(error)")
+            await MainActor.run {
+                userImageURLString = url.absoluteString
             }
         }
     }

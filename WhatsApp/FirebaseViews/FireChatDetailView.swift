@@ -18,6 +18,7 @@ struct FireChatDetailView: View {
     @State private var onlineStatus: Bool? = nil
     @State private var chatExists: Bool? = nil
     @Binding var navigationPath: NavigationPath
+    @State private var selectedImages: [PhotosPickerItem] = []
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
@@ -35,6 +36,9 @@ struct FireChatDetailView: View {
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
                 ProfileDetailsView(user: user)
             })
+            .navigationDestination(for: FireUserModel.self) { user in
+                ProfileDetailsView(user: user)
+            }// fix
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
                 ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
@@ -109,9 +113,22 @@ struct FireChatDetailView: View {
     }
 
     private func dismissKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isTyping = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
+    private func sendImage(_ image: UIImage) async {
+        guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
+        Task {
+                await messageViewModel.sendImageMessage(
+                    chatId: chatViewModel.currentChatId ?? "",
+                    currentUserId: currentUserId,
+                    otherUserId: user.id,
+                    imageData: image
+                )
+            }
+    }
+    //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
+
     private var renderMessages : some View{
         ForEach(messageViewModel.messages) { message in
             FireChatBubble(
@@ -121,7 +138,7 @@ struct FireChatDetailView: View {
                     // Handle reply action
                     // For example, you might want to quote the message and focus the text field
                     messageText = "Replying to: \"\(message.content)\"\n"
-//                                isTextFieldFocused = true
+                    //                                isTextFieldFocused = true
                 },
                 onForward: {
                     // Handle forward action
@@ -131,16 +148,13 @@ struct FireChatDetailView: View {
                 onDelete: {
                     // Handle delete action
                     Task {
-                       //
+                        //
                     }
                 }
             )
             .id(message.id)
         }
     }
-
-    //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
-
     // MARK: BG IMG
     private var backGroundImage: some View {
         Image("bgChats")
@@ -162,7 +176,11 @@ struct FireChatDetailView: View {
                 }
             VStack(alignment: .leading) {
                 Text(user.name).font(.headline)
-                Text(onlineStatus ?? false ? "Online" : "Offline").font(.caption).foregroundColor(.gray)
+                if(authViewModel.currentLoggedInUser?.id ?? "" == user.id){
+                    Text(user.aboutInfo ?? "ERROR").font(.caption).foregroundColor(.gray)
+                }else{
+                    Text(onlineStatus ?? false ? "Online" : "Offline").font(.caption).foregroundColor(.gray)
+                }
             }
             .onTapGesture {
                 isProfileDetailPresented.toggle()
@@ -240,14 +258,25 @@ struct FireChatDetailView: View {
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
             PhotosPicker(
-                selection: .constant( nil ) ,
+                selection: $selectedImages,
+                maxSelectionCount: 2, // Allow multiple images
                 matching: .images,
                 photoLibrary: .shared()
-            )
-            {
+            ) {
                 Image(systemName: "plus")
                     .font(.system(size: 22))
                     .foregroundColor(.gray)
+            }
+            .onChange(of: selectedImages) { _, newItems in
+                Task {
+                    for item in newItems {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            await sendImage(image)
+                        }
+                    }
+                    selectedImages.removeAll()
+                }
             }
             TextField("Message", text: $messageText)
                 .focused($isTextFieldFocused)
@@ -290,6 +319,7 @@ struct FireChatDetailView: View {
                     switch phase {
                     case .empty:
                         ProgressView()
+                            .frame(width: 32, height: 32)
                     case .success(let image):
                         image
                             .resizable()
@@ -300,6 +330,7 @@ struct FireChatDetailView: View {
                         defaultProfileImage
                     @unknown default:
                         EmptyView()
+                            .frame(width: 32, height: 32)
                     }
                 }
             } else {

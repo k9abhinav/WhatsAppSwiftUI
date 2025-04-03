@@ -43,7 +43,7 @@ struct FireChatRow: View {
     }
     private var userLastSeenTime: some View {
         VStack {
-            let date: Date = lastSeenTimeStamp ??  .now
+            let date: Date = lastSeenTimeStamp ?? .distantPast
             Text(timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
@@ -129,8 +129,11 @@ struct FireChatRow: View {
     private func onAppearFunctions(){
         chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
         fetchLastMessage()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            profileImageURLString = user.imageUrl
+       Task {
+            await authViewModel.loadCurrentUser()
+           DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+               profileImageURLString = user.imageUrl
+           }
         }
     }
     private func fetchLastMessage() {

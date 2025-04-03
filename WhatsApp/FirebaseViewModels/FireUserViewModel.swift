@@ -9,7 +9,7 @@ final class FireUserViewModel {
     // MARK: - Properties
     var users: [FireUserModel] = [] // Stores users who have chats with the logged-in user
     var allUsers: [FireUserModel] = [] // Stores all users fetched from Firestore
-
+    var triggerProfilePicUpdated = false
     // MARK: - Firebase References
     private let db = Firestore.firestore()
     private let storage = Storage.storage().reference()
@@ -21,7 +21,6 @@ final class FireUserViewModel {
     init() {
         usersCollection = db.collection("users")
         chatsCollection = db.collection("chats")
-        print("\n")
         print("FireUserViewModel initialized") // Debug: Initialization
         print("\n")
     }
@@ -82,58 +81,72 @@ final class FireUserViewModel {
             print("\n")
             print("Fetched all users, count: \(self.allUsers.count)") // Debug: Fetched all users
         } catch {
-            print("\n")
             print("Failed to fetch all users: \(error.localizedDescription)") // Debug: Error fetching all users
         }
     }
 
     func fetchUsersWithChats(loggedInUserId: String) async {
         do {
-            let snapshot = try await chatsCollection.getDocuments()
-            let chatDocuments = snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) }
-
-            var userChatTimestamps: [String: Date] = [:]  // ✅ Dictionary avoids duplicates
-
-            for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
-                let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
-
-                for participant in chat.participants {
-                    userChatTimestamps[participant] = lastMessageTimestamp
-                }
-            }
-
-            guard !userChatTimestamps.isEmpty else {
-                print("\n")
-                print("No users found with chats")
-                return
-            }
-
-            // ✅ Sort by last message timestamp (latest first)
-            let sortedUserIds = userChatTimestamps
-                .sorted { $0.value > $1.value }
-                .map { $0.key }
-
-            self.users = sortedUserIds.compactMap { userId in
-                allUsers.first { $0.id == userId }
-            }
-            print("\n")
-            print("Sorted User IDs: \(sortedUserIds)")
-            print("\n")
-            print("Fetched users with chats, count: \(self.users.count)")
-
+            let userChatTimestamps = try await fetchUserChatTimestamps(loggedInUserId: loggedInUserId)
+            await sortUsersByLastMessage(userChatTimestamps)
         } catch {
             print("Failed to fetch users with chats: \(error.localizedDescription)")
         }
     }
 
+    // 🔹 Fetch chat timestamps for all participants
+    private func fetchUserChatTimestamps(loggedInUserId: String) async throws -> [String: Date] {
+        let snapshot = try await chatsCollection.getDocuments()
+        let chatDocuments = snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) }
+
+        var userChatTimestamps: [String: Date] = [:]
+
+        for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
+            let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
+
+            for participant in chat.participants {
+                userChatTimestamps[participant] = lastMessageTimestamp
+            }
+        }
+
+        print("Fetched chat timestamps for \(userChatTimestamps.count) users")
+        return userChatTimestamps
+    }
+
+    // 🔹 Sort users by last message timestamp
+    private func sortUsersByLastMessage(_ userChatTimestamps: [String: Date]) async {
+        guard !userChatTimestamps.isEmpty else {
+            print("No users found with chats")
+            print("\n")
+            return
+        }
+
+        let sortedUserIds = userChatTimestamps
+            .sorted { $0.value > $1.value }
+            .map { $0.key }
+
+        self.users = sortedUserIds.compactMap { userId in
+            allUsers.first { $0.id == userId }
+        }
+
+        print("Sorted users with chats, count: \(self.users.count)")
+        print("\n")
+    }
+
+
 
     // MARK: - Profile Image Handling
-    func changeProfileImage(userId: String, image: UIImage) async {
+    func changeProfileImage(userId: String, image: UIImage) async -> String? {
         if let imageUrl = await uploadProfileImage(userId: userId, image: image) {
             await updateProfileImage(userId: userId, imageUrl: imageUrl)
+            await AuthViewModel().loadCurrentUser()
+            self.triggerProfilePicUpdated = true
+            print("Triggered Profile Pic Updated ✅...........................")
+            return imageUrl // ✅ Now returns the uploaded image URL
         }
-        await AuthViewModel().loadCurrentUser()
+        return nil
     }
+
 
     func uploadProfileImage(userId: String, image: UIImage) async -> String? {
         guard let (imageData, fileExtension) = getImageDataAndExtension(image: image) else {
@@ -146,13 +159,11 @@ final class FireUserViewModel {
         do {
             let _ = try await imageRef.putDataAsync(imageData)
             let url = try await imageRef.downloadURL()
-            print("\n")
-            print("Image uploaded successfully, URL: \(url.absoluteString)") // Debug: Image uploaded
+            print("Image uploaded successfully, URL: \(url.absoluteString)")
             print("\n")
             return url.absoluteString
         } catch {
-            print("\n")
-            print("Error uploading image: \(error.localizedDescription)") // Debug: Error uploading image
+            print("Error uploading image: \(error.localizedDescription)")
             print("\n")
             return nil
         }
@@ -164,8 +175,8 @@ final class FireUserViewModel {
         } else if let jpegData = image.jpegData(compressionQuality: 0.5) {
             return (jpegData, "jpg")
         }
-        print("\n")
-        print("Failed to convert image to PNG or JPEG") // Debug: Image conversion failed
+        print("Failed to convert image to PNG or JPEG \n")
+
         return nil
     }
 
@@ -194,11 +205,9 @@ final class FireUserViewModel {
     private func updateUserField(userId: String, fieldName: String, value: Any, completion: @escaping (Error?) -> Void) {
         getUserRef(userId: userId).updateData([fieldName: value]) { error in
             if let error = error {
-                print("\n")
-                print("Error updating field \(fieldName): \(error.localizedDescription)") // Debug: Error updating field
+                print("Error updating field \(fieldName): \(error.localizedDescription) \n")
             } else {
-                print("\n")
-                print("Field \(fieldName) updated successfully (completion handler)") // Debug: Field updated
+                print("Field \(fieldName) updated successfully (completion handler) \n")
             }
             completion(error)
         }
@@ -207,9 +216,9 @@ final class FireUserViewModel {
     private func updateUserField<T>(userId: String, fieldName: String, value: T) async {
         do {
             try await getUserRef(userId: userId).updateData([fieldName: value])
-            print("\(fieldName) updated successfully (async)") // Debug: Field updated
+            print("\(fieldName) updated successfully (async)")
         } catch {
-            print("Error updating \(fieldName): \(error.localizedDescription)") // Debug: Error updating field
+            print("Error updating \(fieldName): \(error.localizedDescription)")
         }
     }
 

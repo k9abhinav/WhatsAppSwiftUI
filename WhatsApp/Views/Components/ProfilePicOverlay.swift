@@ -25,6 +25,7 @@ struct ProfilePicOverlay: View {
                         switch phase {
                         case .empty:
                             ProgressView()
+                                .background(.white)
                         case .success(let image):
                             image
                                 .resizable()
