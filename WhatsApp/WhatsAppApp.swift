@@ -7,7 +7,7 @@ import FirebaseAuth
 @main
 struct WhatsAppApp: App {
 //    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @State private var authViewModel : AuthViewModel
+    @State private var authViewModel : FireAuthViewModel
     @State private var callsViewModel = CallsViewModel()
     @State private var communityViewModel = CommunityViewModel()
     @State private var chatsViewModel = ChatsViewModel()
@@ -33,7 +33,7 @@ struct WhatsAppApp: App {
             fatalError("Failed to initialize SwiftData container: \(error)")
         }
         let modelContext = container.mainContext
-        authViewModel = AuthViewModel()
+        authViewModel = FireAuthViewModel()
         chatViewModel = FireChatViewModel()
         userViewModel = FireUserViewModel()
         messageViewModel = FireMessageViewModel()

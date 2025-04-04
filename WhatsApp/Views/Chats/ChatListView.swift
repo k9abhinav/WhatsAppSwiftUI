@@ -20,7 +20,9 @@ struct ChatListView: View {
                         ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                         ToolbarItemGroup { toolbarButtons }
                     }
-                    .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView) })
+                    .navigationDestination(isPresented: $showingSettings, destination: {
+//                        SettingsView(selectView: $selectView)
+                    })
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)
             }

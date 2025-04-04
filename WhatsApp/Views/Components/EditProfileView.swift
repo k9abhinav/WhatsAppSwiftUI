@@ -4,7 +4,7 @@ import SwiftUI
 struct EditProfileView: View {
     let user: FireUserModel
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
-    @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel: FireAuthViewModel
     @Environment(\.dismiss) var dismiss
     @Binding var userName: String
     @Binding var userStatus: String

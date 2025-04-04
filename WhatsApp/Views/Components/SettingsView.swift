@@ -5,7 +5,7 @@ import SwiftData
 struct SettingsView: View {
     @Environment(ContactsManager.self) private var contactsManager: ContactsManager
     @Environment(\.dismiss) var dismiss
-    @Environment(AuthViewModel.self) private var viewModel : AuthViewModel
+    @Environment(FireAuthViewModel.self) private var viewModel : FireAuthViewModel
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
     @State private var userId: String?
     @AppStorage("userName") private var userName = "Error~User"
@@ -17,9 +17,9 @@ struct SettingsView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var showingImageChangeAlert = false
-
+    @Binding var navigationPath: NavigationPath
     var body: some View {
-        NavigationStack {
+        VStack {
             List {
                 profileSection
                 toggeleViewSection
@@ -28,6 +28,10 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden()
+            .toolbar{
+                ToolbarItem(placement: .topBarLeading){ backButton }
+            }
             .alert("Image Changed", isPresented: $showingImageChangeAlert) {
                 Button("OK", action: {  })
             } message: { Text("Your profile image has been updated. Please wait it a moment to see the changes.") }
@@ -63,7 +67,13 @@ struct SettingsView: View {
     }
 
     // MARK: Components ----------------------------------------------
+    private var backButton: some View {
+        Button(
+            action: { navigationPath = NavigationPath() }
+        )
+        {  Image(systemName: "arrow.backward")  }
 
+    }
     private var profileSection: some View {
         Section {
             VStack(spacing: 15) {

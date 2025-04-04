@@ -5,7 +5,7 @@ import GoogleSignInSwift
 
 struct SignInWithPhoneView: View {
 
-    @Environment(AuthViewModel.self) private var viewModel
+    @Environment(FireAuthViewModel.self) private var viewModel
     @State private var isShowingSignIn = false
     @State private var isLoading = false
     @State private var enteredEmail: String = ""
@@ -206,5 +206,5 @@ struct SignInWithPhoneView: View {
 
 #Preview {
     SignInWithPhoneView()
-        .environment(AuthViewModel())
+        .environment(FireAuthViewModel())
 }

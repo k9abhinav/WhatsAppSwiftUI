@@ -3,7 +3,7 @@ import SwiftData
 
 @Observable
 class ChatsViewModel {
-    var chatCategories: [String] = ["All","Family","Friends","Work","Unread"]
+    var chatCategories: [String] = ["All","Archived","Family ❤️","Friends","Work","Unread"]
 
     func filteredUsers(users: [User], searchText: String) -> [User] {
         guard !searchText.isEmpty else {

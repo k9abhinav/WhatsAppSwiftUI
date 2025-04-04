@@ -3,7 +3,7 @@ import SwiftUI
 import GoogleSignInSwift
 
 struct SignInWithEmailView: View {
-    @Environment(AuthViewModel.self) private var viewModel
+    @Environment(FireAuthViewModel.self) private var viewModel
     @State private var isShowingSignUp = false
     @State private var isLoading = false
     @State private var enteredPassword: String = ""
@@ -158,5 +158,5 @@ struct SignInWithEmailView: View {
 
 #Preview {
     SignInWithEmailView()
-        .environment(AuthViewModel())
+        .environment(FireAuthViewModel())
 }

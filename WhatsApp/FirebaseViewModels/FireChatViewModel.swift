@@ -18,7 +18,7 @@ final class FireChatViewModel {
     init() {
         self.chatsCollection = db.collection("chats")
         self.messagesCollection = db.collection("messages")
-        print("FireChatViewModel initialized") // Debug: Initialization
+        print("FireChatViewModel initialized -------- ✅-----------") // Debug: Initialization
     }
 
     //MARK: - Chat listener
@@ -36,19 +36,16 @@ final class FireChatViewModel {
                 Task { self.triggeredUpdate = true }
                 print("\n")
                 print("Chat listener triggered, chats count: \(self.chats.count)")
-                print("\n")
+
             }
-        print("\n")
-        print("Chat listener setup")
-        print("\n")
+        print("Chat listener setup -----------✅------------")
     }
 
     //MARK: - RemoveChatListener
     func removeChatListener() {
         chatListener?.remove()
         chatListener = nil
-        print("\n")
-        print("Chat listener removed") // Debug: Listener removed
+        print("Chat listener removed ---------❌-----------") // Debug: Listener removed
     }
 
     //MARK: -loadChatId
@@ -62,7 +59,6 @@ final class FireChatViewModel {
                 let chat = try document.data(as: FireChatModel.self)
                 if Set(chat.participants.map { $0 }) == Set(participants) {
                     self.currentChatId = chat.id
-                    print("\n")
                     print("Chat ID loaded: \(chat.id) for \(participants)") // Debug: Chat ID loaded
                     print("\n")
                     return
@@ -89,7 +85,7 @@ final class FireChatViewModel {
             }
             return nil // Chat not found
         } catch {
-            print("Failed to get chat ID: \(error.localizedDescription)")
+            print("Failed to get chat ID ------❌-----------: \(error.localizedDescription)")
             return nil
         }
     }
@@ -108,9 +104,7 @@ final class FireChatViewModel {
         do {
             try await chatsCollection.document(newChat.id).setData(newChat.toDictionary())
             self.currentChatId = newChat.id
-            print("\n")
-            print("New chat created, chat ID: \(newChat.id) for \(participants)") // Debug: New chat created
-            print("\n")
+            print("New chat created, -------- ✅----------- for \(participants)") // Debug: New chat created
         } catch {
             print("Failed to create chat: \(error.localizedDescription)") // Debug: Error creating chat
         }
@@ -125,18 +119,14 @@ final class FireChatViewModel {
             for document in querySnapshot.documents {
                 let chat = try document.data(as: FireChatModel.self)
                 if Set(chat.participants) == Set(participants) {
-                    print("\n")
-                    print("Chat exists for participants") // Debug: Chat exists
-                    print("\n")
+                    print(" ----------------- Chat exists for participants------------") // Debug: Chat exists
                     return true
                 }
             }
         } catch {
-            print("\n")
-            print("Error checking chat existence: \(error.localizedDescription)") // Debug: Error checking chat existence
+            print("Error checking chat existence: \(error.localizedDescription) \n") // Debug: Error checking chat existence
         }
-        print("\n")
-        print("Chat does not exist for participants") //Debug: chat does not exist
+        print("Chat does not exist for participants \n") //Debug: chat does not exist
         return false
     }
     //MARK: -deleteChat
@@ -151,17 +141,16 @@ final class FireChatViewModel {
             }
 
             try await chatsCollection.document(chatId).delete()
-            print("\n")
+
             print("Chat deleted, chat ID: \(chatId)")
         } catch {
-            print("\n")
             print("Failed to delete chat: \(error.localizedDescription)")
         }
     }
 
     //MARK: -fetchLastMessageDetails
 
-    @MainActor func fetchLastMessageDetails(for participants: [String]) async -> (content: String?, timestamp: Date?) {
+    func fetchLastMessageDetails(for participants: [String]) async -> (content: String?, timestamp: Date?) {
         do {
             // First get the chatId for these exact participants
             guard let chatId = await getChatId(for: participants) else {
@@ -179,19 +168,18 @@ final class FireChatViewModel {
             if let messageData = messageSnapshot.data(),
                let content = messageData["content"] as? String,
                let timestamp = messageData["timestamp"] as? Timestamp {
-                print("\n")
                 print("Last message details fetched for chatId: \(chatId)")
-                print("\n")
+
                 print("DEBUG: Last message details fetched - Content: \(content), Timestamp: \(timestamp)")
-                print("\n")
+
                 return (content, timestamp.dateValue())
             }
         } catch {
-            print("\n")
+
             print("Error fetching last message details: \(error.localizedDescription)")
             print("\n")
         }
-        print("No last message details found")
+        print("No last message details found ")
         print("\n")
         return (nil, nil)
     }

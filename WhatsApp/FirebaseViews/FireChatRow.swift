@@ -8,26 +8,32 @@ struct FireChatRow: View {
     @Binding var isProfilePicPresented:Bool
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
-    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(FireUserViewModel.self) private var userViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
     @State private var lastMessageContent : String?
     @State private var lastSeenTimeStamp: Date? = nil
     @Binding var navigationPath: NavigationPath
-    
     var body: some View {
-        HStack { profilePicViewButton ; userProfileNameandContent
-            Spacer()
-            userLastSeenTime
-        }
-        .padding(.vertical,5)
-        .onTapGesture {
-            navigationPath.append(user)
-        }
+        NavigationLink(value: user) {
+                   HStack {
+                       profilePicViewButton
+                       userProfileNameandContent
+
+                   }
+                   .padding(.vertical, 5)
+               }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
         .onDisappear { onDisappearFunctions() }
         .onChange(of: chatViewModel.triggeredUpdate) {
             onChangeOfFunctions()
+        }
+        
+        .onChange(of: userViewModel.triggerProfilePicUpdated){
+            Task {
+                profileImageURLString = user.imageUrl
+            }
         }
     }
     
@@ -56,10 +62,12 @@ struct FireChatRow: View {
                 Text(user.name)
                     .font(.headline)
                 if user.id == authViewModel.currentLoggedInUser?.id {
-                    Text("(YOU)")
+                    Text("(You)")
                         .font(.headline)
                         .foregroundColor(.gray)
                 }
+                Spacer()
+                userLastSeenTime
             }
             
             HStack(spacing:12 ){
@@ -74,6 +82,19 @@ struct FireChatRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .foregroundColor(.gray)
+                Spacer()
+                ZStack {
+                    Image(systemName: "circlebadge.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(Color.customGreen)
+                        .frame(width: 18, height: 18)
+                    Text("5")
+                        .foregroundStyle(.white)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                }.padding(5)
             }
             .padding(.leading,5)
         }
@@ -88,7 +109,7 @@ struct FireChatRow: View {
     }
     private var userProfilePictureView: some View {
         Group {
-            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+            if let imageUrlString = profileImageURLString, let imageUrl = URL(string: imageUrlString) {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:
@@ -113,16 +134,12 @@ struct FireChatRow: View {
             else{
                 defaultProfileImage
             }
-
         }
     }
     
     // MARK: HELPER FUNCTIONS -------------------------------
     
     private func onChangeOfFunctions(){
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            profileImageURLString = user.imageUrl
-        }
         fetchLastMessage()
     }
     
@@ -131,9 +148,7 @@ struct FireChatRow: View {
         fetchLastMessage()
        Task {
             await authViewModel.loadCurrentUser()
-           DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-               profileImageURLString = user.imageUrl
-           }
+            profileImageURLString = user.imageUrl
         }
     }
     private func fetchLastMessage() {

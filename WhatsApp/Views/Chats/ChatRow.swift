@@ -21,7 +21,6 @@ struct ChatRow: View {
             }
             .padding(.vertical,5)
 //            .cornerRadius(10)
-
         }
         .buttonStyle(.plain)
     }

@@ -20,7 +20,7 @@ struct FireChatBubble: View {
                 displayImageandContent
                     .background(
                         isFromCurrentUser
-                        ? (message.messageType == .image ? Color.clear : Color.green)
+                        ? (message.messageType == .image ? Color.gray.opacity(0.2) : Color.customGreen)
                             : Color.gray.opacity(0.2)
                     )
                     .foregroundColor(isFromCurrentUser ? .white : .black)

@@ -17,7 +17,7 @@ final class FireMessageViewModel {
         self.chatsCollection = db.collection("chats")
         self.messagesCollection = db.collection("messages")
         self.usersCollection = db.collection("users")
-        print("FireMessageViewModel initialized") // Debug: Initialization
+        print("FireMessageViewModel initialized ----------- ✅ ----------") // Debug: Initialization
     }
 
     func setupMessageListener(for chatId: String) {
@@ -27,24 +27,24 @@ final class FireMessageViewModel {
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { snapshot, error in
                 guard let documents = snapshot?.documents, error == nil else {
-                    print("\n")
-                    print("Error fetching messages: \(error?.localizedDescription ?? "Unknown error")") // Debug: Error fetching messages
+
+                    print("Error fetching messages: \(error?.localizedDescription ?? "Unknown error -----------  ❌ ---------- ")")
                     return
                 }
                 self.messages = documents.compactMap { try? $0.data(as: FireMessageModel.self) }
-                print("\n")
-                print("Messages listener triggered for chatId: \(chatId), message count: \(self.messages.count)") // Debug: Listener triggered
-                print("\n")
+
+                print("Messages listener triggered for chatId: \(chatId), message count: \(self.messages.count)")
+
             }
-        print("\n")
-        print("Messages listener setup for chatId: \(chatId)") // Debug: Listener setup
-        print("\n")
+
+        print("Messages listener setup for chatId ----------- ✅ ---------- : \(chatId)")
+
     }
 
     func removeMessageListener() {
         messageListener?.remove()
-        print("\n")
-        print("Messages listener removed") // Debug: Listener removed
+
+        print("Messages listener removed -----------  ❌ ---------- ")
     }
 
     func fetchAllMessages(for chatId: String) async {
@@ -55,12 +55,12 @@ final class FireMessageViewModel {
                 .getDocuments()
 
             self.messages = snapshot.documents.compactMap { try? $0.data(as: FireMessageModel.self) }
-            print("\n")
+
             print("Fetched all messages for chatId: \(chatId), message count: \(self.messages.count)")
-            print("\n")// Debug: Fetched all messages
+
         } catch {
-            print("\n")
-            print("Failed to fetch messages: \(error.localizedDescription)") // Debug: Error fetching messages
+
+            print("Failed to fetch messages -----------  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching messages
         }
     }
 
@@ -72,7 +72,7 @@ final class FireMessageViewModel {
     ) async {
         let trimmedContent = content.trimmingCharacters(in: .whitespaces)
         guard !trimmedContent.isEmpty else {
-            print("Error: Message content is empty.")
+            print("Error: Message content is empty. -----------  ❌ ---------- ")
             return
         }
 
@@ -82,7 +82,7 @@ final class FireMessageViewModel {
                   let participants = chatData["participants"] as? [String],
                   participants.contains(currentUserId),
                   participants.contains(otherUserId) else {
-                print("Error: Invalid chat participants or chat document.")
+                print("Error: Invalid chat participants or chat document. -----------  ❌ ---------- ")
                 return
             }
 
@@ -108,25 +108,24 @@ final class FireMessageViewModel {
                                  "lastMessageContent": trimmedContent], forDocument: chatDocRef)
 
             try await batch.commit()
-            print("\n")
-            print("Message sent successfully. Message ID: \(newMessage.id)")
-            print("\n")
+
+            print("Message sent successfully. ----------- ✅ ---------- ")
+
 
         } catch {
             print("\n")
-            print("Error sending message: \(error)")
-            print("\n")
+            print("Error sending message -----------  ❌ ---------- : \(error)")
+
         }
     }
 
     func deleteTextMessage(for messageId: String) async {
         do {
             try await messagesCollection.document(messageId).delete()
-            print("\n")
-            print("Message deleted successfully, messageId: \(messageId)") // Debug: Message deleted
-            print("\n")
+
+            print("Message deleted successfully ----------- ✅ ---------- ") // Debug: Message deleted
         } catch {
-            print("Failed to delete message: \(error.localizedDescription)") // Debug: Error deleting message
+            print("Failed to delete message -----  ❌ ---------- : \(error.localizedDescription)") // Debug: Error deleting message
         }
     }
 
@@ -156,7 +155,7 @@ final class FireMessageViewModel {
 
             switch mediaUploadResult {
             case .success(let mediaUrl):
-                print("✅ Media upload successful: \(mediaUrl)")
+                print("---------✅------------- Media upload successful.")
 
                 let newMessage = FireMessageModel(
                     id: newMessageId,
@@ -168,7 +167,7 @@ final class FireMessageViewModel {
                     timestamp: Date(),
                     replyToMessageId: replyToMessageId,
                     isForwarded: isForwarded,
-                    imageUrl: mediaUrl // ✅ Now, imageUrl is correctly set
+                    imageUrl: mediaUrl
                 )
 
                 try messagesCollection.document(newMessage.id).setData(from: newMessage)
@@ -178,11 +177,11 @@ final class FireMessageViewModel {
                 batch.updateData([
                     "lastMessageId": newMessage.id,
                     "lastSeenTimeStamp": newMessage.timestamp,
-                    "lastMessageContent": "📷 Photo"
+                    "lastMessageContent": "Photo"
                 ], forDocument: chatDocRef)
 
                 try await batch.commit()
-                print("✅ Image message sent successfully. Message ID: \(newMessage.id)")
+                print("✅ Image message sent successfully. ----------- ✅ ---------- ")
 
             case .failure(let error):
                 print("❌ Error uploading media: \(error)")

@@ -5,7 +5,7 @@ import GoogleSignIn
 import SwiftUI
 
 @MainActor
-@Observable final class AuthViewModel {
+@Observable final class FireAuthViewModel {
     // MARK: - Properties
     var currentLoggedInUser: FireUserModel?
     var verificationID = ""

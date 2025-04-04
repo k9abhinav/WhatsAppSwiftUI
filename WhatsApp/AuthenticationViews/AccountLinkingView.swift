@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AccountLinkingView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel
     
     @State private var password = ""
     @State private var isLinking = false

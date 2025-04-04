@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct FireContactUsersListView: View {
-    @Environment(\.presentationMode) var presentationMode
+  
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
-    @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel: FireAuthViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = true
     @Binding var navigationPath: NavigationPath
@@ -37,7 +37,7 @@ struct FireContactUsersListView: View {
         }.foregroundStyle(.secondary).padding(.leading, 10)
     }
     private var backButton: some View {
-        Button(action: {  presentationMode.wrappedValue.dismiss()})
+        Button(action: { dismiss() })
         {  Image(systemName: "arrow.backward").tint(.secondary) }
     }
     private var allContactUsersSection: some View {

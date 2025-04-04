@@ -4,11 +4,11 @@ import SwiftUI
 struct FireChatDetailView: View {
 
     let user: FireUserModel
+    @Environment(\.dismiss) var dismiss
     @Environment(FireChatViewModel.self) private var chatViewModel
-    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(FireUserViewModel.self) private var userViewModel
-    @Environment(\.presentationMode) private var presentationMode
     @State private var lastMessage : FireMessageModel? = nil
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
@@ -36,9 +36,6 @@ struct FireChatDetailView: View {
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
                 ProfileDetailsView(user: user)
             })
-            .navigationDestination(for: FireUserModel.self) { user in
-                ProfileDetailsView(user: user)
-            }// fix
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
                 ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
@@ -50,7 +47,7 @@ struct FireChatDetailView: View {
                 onAppearFunctions()
             }
             .onChange(of: onlineStatus) {
-                onChangeOfOnlineStatusFunction()
+//                onChangeOfOnlineStatusFunction()
             }
             .onDisappear {
                 onDisappearFunctions()
@@ -65,6 +62,7 @@ struct FireChatDetailView: View {
             await authViewModel.loadCurrentUser()
         }
         onlineStatus = user.onlineStatus
+        print("ON CHANGE Online Status of the USER: \(String(describing: onlineStatus))")
     }
     private func onDisappearFunctions(){
         userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: false ){ error in
@@ -72,6 +70,7 @@ struct FireChatDetailView: View {
                 print("Error updating user online status: \(error.localizedDescription)")
             }
         }
+        print("DISAPPEAR Online Status of the USER: \(String(describing: onlineStatus))")
         messageViewModel.removeMessageListener()
         DispatchQueue.main.async {
             UITabBar.appearance().isHidden = false
@@ -90,13 +89,14 @@ struct FireChatDetailView: View {
             }
             messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
             await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
-            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "", newStatus: true){ error in
+            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "Error", newStatus: true){ error in
                 if let error = error {
                     print("Error updating user online status: \(error.localizedDescription)")
                 }
             }
             await authViewModel.loadCurrentUser()
             onlineStatus = user.onlineStatus
+            print("Online Status of the USER: \(String(describing: onlineStatus))")
             lastMessage = messageViewModel.messages.last
             if isTextFieldFocused {
                 isTyping = true
@@ -164,7 +164,11 @@ struct FireChatDetailView: View {
     }
     // MARK: BACK BUTTON NAV --- NAVV ITEMS
     private var backButton: some View {
-        Button(action: { navigationPath = NavigationPath() })
+        Button(action: {
+            navigationPath = NavigationPath()
+            dismiss()
+            print("Back button pressed!")
+        })
         {  Image(systemName: "arrow.backward")  }
     }
 
@@ -321,11 +325,13 @@ struct FireChatDetailView: View {
                         ProgressView()
                             .frame(width: 32, height: 32)
                     case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
+                        withAnimation(.smooth){
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                        }
                     case .failure:
                         defaultProfileImage
                     @unknown default:

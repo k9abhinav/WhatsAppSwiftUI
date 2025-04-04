@@ -6,23 +6,22 @@ struct FireContactUsersRow: View {
 
     @State private var lastMessage: FireMessageModel?
     @Environment(FireChatViewModel.self) private var chatViewModel
-    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel
     @State private var profileImageURLString: String? = ""
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        HStack {
-                    userProfilePictureView
-                    userProfileNameandContent
-                    Spacer()
-                }
-                .padding(.vertical, 5)
-                .onTapGesture {
-                    navigationPath.append(user)
-                }
+        NavigationLink (destination: FireChatDetailView(user: user, navigationPath: $navigationPath)){
+            HStack {
+                userProfilePictureView
+                userProfileNameandContent
+                Spacer()
+            }
+            .padding(.vertical, 5)
+        }
         .buttonStyle(.plain)
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task{
                 profileImageURLString = user.imageUrl
             }
         }
@@ -111,9 +110,9 @@ struct FireContactUsersRow: View {
 
 }
 
-#Preview {
-    @Previewable @State var navigationPath: NavigationPath = NavigationPath()
-    FireContactUsersRow(user: FireUserModel(id: "123", phoneNumber: "99", name: "Test User", imageUrl: nil), navigationPath: $navigationPath)
-        .environment(FireChatViewModel())
-        .environment(AuthViewModel())
-}
+//#Preview {
+//    @Previewable @State var navigationPath: NavigationPath = NavigationPath()
+//    FireContactUsersRow(user: FireUserModel(id: "123", phoneNumber: "99", name: "Test User", imageUrl: nil), navigationPath: $navigationPath)
+//        .environment(FireChatViewModel())
+//        .environment(FireAuthViewModel())
+//}

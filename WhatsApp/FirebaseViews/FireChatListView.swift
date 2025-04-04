@@ -7,12 +7,12 @@ struct FireChatListView: View {
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
     @Environment(ChatsViewModel.self) private var viewModel : ChatsViewModel
     @Environment(FireChatViewModel.self) private var chatViewModel: FireChatViewModel
-    @Environment(AuthViewModel.self) private var authViewModel: AuthViewModel
+    @Environment(FireAuthViewModel.self) private var authViewModel: FireAuthViewModel
     @State private var searchText = ""
     @State private var showingSettings = false
     @State var showingContactUsers: Bool = false
     @Binding var selectView: Bool
-    @State private var navigationPath = NavigationPath()
+    @State var navigationPath: NavigationPath = NavigationPath()
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
 
@@ -26,17 +26,19 @@ struct FireChatListView: View {
                             ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                             ToolbarItemGroup { toolbarButtons }
                         }
-                        .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView) })
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
                 }
 
                 plusButtonToStartANewChat
             }
+            .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView, navigationPath: $navigationPath) })
             .navigationDestination(for: FireUserModel.self) { user in
-                FireChatDetailView(user: user, navigationPath: $navigationPath)
-            }
-            .navigationDestination(isPresented: $showingContactUsers, destination: { FireContactUsersListView(navigationPath: $navigationPath) })
+                   FireChatDetailView(user: user, navigationPath: $navigationPath)
+               }
+               .navigationDestination(isPresented: $showingContactUsers, destination: {
+                   FireContactUsersListView(navigationPath: $navigationPath)
+               })
         }
         .onAppear {
             onAppearFunctions()
@@ -53,19 +55,18 @@ struct FireChatListView: View {
     }
 
     // MARK: - HELPER FUNCTIONS
-
+    @MainActor
     private func onAppearFunctions() {
         Task {
             userViewModel.setupUsersListener()
             await userViewModel.fetchAllUsersContacts()
-            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? ""
+            )
         }
     }
     private func onDisappearFunctions() {
         Task{
-            await userViewModel.fetchAllUsersContacts()
-            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
-
+            userViewModel.removeListener()
         }    }
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
@@ -122,11 +123,11 @@ struct FireChatListView: View {
             .cornerRadius(20)
             .padding(.horizontal, 8)
             .padding(.top, 12)
-            .padding(.bottom,5)
+            .padding(.bottom,10)
 
             horizontalChatCategories
 
-            VStack(spacing: 17) {
+            LazyVStack(spacing: 17)  {
                 if userViewModel.users.isEmpty && !searchText.isEmpty {
                     Text("No matches found")
                         .font(.caption)
@@ -166,10 +167,15 @@ struct FireChatListView: View {
     }
 }
 
-//#Preview {
-//    @Previewable @State var selectView: Bool = false
-//    FireChatListView(selectView: $selectView)
-//        .environment(FireUserViewModel())
-//        .environment(ChatsViewModel())
-//        .environment(AuthViewModel())
-//}
+#Preview {
+    @Previewable @State var selectView: Bool = false
+    @Previewable @State var currentUser: FireUserModel? = nil
+    @Previewable @State var isProfilePicPresented: Bool = false
+
+    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
+        .environment(FireUserViewModel())
+        .environment(ChatsViewModel())
+        .environment(FireChatViewModel())
+        .environment(FireAuthViewModel())
+}
+

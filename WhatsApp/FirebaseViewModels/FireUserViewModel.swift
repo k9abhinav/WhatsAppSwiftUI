@@ -15,62 +15,88 @@ final class FireUserViewModel {
     private let storage = Storage.storage().reference()
     private let usersCollection: CollectionReference
     private let chatsCollection: CollectionReference
+    private let messagesCollection: CollectionReference
     private var listenerRegistration: ListenerRegistration?
 
     // MARK: - Init
     init() {
         usersCollection = db.collection("users")
         chatsCollection = db.collection("chats")
-        print("FireUserViewModel initialized") // Debug: Initialization
-        print("\n")
+        messagesCollection = db.collection("messages")
+        print("----------------FireUserViewModel initialized ----------------------")
     }
 
     // MARK: - Listeners
     func setupUsersListener() {
         listenerRegistration = usersCollection.addSnapshotListener { [weak self] snapshot, error in
             guard let self = self, let documents = snapshot?.documents, error == nil else {
-                print("Error fetching users: \(error?.localizedDescription ?? "Unknown error")") // Debug: Error fetching users
+                print("Error fetching users  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error  -----  ❌ ---------- in setupUsersListener ----")") // Debug: Error fetching users
                 return
             }
 
             self.allUsers = documents.compactMap {  try? $0.data(as: FireUserModel.self)  }
-            print("\n")
             print("Users listener triggered, allUsers count: \(self.allUsers.count)") // Debug: Listener triggered
-            print("\n")
+
         }
         setupChatsListener()
     }
     private func setupChatsListener() {
-        chatsCollection.addSnapshotListener { [weak self] snapshot, error in
-            guard let self = self, let documents = snapshot?.documents, error == nil else {
-                print("Error fetching chats: \(error?.localizedDescription ?? "Unknown error")")
-                return
-            }
+        chatsCollection
+            .whereField("lastMessageId", isNotEqualTo: NSNull()) // ✅ Ensure chats have messages
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self, let chatDocuments = snapshot?.documents, error == nil else {
+                    print("Error fetching chats  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error in SETUP CHATS LISTNER  -----  ❌ ----------")")
+                    return
+                }
 
-            let chatDocuments = documents.compactMap { try? $0.data(as: FireChatModel.self) }
-            var userChatTimestamps: [String: Date] = [:]
+                Task {
+                    var userChatTimestamps: [String: Date] = [:]
 
-            for chat in chatDocuments {
-                let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
-                for participant in chat.participants {
-                    userChatTimestamps[participant] = lastMessageTimestamp
+                    for document in chatDocuments {
+                        let chat = try? document.data(as: FireChatModel.self)
+                        guard let chat, let lastMessageId = chat.lastMessageId, !lastMessageId.isEmpty else {
+                            continue
+                        }
+
+                        // ✅ Now check if a message exists with this lastMessageId
+                        let messageExists = await self.doesMessageExist(chatId: chat.id, messageId: lastMessageId)
+                        if !messageExists { continue } // Skip chats without messages
+
+                        let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
+                        for participant in chat.participants {
+                            userChatTimestamps[participant] = lastMessageTimestamp
+                        }
+                    }
+
+                    // ✅ Sort users based on latest message timestamp
+                    let sortedUserIds = userChatTimestamps.sorted { $0.value > $1.value }.map { $0.key }
+                    self.users = sortedUserIds.compactMap { userId in
+                        self.allUsers.first { $0.id == userId }
+                    }
+
+                    print("Chats listener triggered, updated users count: \(self.users.count)")
                 }
             }
+    }
 
-            // ✅ Sort users based on latest message
-            let sortedUserIds = userChatTimestamps.sorted { $0.value > $1.value }.map { $0.key }
-            self.users = sortedUserIds.compactMap { userId in
-                self.allUsers.first { $0.id == userId }
-            }
+    private func doesMessageExist(chatId: String, messageId: String) async -> Bool {
+        do {
+            let querySnapshot = try await messagesCollection
+                .whereField("chatId", isEqualTo: chatId)
+                .whereField("id", isEqualTo: messageId)
+                .getDocuments()
 
-            print("Chats listener triggered, updated users count: \(self.users.count)")
+            return !querySnapshot.documents.isEmpty // ✅ Returns true if message exists
+        } catch {
+            print("Error checking for message  -----  ❌ ---------- : \(error.localizedDescription)")
+            return false
         }
     }
 
+
     func removeListener() {
         listenerRegistration?.remove()
-        print("\n")
-        print("Users listener removed") // Debug: Listener removed
+        print("Users listener removed  --------------❌------------------") // Debug: Listener removed
     }
 
     // MARK: - User Fetching
@@ -78,10 +104,10 @@ final class FireUserViewModel {
         do {
             let snapshot = try await usersCollection.getDocuments()
             self.allUsers = snapshot.documents.compactMap { try? $0.data(as: FireUserModel.self) }
-            print("\n")
+
             print("Fetched all users, count: \(self.allUsers.count)") // Debug: Fetched all users
         } catch {
-            print("Failed to fetch all users: \(error.localizedDescription)") // Debug: Error fetching all users
+            print("Failed to fetch all users  -----  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching all users
         }
     }
 
@@ -90,7 +116,7 @@ final class FireUserViewModel {
             let userChatTimestamps = try await fetchUserChatTimestamps(loggedInUserId: loggedInUserId)
             await sortUsersByLastMessage(userChatTimestamps)
         } catch {
-            print("Failed to fetch users with chats: \(error.localizedDescription)")
+            print("Failed to fetch users with chats  -----  ❌ ---------- : \(error.localizedDescription)")
         }
     }
 
@@ -116,7 +142,7 @@ final class FireUserViewModel {
     // 🔹 Sort users by last message timestamp
     private func sortUsersByLastMessage(_ userChatTimestamps: [String: Date]) async {
         guard !userChatTimestamps.isEmpty else {
-            print("No users found with chats")
+            print("No users found with chats ----------------❌---------------")
             print("\n")
             return
         }
@@ -139,10 +165,10 @@ final class FireUserViewModel {
     func changeProfileImage(userId: String, image: UIImage) async -> String? {
         if let imageUrl = await uploadProfileImage(userId: userId, image: image) {
             await updateProfileImage(userId: userId, imageUrl: imageUrl)
-            await AuthViewModel().loadCurrentUser()
+            await FireAuthViewModel().loadCurrentUser()
             self.triggerProfilePicUpdated = true
             print("Triggered Profile Pic Updated ✅...........................")
-            return imageUrl // ✅ Now returns the uploaded image URL
+            return imageUrl
         }
         return nil
     }
@@ -150,7 +176,7 @@ final class FireUserViewModel {
 
     func uploadProfileImage(userId: String, image: UIImage) async -> String? {
         guard let (imageData, fileExtension) = getImageDataAndExtension(image: image) else {
-            print("Failed to get image data and extension") // Debug: Failed to get image data
+            print("Failed to get image data and extension  -----  ❌ ----------")
             return nil
         }
 
@@ -159,12 +185,11 @@ final class FireUserViewModel {
         do {
             let _ = try await imageRef.putDataAsync(imageData)
             let url = try await imageRef.downloadURL()
-            print("Image uploaded successfully, URL: \(url.absoluteString)")
-            print("\n")
+            print("Image uploaded successfully, URL: ----------✅--------")
             return url.absoluteString
         } catch {
-            print("Error uploading image: \(error.localizedDescription)")
-            print("\n")
+            print("Error uploading image  -----  ❌ ---------- : \(error.localizedDescription)")
+
             return nil
         }
     }
@@ -175,7 +200,7 @@ final class FireUserViewModel {
         } else if let jpegData = image.jpegData(compressionQuality: 0.5) {
             return (jpegData, "jpg")
         }
-        print("Failed to convert image to PNG or JPEG \n")
+        print("Failed to convert image to PNG or JPEG -----  ❌ ----------")
 
         return nil
     }
@@ -205,9 +230,9 @@ final class FireUserViewModel {
     private func updateUserField(userId: String, fieldName: String, value: Any, completion: @escaping (Error?) -> Void) {
         getUserRef(userId: userId).updateData([fieldName: value]) { error in
             if let error = error {
-                print("Error updating field \(fieldName): \(error.localizedDescription) \n")
+                print("Error updating field \(fieldName) ----❌----------  \(error.localizedDescription) ")
             } else {
-                print("Field \(fieldName) updated successfully (completion handler) \n")
+                print("Field \(fieldName) updated successfully ----------✅-------- \n")
             }
             completion(error)
         }
@@ -216,9 +241,9 @@ final class FireUserViewModel {
     private func updateUserField<T>(userId: String, fieldName: String, value: T) async {
         do {
             try await getUserRef(userId: userId).updateData([fieldName: value])
-            print("\(fieldName) updated successfully (async)")
+            print("\(fieldName) updated successfully ----------✅--------")
         } catch {
-            print("Error updating \(fieldName): \(error.localizedDescription)")
+            print("Error updating \(fieldName)  ----❌---------- : \(error.localizedDescription)")
         }
     }
 
