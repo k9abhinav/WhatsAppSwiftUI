@@ -10,31 +10,22 @@ struct FireChatRow: View {
     @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
-    @State private var profileImageURLString: String? = ""
     @State private var lastMessageContent : String?
     @State private var lastSeenTimeStamp: Date? = nil
     @Binding var navigationPath: NavigationPath
     var body: some View {
-        NavigationLink(value: user) {
+        Button {
+            navigationPath.append(user)
+        } label: {
                    HStack {
                        profilePicViewButton
                        userProfileNameandContent
-
                    }
                    .padding(.vertical, 5)
                }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
         .onDisappear { onDisappearFunctions() }
-        .onChange(of: chatViewModel.triggeredUpdate) {
-            onChangeOfFunctions()
-        }
-        
-        .onChange(of: userViewModel.triggerProfilePicUpdated){
-            Task {
-                profileImageURLString = user.imageUrl
-            }
-        }
     }
     
     // MARK: SUB-COMPONENTS -----
@@ -57,47 +48,53 @@ struct FireChatRow: View {
         }
     }
     private var userProfileNameandContent: some View {
-        VStack(alignment: .leading,spacing: 6) {
-            HStack {
-                Text(user.name)
-                    .font(.headline)
-                if user.id == authViewModel.currentLoggedInUser?.id {
-                    Text("(You)")
+        Button(action: {
+            navigationPath.append(user)
+        }, label: {
+            VStack(alignment: .leading,spacing: 6) {
+                HStack {
+                    Text(user.name)
                         .font(.headline)
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.black)
+                    if user.id == authViewModel.currentLoggedInUser?.id {
+                        Text("(You)")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    userLastSeenTime
                 }
-                Spacer()
-                userLastSeenTime
-            }
-            
-            HStack(spacing:12 ){
-                Image("doubleCheck")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 5, height: 5)
-                    .scaleEffect(3.5)
-                
-                Text(lastMessageContent ?? "No Message")
-                    .font(.subheadline)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundColor(.gray)
-                Spacer()
-                ZStack {
-                    Image(systemName: "circlebadge.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(Color.customGreen)
-                        .frame(width: 18, height: 18)
-                    Text("5")
-                        .foregroundStyle(.white)
-                        .font(.caption)
-                        .fontWeight(.semibold)
 
-                }.padding(5)
+                HStack(spacing:12 ){
+                    Image("doubleCheck")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 5, height: 5)
+                        .scaleEffect(3.5)
+
+                    Text(lastMessageContent ?? "No Message")
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .foregroundColor(.gray)
+                    Spacer()
+                    ZStack {
+                        Image(systemName: "circlebadge.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(Color.customGreen)
+                            .frame(width: 18, height: 18)
+                        Text("5")
+                            .foregroundStyle(.white)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                    }.padding(3)
+                }
+                .padding(.leading,5)
             }
-            .padding(.leading,5)
-        }
+        })
+
     }
     private var defaultProfileImage: some View {
         Image(systemName: "person.circle.fill")
@@ -107,9 +104,10 @@ struct FireChatRow: View {
             .clipShape(Circle())
             .foregroundColor(.gray)
     }
+    ///
     private var userProfilePictureView: some View {
         Group {
-            if let imageUrlString = profileImageURLString, let imageUrl = URL(string: imageUrlString) {
+            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:
@@ -138,18 +136,11 @@ struct FireChatRow: View {
     }
     
     // MARK: HELPER FUNCTIONS -------------------------------
-    
-    private func onChangeOfFunctions(){
-        fetchLastMessage()
-    }
+
     
     private func onAppearFunctions(){
-        chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "" )
+        chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "")
         fetchLastMessage()
-       Task {
-            await authViewModel.loadCurrentUser()
-            profileImageURLString = user.imageUrl
-        }
     }
     private func fetchLastMessage() {
         Task { @MainActor in
@@ -162,7 +153,7 @@ struct FireChatRow: View {
         }
     }
     private func onDisappearFunctions(){
-        //        chatViewModel.removeChatListener()
+                chatViewModel.removeChatListener() 
     }
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current

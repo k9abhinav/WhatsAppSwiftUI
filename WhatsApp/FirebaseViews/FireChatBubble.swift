@@ -26,14 +26,8 @@ struct FireChatBubble: View {
                     .foregroundColor(isFromCurrentUser ? .white : .black)
                     .cornerRadius(16)
                     .font(.body)
-                    .contextMenu {
-                        contextMenuItems
-                    }
-                    .onLongPressGesture {
-                        feedback()
-                        showContextMenu = true
-                    }
-
+                    .contextMenu { contextMenuItems }
+                    .onLongPressGesture { feedback() ; showContextMenu = true }
                 Text(timeString(from: message.timestamp))
                     .font(.caption2)
                     .foregroundColor(.gray)
@@ -92,6 +86,7 @@ struct FireChatBubble: View {
                 Text(message.content)
                     .padding(12)
             }
+           
         }
     }
     private var contextMenuItems : some View {
@@ -106,7 +101,6 @@ struct FireChatBubble: View {
 
             if message.messageType == .image, let imageUrl = message.imageUrl, let url = URL(string: imageUrl) {
                 Button(action: {
-                    // Save image to photos
                     saveImage(from: url)
                 }) {
                     Label("Save Image", systemImage: "square.and.arrow.down")
@@ -132,7 +126,6 @@ struct FireChatBubble: View {
     }
 
     private func saveImage(from url: URL) {
-        // Implementation to save image to photo library
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let data = data, let uiImage = UIImage(data: data) {
                 DispatchQueue.main.async {

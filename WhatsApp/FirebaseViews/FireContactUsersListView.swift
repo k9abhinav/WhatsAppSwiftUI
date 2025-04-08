@@ -19,6 +19,9 @@ struct FireContactUsersListView: View {
         .onAppear {
             onAppearFunctions()
         }
+        .onDisappear{
+            userViewModel.removeListener()
+        }
         .navigationBarBackButtonHidden()
         .toolbar{
             ToolbarItemGroup(placement: .topBarLeading) {
@@ -61,10 +64,8 @@ struct FireContactUsersListView: View {
         }
     }
     private func onAppearFunctions() {
-        Task {
-            await userViewModel.fetchAllUsersContacts()
-            isLoading = false
-        }
+        userViewModel.setupUsersListener()
+        isLoading = false
     }
 }
 

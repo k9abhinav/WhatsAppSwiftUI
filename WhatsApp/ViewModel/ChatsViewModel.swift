@@ -4,16 +4,16 @@ import SwiftData
 @Observable
 class ChatsViewModel {
     var chatCategories: [String] = ["All","Archived","Family ❤️","Friends","Work","Unread"]
-
+    
     func filteredUsers(users: [User], searchText: String) -> [User] {
         guard !searchText.isEmpty else {
             return users.sorted {
-                       ($0.chats.last?.timestamp ?? .distantPast) > ($1.chats.last?.timestamp ?? .distantPast)
+                ($0.chats.last?.timestamp ?? .distantPast) > ($1.chats.last?.timestamp ?? .distantPast)
             }
         }
-
+        
         let searchTerms = searchText.lowercased().trimmingCharacters(in: .whitespaces)
-
+        
         return users.filter { user in
             let nameMatch = user.name.lowercased().contains(searchTerms)
             let phoneMatch = user.phone.replacingOccurrences(of: " ", with: "")
@@ -22,17 +22,17 @@ class ChatsViewModel {
             return nameMatch || phoneMatch
         }
     }
-
+    
     func sendMessage(user: User, messageText: String, context: ModelContext) {
         guard !messageText.isEmpty else { return }
-
+        
         let newMessage = Chat(
             content: messageText,
             isFromCurrentUser: true,
             user: user
         )
         context.insert(newMessage)
-
+        
         Task { @MainActor in
             try await Task.sleep(nanoseconds: 2_000_000_000)
             let replyMessage = Chat(
@@ -45,7 +45,7 @@ class ChatsViewModel {
         }
         try? context.save()
     }
-
+    
     private func generateReply(for userMessage: String) -> String {
         let replies = [
             "Happy to see you! This is a long message to test scrolling behavior.",
@@ -61,5 +61,5 @@ class ChatsViewModel {
         ]
         return replies.randomElement() ?? "Error in chat reply generation."
     }
-  
+    
 }

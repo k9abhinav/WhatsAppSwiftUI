@@ -18,6 +18,7 @@ struct ProfileDetailsView: View {
     @State private var searchResults: [Chat] = []
 
     var body: some View {
+
         ZStack {
             VStack(spacing: 0) {
                 if isSearching { searchBar }

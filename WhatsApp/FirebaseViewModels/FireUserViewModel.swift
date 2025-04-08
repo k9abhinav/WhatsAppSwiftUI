@@ -7,8 +7,8 @@ import FirebaseStorage
 @Observable
 final class FireUserViewModel {
     // MARK: - Properties
-    var users: [FireUserModel] = [] // Stores users who have chats with the logged-in user
-    var allUsers: [FireUserModel] = [] // Stores all users fetched from Firestore
+    var users: [FireUserModel] = []
+    var allUsers: [FireUserModel] = []
     var triggerProfilePicUpdated = false
     // MARK: - Firebase References
     private let db = Firestore.firestore()
@@ -23,73 +23,69 @@ final class FireUserViewModel {
         usersCollection = db.collection("users")
         chatsCollection = db.collection("chats")
         messagesCollection = db.collection("messages")
-        print("----------------FireUserViewModel initialized ----------------------")
+        print("---   FireUserViewModel initialized ------✅------------------")
     }
-
+    func initializeData(loggedInUserId: String) async {
+//        await fetchAllUsersContacts() // Initial cache
+        setupUsersListener()
+        setupChatsListener(for: loggedInUserId)
+    }
     // MARK: - Listeners
     func setupUsersListener() {
         listenerRegistration = usersCollection.addSnapshotListener { [weak self] snapshot, error in
             guard let self = self, let documents = snapshot?.documents, error == nil else {
-                print("Error fetching users  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error  -----  ❌ ---------- in setupUsersListener ----")") // Debug: Error fetching users
+                print("Error fetching users  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error  -----  ❌ ---------- in setupUsersListener ----")")
                 return
             }
 
             self.allUsers = documents.compactMap {  try? $0.data(as: FireUserModel.self)  }
-            print("Users listener triggered, allUsers count: \(self.allUsers.count)") // Debug: Listener triggered
+            let currentUserIds = self.users.map { $0.id }
+            self.users = currentUserIds.compactMap { userId in
+                self.allUsers.first { $0.id == userId }
+            }
+
+            print("Users listener triggered, ------✅-----------  \n allUsers count: \(self.allUsers.count)")
 
         }
-        setupChatsListener()
     }
-    private func setupChatsListener() {
-        chatsCollection
-            .whereField("lastMessageId", isNotEqualTo: NSNull()) // ✅ Ensure chats have messages
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self, let chatDocuments = snapshot?.documents, error == nil else {
-                    print("Error fetching chats  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error in SETUP CHATS LISTNER  -----  ❌ ----------")")
-                    return
-                }
+    func setupChatsListener(for loggedInUserId: String) {
+        chatsCollection.addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self, let documents = snapshot?.documents, error == nil else {
+                print("Error fetching chats  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
 
-                Task {
-                    var userChatTimestamps: [String: Date] = [:]
+            var userChatTimestamps: [String: Date] = [:]
 
-                    for document in chatDocuments {
-                        let chat = try? document.data(as: FireChatModel.self)
-                        guard let chat, let lastMessageId = chat.lastMessageId, !lastMessageId.isEmpty else {
-                            continue
-                        }
+            let chatDocuments = documents.compactMap { try? $0.data(as: FireChatModel.self) }
 
-                        // ✅ Now check if a message exists with this lastMessageId
-                        let messageExists = await self.doesMessageExist(chatId: chat.id, messageId: lastMessageId)
-                        if !messageExists { continue } // Skip chats without messages
+            for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
+                if let lastMessageTimestamp = chat.lastSeenTimeStamp {
+                    let uniqueParticipants = Set(chat.participants)
 
-                        let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
-                        for participant in chat.participants {
+                    for participant in uniqueParticipants {
+                        let isSelfChat = uniqueParticipants.count == 1 && participant == loggedInUserId
+                        let isOtherUser = participant != loggedInUserId
+
+                        if isSelfChat || isOtherUser {
                             userChatTimestamps[participant] = lastMessageTimestamp
                         }
                     }
 
-                    // ✅ Sort users based on latest message timestamp
-                    let sortedUserIds = userChatTimestamps.sorted { $0.value > $1.value }.map { $0.key }
-                    self.users = sortedUserIds.compactMap { userId in
-                        self.allUsers.first { $0.id == userId }
-                    }
-
-                    print("Chats listener triggered, updated users count: \(self.users.count)")
+                } else {
+                    print("No lastMessage TimeStamp for CHAT ------❌----------- participants : \(chat.participants)")
                 }
             }
-    }
+            
+            let sortedUserIds = userChatTimestamps
+                .sorted { $0.value > $1.value }
+                .map { $0.key }
 
-    private func doesMessageExist(chatId: String, messageId: String) async -> Bool {
-        do {
-            let querySnapshot = try await messagesCollection
-                .whereField("chatId", isEqualTo: chatId)
-                .whereField("id", isEqualTo: messageId)
-                .getDocuments()
 
-            return !querySnapshot.documents.isEmpty // ✅ Returns true if message exists
-        } catch {
-            print("Error checking for message  -----  ❌ ---------- : \(error.localizedDescription)")
-            return false
+            self.users = sortedUserIds.compactMap { userId in
+                self.allUsers.first { $0.id == userId }
+            }
+            print("Chats listener triggered, ------✅----------- \n sorted users count: \(self.users.count)")
         }
     }
 
@@ -98,6 +94,7 @@ final class FireUserViewModel {
         listenerRegistration?.remove()
         print("Users listener removed  --------------❌------------------") // Debug: Listener removed
     }
+
 
     // MARK: - User Fetching
     func fetchAllUsersContacts() async {
@@ -128,14 +125,17 @@ final class FireUserViewModel {
         var userChatTimestamps: [String: Date] = [:]
 
         for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
-            let lastMessageTimestamp = chat.lastSeenTimeStamp ?? Date.distantPast
-
-            for participant in chat.participants {
-                userChatTimestamps[participant] = lastMessageTimestamp
+            if let lastMessageTimestamp = chat.lastSeenTimeStamp  {
+                print("\(lastMessageTimestamp) is there")
+                for participant in chat.participants {
+                    userChatTimestamps[participant] = lastMessageTimestamp
+                }
+            } else {
+                print("No lastMessage TimeStamp for the CHAT ------❌----------- : \(chat.participants)")
             }
         }
 
-        print("Fetched chat timestamps for \(userChatTimestamps.count) users")
+        print("Fetched chat timestamps for ------✅------\(userChatTimestamps.count) users")
         return userChatTimestamps
     }
 
@@ -154,9 +154,7 @@ final class FireUserViewModel {
         self.users = sortedUserIds.compactMap { userId in
             allUsers.first { $0.id == userId }
         }
-
-        print("Sorted users with chats, count: \(self.users.count)")
-        print("\n")
+        print("Sorted users with chats, count  ------✅----------- : \(self.users.count)")
     }
 
 
@@ -167,7 +165,7 @@ final class FireUserViewModel {
             await updateProfileImage(userId: userId, imageUrl: imageUrl)
             await FireAuthViewModel().loadCurrentUser()
             self.triggerProfilePicUpdated = true
-            print("Triggered Profile Pic Updated ✅...........................")
+            print("Triggered Profile Pic Updated ----------✅---------")
             return imageUrl
         }
         return nil

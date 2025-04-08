@@ -34,9 +34,7 @@ final class FireMessageViewModel {
                 self.messages = documents.compactMap { try? $0.data(as: FireMessageModel.self) }
 
                 print("Messages listener triggered for chatId: \(chatId), message count: \(self.messages.count)")
-
             }
-
         print("Messages listener setup for chatId ----------- ✅ ---------- : \(chatId)")
 
     }
@@ -46,7 +44,7 @@ final class FireMessageViewModel {
 
         print("Messages listener removed -----------  ❌ ---------- ")
     }
-
+    
     func fetchAllMessages(for chatId: String) async {
         do {
             let snapshot = try await messagesCollection
@@ -95,7 +93,9 @@ final class FireMessageViewModel {
                 receiverUserId: otherUserId,
                 timestamp: Date(),
                 replyToMessageId: nil,
-                isForwarded: false
+                isReply: false ,
+                isForwarded: false,
+                isSeen: nil
             )
 
             try messagesCollection.document(newMessage.id).setData(from: newMessage)
@@ -166,8 +166,10 @@ final class FireMessageViewModel {
                     receiverUserId: otherUserId,
                     timestamp: Date(),
                     replyToMessageId: replyToMessageId,
+                    isReply: false,
                     isForwarded: isForwarded,
-                    imageUrl: mediaUrl
+                    imageUrl: mediaUrl,
+                    isSeen: nil
                 )
 
                 try messagesCollection.document(newMessage.id).setData(from: newMessage)

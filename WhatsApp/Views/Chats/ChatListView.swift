@@ -21,7 +21,7 @@ struct ChatListView: View {
                         ToolbarItemGroup { toolbarButtons }
                     }
                     .navigationDestination(isPresented: $showingSettings, destination: {
-//                        SettingsView(selectView: $selectView)
+                        SettingsView(selectView: $selectView)
                     })
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)

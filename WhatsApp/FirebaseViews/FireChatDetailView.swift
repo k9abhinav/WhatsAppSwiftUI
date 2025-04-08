@@ -3,7 +3,7 @@ import SwiftUI
 
 struct FireChatDetailView: View {
 
-    let user: FireUserModel
+    @State var user: FireUserModel
     @Environment(\.dismiss) var dismiss
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
@@ -19,6 +19,7 @@ struct FireChatDetailView: View {
     @State private var chatExists: Bool? = nil
     @Binding var navigationPath: NavigationPath
     @State private var selectedImages: [PhotosPickerItem] = []
+
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
     var body: some View {
@@ -29,13 +30,9 @@ struct FireChatDetailView: View {
                     mainScrollChatsView
                 }
                 inputMessageTabBar
-                    
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
-            .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
-                ProfileDetailsView(user: user)
-            })
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
                 ToolbarItem(placement: .topBarTrailing) { topRightNavItems }
@@ -52,7 +49,7 @@ struct FireChatDetailView: View {
             .onDisappear {
                 onDisappearFunctions()
             }
-            profilePicOverlayZStack
+//            profilePicOverlayZStack
         }
     }
 
@@ -82,10 +79,6 @@ struct FireChatDetailView: View {
             if chatExists == true {
                 await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
                 print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
-            } else{
-                await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
             }
             messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
             await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
@@ -106,12 +99,17 @@ struct FireChatDetailView: View {
     private func sendMessage() async {
         Task{
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            if chatExists == false {
+                await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+            }
             await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
         dismissKeyboard()
     }
-
+    
     private func dismissKeyboard() {
         isTyping = false
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -135,21 +133,22 @@ struct FireChatDetailView: View {
                 message: message,
                 currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
                 onReply: {
-                    // Handle reply action
+               
                     // For example, you might want to quote the message and focus the text field
                     messageText = "Replying to: \"\(message.content)\"\n"
                     //                                isTextFieldFocused = true
                 },
                 onForward: {
-                    // Handle forward action
-                    // This could open a user selection sheet to forward the message to
+
                     print("Forward message: \(message.content)")
                 },
                 onDelete: {
-                    // Handle delete action
-                    Task {
-                        //
+                    
+                    Task{
+                        await messageViewModel.deleteTextMessage(for: message.id)
+                        print("Message deleted! for ---- ♻️ -- \(message.id)")
                     }
+
                 }
             )
             .id(message.id)
@@ -165,8 +164,7 @@ struct FireChatDetailView: View {
     // MARK: BACK BUTTON NAV --- NAVV ITEMS
     private var backButton: some View {
         Button(action: {
-            navigationPath = NavigationPath()
-            dismiss()
+            navigationPath.removeLast()
             print("Back button pressed!")
         })
         {  Image(systemName: "arrow.backward")  }
@@ -190,6 +188,9 @@ struct FireChatDetailView: View {
                 isProfileDetailPresented.toggle()
             }
         }
+//        .navigationDestination(isPresented: isProfileDetailPresented,destination: {
+//            ProfileDetailsView(user: user)
+//        })
     }
 
     private var topRightNavItems: some View {

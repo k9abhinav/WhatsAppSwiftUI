@@ -1,16 +1,8 @@
-//
-//  SettingsView.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 08/04/25.
-//
-
-
 import SwiftUI
 import PhotosUI
 import SwiftData
 
-struct SettingsView: View {
+struct FireSettingsView: View {
     @Environment(ContactsManager.self) private var contactsManager: ContactsManager
     @Environment(\.dismiss) var dismiss
     @Environment(FireAuthViewModel.self) private var viewModel : FireAuthViewModel
@@ -25,6 +17,7 @@ struct SettingsView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var showingImageChangeAlert = false
+    @Binding var navigationPath: NavigationPath
     var body: some View {
         VStack {
             List {

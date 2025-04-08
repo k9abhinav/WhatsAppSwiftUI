@@ -11,7 +11,10 @@ struct FireContactUsersRow: View {
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        NavigationLink (destination: FireChatDetailView(user: user, navigationPath: $navigationPath)){
+        Button {
+                   navigationPath.append(user)
+               } label:
+        {
             HStack {
                 userProfilePictureView
                 userProfileNameandContent
@@ -58,25 +61,28 @@ struct FireContactUsersRow: View {
         }
     }
     private var userProfilePictureView: some View {
-        Group{
-            if(user.imageUrl != ""){
-                AsyncImage(url: URL(string: user.imageUrl ?? "")) { phase in
+        Group {
+            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:
-                       defaultProfileImage
-
+                        ProgressView()
+                            .frame(width: 50,height: 50)
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 50, height: 50)
+                            .frame(width: 50,height: 50)
                             .clipShape(Circle())
+
                     case .failure:
-                        ProgressView() // Show loading indicator
+                        defaultProfileImage
                     @unknown default:
                         EmptyView()
+                            .frame(width: 50,height: 50)
                     }
                 }
+
             }
             else{
                 defaultProfileImage

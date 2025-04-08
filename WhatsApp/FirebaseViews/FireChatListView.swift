@@ -28,46 +28,40 @@ struct FireChatListView: View {
                         }
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
+                        .navigationDestination(
+                            isPresented: $showingSettings,
+                            destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
+                        )
+                        .navigationDestination(for: FireUserModel.self) { user in
+                            FireChatDetailView(user: user, navigationPath: $navigationPath)
+                        }
+                        .navigationDestination(
+                            isPresented: $showingContactUsers,
+                            destination: { FireContactUsersListView(navigationPath: $navigationPath) })
                 }
-
+                // ZStack Overlay
                 plusButtonToStartANewChat
             }
-            .navigationDestination(isPresented: $showingSettings, destination: { SettingsView(selectView: $selectView, navigationPath: $navigationPath) })
-            .navigationDestination(for: FireUserModel.self) { user in
-                   FireChatDetailView(user: user, navigationPath: $navigationPath)
-               }
-               .navigationDestination(isPresented: $showingContactUsers, destination: {
-                   FireContactUsersListView(navigationPath: $navigationPath)
-               })
+            .onAppear { Task{ await userViewModel.initializeData(loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "") } }
+            .onDisappear { userViewModel.removeListener() }
         }
-        .onAppear {
-            onAppearFunctions()
-        }
-        .onChange(of: userViewModel.users){
-            Task{
-                await userViewModel.fetchAllUsersContacts()
-                await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "" )
-            }
-        }
-        .onDisappear {
-            onDisappearFunctions()
-        }
+
+
     }
 
     // MARK: - HELPER FUNCTIONS
-    @MainActor
-    private func onAppearFunctions() {
-        Task {
-            userViewModel.setupUsersListener()
-            await userViewModel.fetchAllUsersContacts()
-            await userViewModel.fetchUsersWithChats( loggedInUserId: authViewModel.currentLoggedInUser?.id ?? ""
-            )
+    private var filteredUsers: [FireUserModel] {
+        if searchText.isEmpty {
+            return userViewModel.users
+        } else {
+            return userViewModel.users.filter { user in
+                let matchesName = user.name.localizedCaseInsensitiveContains(searchText)
+                let matchesPhone = user.phoneNumber?.localizedCaseInsensitiveContains(searchText) ?? false
+                return matchesName || matchesPhone
+            }
         }
     }
-    private func onDisappearFunctions() {
-        Task{
-            userViewModel.removeListener()
-        }    }
+    
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
         VStack {
@@ -128,7 +122,7 @@ struct FireChatListView: View {
             horizontalChatCategories
 
             LazyVStack(spacing: 17)  {
-                if userViewModel.users.isEmpty && !searchText.isEmpty {
+                if userViewModel.users.isEmpty {
                     Text("No matches found")
                         .font(.caption)
                         .foregroundColor(.gray)
@@ -136,7 +130,12 @@ struct FireChatListView: View {
                 } else {
                     ForEach(userViewModel.users) { user in
                         withAnimation(.smooth) {
-                          FireChatRow(user: user, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented,navigationPath: $navigationPath)
+                            FireChatRow(
+                                user: user,
+                                currentUser: $currentUser,
+                                isProfilePicPresented: $isProfilePicPresented,
+                                navigationPath: $navigationPath
+                            )
                         }
                     }
                 }
@@ -144,6 +143,7 @@ struct FireChatListView: View {
             .padding(.horizontal)
             .padding(.bottom, 50)
         }
+
     }
     private var horizontalChatCategories: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -152,13 +152,13 @@ struct FireChatListView: View {
                     Text(category)
                         .font(.caption)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16) // Padding for dynamic width
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
                                 .fill(Color.customGreen)
                         )
-                        .fixedSize() // Ensures the capsule only takes as much space as needed
+                        .fixedSize()
                 }
             }
             .padding(.horizontal)
