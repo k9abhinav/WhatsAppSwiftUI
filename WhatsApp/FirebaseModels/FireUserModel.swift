@@ -1,6 +1,6 @@
 import Foundation
 
-struct FireUserModel: Identifiable, Codable, Hashable {
+struct FireUserModel: Identifiable, Codable, Hashable,Equatable {
     var id: String = UUID().uuidString
     var phoneNumber: String?
     var name: String

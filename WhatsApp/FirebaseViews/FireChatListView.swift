@@ -33,7 +33,7 @@ struct FireChatListView: View {
                             destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
                         )
                         .navigationDestination(for: FireUserModel.self) { user in
-                            FireChatDetailView(user: user, navigationPath: $navigationPath)
+                            FireChatDetailView(userId: user.id, navigationPath: $navigationPath)
                         }
                         .navigationDestination(
                             isPresented: $showingContactUsers,
@@ -42,7 +42,11 @@ struct FireChatListView: View {
                 // ZStack Overlay
                 plusButtonToStartANewChat
             }
-            .onAppear { Task{ await userViewModel.initializeData(loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "") } }
+            .onAppear {
+                Task {
+                    await userViewModel.initializeData(loggedInUserId: authViewModel.currentLoggedInUser?.id ?? "")
+                }
+            }
             .onDisappear { userViewModel.removeListener() }
         }
 
@@ -129,14 +133,14 @@ struct FireChatListView: View {
                         .padding()
                 } else {
                     ForEach(userViewModel.users) { user in
-                        withAnimation(.smooth) {
                             FireChatRow(
-                                user: user,
+                                userId: user.id,
                                 currentUser: $currentUser,
                                 isProfilePicPresented: $isProfilePicPresented,
                                 navigationPath: $navigationPath
                             )
-                        }
+
+
                     }
                 }
             }
@@ -153,6 +157,7 @@ struct FireChatListView: View {
                         .font(.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
+                        .fontWeight(.semibold)
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
@@ -160,6 +165,21 @@ struct FireChatListView: View {
                         )
                         .fixedSize()
                 }
+                Text(" + ")
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .fontWeight(.semibold)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(Color.customGreen)
+                    )
+                    .fixedSize()
+                    .onTapGesture {
+                        viewModel.chatCategories.append(" New Category ")
+                    }
+
             }
             .padding(.horizontal)
         }

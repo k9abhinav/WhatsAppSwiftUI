@@ -2,12 +2,15 @@
 import SwiftUI
 
 struct FireContactUsersRow: View {
-    let user: FireUserModel
-
+//    let user: FireUserModel
+    let userId:String
+    var user: FireUserModel {
+        userViewModel.allUsers.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+    }
     @State private var lastMessage: FireMessageModel?
     @Environment(FireChatViewModel.self) private var chatViewModel
+    @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
-    @State private var profileImageURLString: String? = ""
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
@@ -24,9 +27,10 @@ struct FireContactUsersRow: View {
         }
         .buttonStyle(.plain)
         .onAppear {
-            Task{
-                profileImageURLString = user.imageUrl
-            }
+            userViewModel.setupUsersListener()
+        }
+        .onDisappear {
+            userViewModel.removeListener()
         }
     }
 

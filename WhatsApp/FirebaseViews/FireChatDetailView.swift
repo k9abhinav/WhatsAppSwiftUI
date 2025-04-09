@@ -3,7 +3,10 @@ import SwiftUI
 
 struct FireChatDetailView: View {
 
-    @State var user: FireUserModel
+    let userId:String
+    var user: FireUserModel {
+        userViewModel.users.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+    }
     @Environment(\.dismiss) var dismiss
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
@@ -55,9 +58,6 @@ struct FireChatDetailView: View {
 
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
     private func onChangeOfOnlineStatusFunction(){
-        Task {
-            await authViewModel.loadCurrentUser()
-        }
         onlineStatus = user.onlineStatus
         print("ON CHANGE Online Status of the USER: \(String(describing: onlineStatus))")
     }
@@ -74,14 +74,14 @@ struct FireChatDetailView: View {
         }
     }
     private func onAppearFunctions(){
+        var chatId:String?
         Task{
             chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
             if chatExists == true {
-                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
             }
-            messageViewModel.setupMessageListener(for: chatViewModel.currentChatId ?? "Error")
-            await messageViewModel.fetchAllMessages(for: chatViewModel.currentChatId ?? "Error")
+            messageViewModel.setupMessageListener(for: chatId ?? "Error")
+            await messageViewModel.fetchAllMessages(for: chatId ?? "Error")
             userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "Error", newStatus: true){ error in
                 if let error = error {
                     print("Error updating user online status: \(error.localizedDescription)")
@@ -98,13 +98,14 @@ struct FireChatDetailView: View {
     }
     private func sendMessage() async {
         Task{
+            var chatId:String?
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             if chatExists == false {
                 await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                print("THE CHAT ID ---- > \(String(describing: chatViewModel.currentChatId ))")
+                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
             }
-            await messageViewModel.sendTextMessage(chatId: chatViewModel.currentChatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
+            await messageViewModel.sendTextMessage(chatId: chatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
             messageText = ""
         }
         dismissKeyboard()
@@ -116,9 +117,16 @@ struct FireChatDetailView: View {
     }
     private func sendImage(_ image: UIImage) async {
         guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
+        
         Task {
+            var chatId:String?
+            if chatExists == false {
+                await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
+            }
                 await messageViewModel.sendImageMessage(
-                    chatId: chatViewModel.currentChatId ?? "",
+                    chatId: chatId ?? "",
                     currentUserId: currentUserId,
                     otherUserId: user.id,
                     imageData: image

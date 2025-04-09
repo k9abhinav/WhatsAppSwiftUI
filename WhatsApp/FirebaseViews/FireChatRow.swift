@@ -3,7 +3,11 @@ import SwiftUI
 import PhotosUI
 
 struct FireChatRow: View {
-    let user: FireUserModel
+//    let user:FireUserModel
+    let userId:String
+    var user: FireUserModel {
+        userViewModel.users.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+    }
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
     @Environment(FireChatViewModel.self) private var chatViewModel
@@ -25,6 +29,9 @@ struct FireChatRow: View {
                }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
+        .onChange(of: chatViewModel.triggeredUpdate) {
+            fetchLastMessage()
+        }
         .onDisappear { onDisappearFunctions() }
     }
     
@@ -83,13 +90,13 @@ struct FireChatRow: View {
                             .resizable()
                             .scaledToFit()
                             .foregroundStyle(Color.customGreen)
-                            .frame(width: 18, height: 18)
-                        Text("5")
+                            .frame(width: 20, height: 20)
+                        Text("")
                             .foregroundStyle(.white)
                             .font(.caption)
                             .fontWeight(.semibold)
 
-                    }.padding(3)
+                    }.padding(.top,3)
                 }
                 .padding(.leading,5)
             }

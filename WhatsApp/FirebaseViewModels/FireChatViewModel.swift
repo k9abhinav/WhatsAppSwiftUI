@@ -11,7 +11,7 @@ final class FireChatViewModel {
     private var chatListener: ListenerRegistration?
     private var lastMessageListener: ListenerRegistration?
     private var messageDetailsListener: ListenerRegistration?
-    var currentChatId: String?
+//    var currentChatId: String?
     var chats: [FireChatModel] = []
     var triggeredUpdate: Bool = false
     
@@ -47,7 +47,7 @@ final class FireChatViewModel {
     }
     
     //MARK: -loadChatId
-    func loadChatId(for participants: [String]) async {
+    func loadChatId(for participants: [String]) async -> String? {
         do {
             let querySnapshot = try await chatsCollection
                 .whereField("participants", arrayContainsAny: participants)
@@ -56,15 +56,16 @@ final class FireChatViewModel {
             for document in querySnapshot.documents {
                 let chat = try document.data(as: FireChatModel.self)
                 if Set(chat.participants.map { $0 }) == Set(participants) {
-                    self.currentChatId = chat.id
+//                    self.currentChatId = chat.id
                     print("Chat ID loaded: -----✅------ \(chat.id) ")
-                    return
+                    return chat.id
                 }
             }
             await createNewChat(for: participants)
         } catch {
             print("Failed to load chat ID: \(error.localizedDescription)")
         }
+        return nil
     }
     // MARK: GET CHAT ID
     func getChatId(for participants: [String]) async -> String? {
@@ -87,7 +88,7 @@ final class FireChatViewModel {
         }
     }
     //MARK: -createNewChat
-    func createNewChat(for participants: [String]) async {
+    func createNewChat(for participants: [String] ) async {
         let newChat = FireChatModel(
             id: UUID().uuidString,
             chatType: .single,
@@ -100,7 +101,6 @@ final class FireChatViewModel {
         
         do {
             try await chatsCollection.document(newChat.id).setData(newChat.toDictionary())
-            self.currentChatId = newChat.id
             print("New chat created, -------- ✅----------- for \(participants)") // Debug: New chat created
         } catch {
             print("Failed to create chat: \(error.localizedDescription)") // Debug: Error creating chat

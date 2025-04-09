@@ -17,7 +17,8 @@ struct FireContactUsersListView: View {
             }
         }
         .onAppear {
-            onAppearFunctions()
+            userViewModel.setupUsersListener()
+            isLoading = false
         }
         .onDisappear{
             userViewModel.removeListener()
@@ -51,7 +52,7 @@ struct FireContactUsersListView: View {
             .padding(.bottom, 10)
         ) {
             ForEach(userViewModel.allUsers) { user in
-                FireContactUsersRow(user: user,navigationPath: $navigationPath)
+                FireContactUsersRow(userId: user.id,navigationPath: $navigationPath)
             }
         }
     }
@@ -63,10 +64,7 @@ struct FireContactUsersListView: View {
             NewChatCreateRows(imageSysName: "bubbles.and.sparkles.fill", text: "Chat with AI's")
         }
     }
-    private func onAppearFunctions() {
-        userViewModel.setupUsersListener()
-        isLoading = false
-    }
+
 }
 
 

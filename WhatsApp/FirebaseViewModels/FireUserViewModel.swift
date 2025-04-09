@@ -7,9 +7,15 @@ import FirebaseStorage
 @Observable
 final class FireUserViewModel {
     // MARK: - Properties
-    var users: [FireUserModel] = []
+    var users: [FireUserModel] {
+            return sortedUserIds.compactMap { userId in
+                allUsers.first { $0.id == userId }
+            }
+        }
     var allUsers: [FireUserModel] = []
-    var triggerProfilePicUpdated = false
+    private var userChatTimestamps: [String: Date] = [:]
+    private var sortedUserIds: [String] = []
+    var triggerProfilePicUpdated: Bool = false
     // MARK: - Firebase References
     private let db = Firestore.firestore()
     private let storage = Storage.storage().reference()
@@ -32,130 +38,141 @@ final class FireUserViewModel {
     }
     // MARK: - Listeners
     func setupUsersListener() {
-        listenerRegistration = usersCollection.addSnapshotListener { [weak self] snapshot, error in
-            guard let self = self, let documents = snapshot?.documents, error == nil else {
-                print("Error fetching users  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error  -----  ❌ ---------- in setupUsersListener ----")")
-                return
-            }
-
-            self.allUsers = documents.compactMap {  try? $0.data(as: FireUserModel.self)  }
-            let currentUserIds = self.users.map { $0.id }
-            self.users = currentUserIds.compactMap { userId in
-                self.allUsers.first { $0.id == userId }
-            }
-
-            print("Users listener triggered, ------✅-----------  \n allUsers count: \(self.allUsers.count)")
-
-        }
-    }
-    func setupChatsListener(for loggedInUserId: String) {
-        chatsCollection.addSnapshotListener { [weak self] snapshot, error in
-            guard let self = self, let documents = snapshot?.documents, error == nil else {
-                print("Error fetching chats  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error")")
-                return
-            }
-
-            var userChatTimestamps: [String: Date] = [:]
-
-            let chatDocuments = documents.compactMap { try? $0.data(as: FireChatModel.self) }
-
-            for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
-                if let lastMessageTimestamp = chat.lastSeenTimeStamp {
-                    let uniqueParticipants = Set(chat.participants)
-
-                    for participant in uniqueParticipants {
-                        let isSelfChat = uniqueParticipants.count == 1 && participant == loggedInUserId
-                        let isOtherUser = participant != loggedInUserId
-
-                        if isSelfChat || isOtherUser {
-                            userChatTimestamps[participant] = lastMessageTimestamp
-                        }
-                    }
-
-                } else {
-                    print("No lastMessage TimeStamp for CHAT ------❌----------- participants : \(chat.participants)")
+            listenerRegistration = usersCollection.addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self, let documents = snapshot?.documents, error == nil else {
+                    print("Error fetching users  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error in setupUsersListener")")
+                    return
                 }
-            }
-            
-            let sortedUserIds = userChatTimestamps
-                .sorted { $0.value > $1.value }
-                .map { $0.key }
 
+                self.allUsers = documents.compactMap { try? $0.data(as: FireUserModel.self) }
+                print(allUsers)
+                // If we have chat data, update the users list based on new allUsers
+                if !self.userChatTimestamps.isEmpty {
+                    self.updateUsersFromChatData()
+                }
 
-            self.users = sortedUserIds.compactMap { userId in
-                self.allUsers.first { $0.id == userId }
+                print("Users listener triggered, ------✅-----------  \n allUsers count: \(self.allUsers.count)")
+                print("Current users with chats count: \(self.users.count)")
             }
-            print("Chats listener triggered, ------✅----------- \n sorted users count: \(self.users.count)")
         }
-    }
+    func setupChatsListener(for loggedInUserId: String) {
+           chatsCollection.addSnapshotListener { [weak self] snapshot, error in
+               guard let self = self, let documents = snapshot?.documents, error == nil else {
+                   print("Error fetching chats  -----  ❌ ---------- : \(error?.localizedDescription ?? "Unknown error")")
+                   return
+               }
 
+               self.userChatTimestamps = [:]
 
-    func removeListener() {
-        listenerRegistration?.remove()
-        print("Users listener removed  --------------❌------------------") // Debug: Listener removed
-    }
+               let chatDocuments = documents.compactMap { try? $0.data(as: FireChatModel.self) }
+
+               for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
+                   if let lastMessageTimestamp = chat.lastSeenTimeStamp {
+                       let uniqueParticipants = Set(chat.participants)
+
+                       for participant in uniqueParticipants {
+                           let isSelfChat = uniqueParticipants.count == 1 && participant == loggedInUserId
+                           let isOtherUser = participant != loggedInUserId
+
+                           if isSelfChat || isOtherUser {
+                               self.userChatTimestamps[participant] = lastMessageTimestamp
+                           }
+                       }
+                   } else {
+                       print("No lastMessage TimeStamp for CHAT ------❌----------- participants : \(chat.participants)")
+                   }
+               }
+
+               // Update users with new chat data
+               self.updateUsersFromChatData()
+
+               print("Chats listener triggered, ------✅----------- \n sorted users count: \(self.users.count)")
+           }
+       }
+
+       // Method to update users from chat data
+       private func updateUsersFromChatData() {
+           guard !userChatTimestamps.isEmpty else {
+               print("No users found with chats ----------------❌---------------")
+               self.sortedUserIds = []
+               return
+           }
+
+           self.sortedUserIds = userChatTimestamps
+               .sorted { $0.value > $1.value }
+               .map { $0.key }
+
+           print("Updated sortedUserIds, count: \(self.sortedUserIds.count)")
+           print("Updated users list via computed property, count: \(self.users.count)")
+           print("Updated users list  \(self.users)")
+       }
+
+       func removeListener() {
+           listenerRegistration?.remove()
+           print("Users listener removed  --------------❌------------------")
+       }
 
 
     // MARK: - User Fetching
-    func fetchAllUsersContacts() async {
-        do {
-            let snapshot = try await usersCollection.getDocuments()
-            self.allUsers = snapshot.documents.compactMap { try? $0.data(as: FireUserModel.self) }
-
-            print("Fetched all users, count: \(self.allUsers.count)") // Debug: Fetched all users
-        } catch {
-            print("Failed to fetch all users  -----  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching all users
-        }
-    }
-
-    func fetchUsersWithChats(loggedInUserId: String) async {
-        do {
-            let userChatTimestamps = try await fetchUserChatTimestamps(loggedInUserId: loggedInUserId)
-            await sortUsersByLastMessage(userChatTimestamps)
-        } catch {
-            print("Failed to fetch users with chats  -----  ❌ ---------- : \(error.localizedDescription)")
-        }
-    }
-
-    // 🔹 Fetch chat timestamps for all participants
-    private func fetchUserChatTimestamps(loggedInUserId: String) async throws -> [String: Date] {
-        let snapshot = try await chatsCollection.getDocuments()
-        let chatDocuments = snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) }
-
-        var userChatTimestamps: [String: Date] = [:]
-
-        for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
-            if let lastMessageTimestamp = chat.lastSeenTimeStamp  {
-                print("\(lastMessageTimestamp) is there")
-                for participant in chat.participants {
-                    userChatTimestamps[participant] = lastMessageTimestamp
-                }
-            } else {
-                print("No lastMessage TimeStamp for the CHAT ------❌----------- : \(chat.participants)")
-            }
-        }
-
-        print("Fetched chat timestamps for ------✅------\(userChatTimestamps.count) users")
-        return userChatTimestamps
-    }
-
-    // 🔹 Sort users by last message timestamp
-    private func sortUsersByLastMessage(_ userChatTimestamps: [String: Date]) async {
-        guard !userChatTimestamps.isEmpty else {
-            print("No users found with chats ----------------❌---------------")
-            print("\n")
-            return
-        }
-
-        let sortedUserIds = userChatTimestamps
-            .sorted { $0.value > $1.value }
-            .map { $0.key }
-
-        self.users = sortedUserIds.compactMap { userId in
-            allUsers.first { $0.id == userId }
-        }
-        print("Sorted users with chats, count  ------✅----------- : \(self.users.count)")
-    }
+//    func fetchAllUsersContacts() async {
+//        do {
+//            let snapshot = try await usersCollection.getDocuments()
+//            self.allUsers = snapshot.documents.compactMap { try? $0.data(as: FireUserModel.self) }
+//
+//            print("Fetched all users, count: \(self.allUsers.count)") // Debug: Fetched all users
+//        } catch {
+//            print("Failed to fetch all users  -----  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching all users
+//        }
+//    }
+//
+//    func fetchUsersWithChats(loggedInUserId: String) async {
+//        do {
+//            let userChatTimestamps = try await fetchUserChatTimestamps(loggedInUserId: loggedInUserId)
+//            await sortUsersByLastMessage(userChatTimestamps)
+//        } catch {
+//            print("Failed to fetch users with chats  -----  ❌ ---------- : \(error.localizedDescription)")
+//        }
+//    }
+//
+//    // 🔹 Fetch chat timestamps for all participants
+//    private func fetchUserChatTimestamps(loggedInUserId: String) async throws -> [String: Date] {
+//        let snapshot = try await chatsCollection.getDocuments()
+//        let chatDocuments = snapshot.documents.compactMap { try? $0.data(as: FireChatModel.self) }
+//
+//        var userChatTimestamps: [String: Date] = [:]
+//
+//        for chat in chatDocuments where chat.participants.contains(loggedInUserId) {
+//            if let lastMessageTimestamp = chat.lastSeenTimeStamp  {
+//                print("\(lastMessageTimestamp) is there")
+//                for participant in chat.participants {
+//                    userChatTimestamps[participant] = lastMessageTimestamp
+//                }
+//            } else {
+//                print("No lastMessage TimeStamp for the CHAT ------❌----------- : \(chat.participants)")
+//            }
+//        }
+//
+//        print("Fetched chat timestamps for ------✅------\(userChatTimestamps.count) users")
+//        return userChatTimestamps
+//    }
+//
+//    // 🔹 Sort users by last message timestamp
+//    private func sortUsersByLastMessage(_ userChatTimestamps: [String: Date]) async {
+//        guard !userChatTimestamps.isEmpty else {
+//            print("No users found with chats ----------------❌---------------")
+//            print("\n")
+//            return
+//        }
+//
+//        let sortedUserIds = userChatTimestamps
+//            .sorted { $0.value > $1.value }
+//            .map { $0.key }
+//
+//        users = sortedUserIds.compactMap { userId in
+//            allUsers.first { $0.id == userId }
+//        }
+//        print("Sorted users with chats, count  ------✅----------- : \(users.count)")
+//    }
 
 
 
