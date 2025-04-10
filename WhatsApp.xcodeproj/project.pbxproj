@@ -470,6 +470,8 @@
 				INFOPLIST_FILE = WhatsApp/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to send voice messages.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photos library to share images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -504,6 +506,8 @@
 				INFOPLIST_FILE = WhatsApp/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to send voice messages.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photos library to share images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

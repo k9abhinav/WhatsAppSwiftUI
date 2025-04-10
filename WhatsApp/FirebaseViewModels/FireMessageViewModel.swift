@@ -97,38 +97,138 @@ final class FireMessageViewModel {
                 isForwarded: false,
                 isSeen: nil
             )
-
             try messagesCollection.document(newMessage.id).setData(from: newMessage)
-
             let batch = chatsCollection.firestore.batch()
-
             let chatDocRef = chatsCollection.document(chatId)
-            batch.updateData(["lastMessageId": newMessage.id,
-                                 "lastSeenTimeStamp": newMessage.timestamp,
-                                 "lastMessageContent": trimmedContent], forDocument: chatDocRef)
-
+            batch.updateData(
+                ["lastMessageId": newMessage.id,
+                 "lastSeenTimeStamp": newMessage.timestamp,
+                 "lastMessageContent": trimmedContent
+                ],
+                forDocument: chatDocRef
+            )
             try await batch.commit()
-
             print("Message sent successfully. ----------- ✅ ---------- ")
-
-
         } catch {
-            print("\n")
             print("Error sending message -----------  ❌ ---------- : \(error)")
 
         }
     }
 
-    func deleteTextMessage(for messageId: String) async {
+    func deleteMessage(for messageId: String) async {
         do {
-            try await messagesCollection.document(messageId).delete()
+            let messageSnapshot = try await messagesCollection.document(messageId).getDocument()
+            guard let messageData = messageSnapshot.data() else {
+                print("Failed to retrieve message data -------- ❌ ---------- ")
+                return
+            }
+            if let imageUrl = messageData["imageUrl"] as? String {
 
-            print("Message deleted successfully ----------- ✅ ---------- ") // Debug: Message deleted
+                let storageRef = Storage.storage().reference(forURL: imageUrl)
+                do {
+                    try await storageRef.delete()
+                    print("Image deleted successfully ----------- ✅ ---------- ")
+                } catch {
+                    print("Failed to delete image from storage ----- ❌ ---------- : \(error.localizedDescription)")
+                }
+
+                try await messagesCollection.document(messageId).updateData([
+                    "imageUrl": FieldValue.delete(),
+                    "messageType": "text",
+                    "content": "You deleted this message"
+                ])
+                print("Message updated successfully ----------- ✅ ---------- ")
+            }
+
+            else if let voiceUrl = messageData["voiceUrl"] as? String {
+                let storageRef = Storage.storage().reference(forURL: voiceUrl)
+                do {
+                    try await storageRef.delete()
+                    print("Voice audio deleted successfully ----------- ✅ ---------- ")
+                } catch {
+                    print("Failed to delete image from storage ----- ❌ ---------- : \(error.localizedDescription)")
+                }
+
+                try await messagesCollection.document(messageId).updateData([
+                    "voiceUrl": FieldValue.delete(),
+                    "voiceDuration":FieldValue.delete(),
+                    "messageType": "text",
+                    "content": "You deleted this message"
+                ])
+                print("Message updated successfully ----------- ✅ ---------- ")
+            }
+
+            else {
+                try await messagesCollection.document(messageId).updateData(["content": "You deleted this message"])
+                print("Message content updated successfully ----------- ✅ ---------- ")
+            }
         } catch {
-            print("Failed to delete message -----  ❌ ---------- : \(error.localizedDescription)") // Debug: Error deleting message
+            print("Failed to delete message ----- ❌ ---------- : \(error.localizedDescription)") // Debug: Error deleting message
         }
     }
 
+    func sendVoiceMessage(
+            chatId: String,
+            currentUserId: String,
+            otherUserId: String,
+            audioFileURL: URL,
+            duration: TimeInterval
+        ) async {
+            do {
+                let chatSnapshot = try await chatsCollection.document(chatId).getDocument()
+                guard let chatData = chatSnapshot.data(),
+                      let participants = chatData["participants"] as? [String],
+                      participants.contains(currentUserId),
+                      participants.contains(otherUserId) else {
+                    print("Error: Invalid chat participants or chat document. ----------- ❌ ----------")
+                    return
+                }
+
+                let newMessageId = UUID().uuidString
+
+                // Upload the voice recording to Firebase Storage
+                let audioUploadResult = await uploadAudioToFirebaseStorage(audioFileURL: audioFileURL, chatID: chatId, messageId: newMessageId)
+
+                switch audioUploadResult {
+                case .success(let audioUrl):
+                    print("Audio upload successful. ----------- ✅ ----------")
+
+                    let newMessage = FireMessageModel(
+                        id: newMessageId,
+                        chatId: chatId,
+                        messageType: .voice,
+                        content: "Voice Message (\(Int(duration))s)",
+                        senderUserId: currentUserId,
+                        receiverUserId: otherUserId,
+                        timestamp: Date(),
+                        replyToMessageId: nil,
+                        isReply: false,
+                        isForwarded: false,
+                        isSeen: nil,
+                        voiceUrl: audioUrl,
+                        voiceDuration: duration
+                    )
+
+                    try messagesCollection.document(newMessage.id).setData(from: newMessage)
+
+                    let batch = chatsCollection.firestore.batch()
+                    let chatDocRef = chatsCollection.document(chatId)
+                    batch.updateData([
+                        "lastMessageId": newMessage.id,
+                        "lastSeenTimeStamp": newMessage.timestamp,
+                        "lastMessageContent": "🎙️ Voice Message"
+                    ], forDocument: chatDocRef)
+
+                    try await batch.commit()
+                    print("Voice message sent successfully. ----------- ✅ ----------")
+
+                case .failure(let error):
+                    print("Error uploading audio: ----------- ❌ ---------- \(error)")
+                }
+            } catch {
+                print("Error sending voice message: ----------- ❌ ---------- \(error)")
+            }
+        }
     func sendImageMessage(
         chatId: String,
         content: String = "",
@@ -179,7 +279,7 @@ final class FireMessageViewModel {
                 batch.updateData([
                     "lastMessageId": newMessage.id,
                     "lastSeenTimeStamp": newMessage.timestamp,
-                    "lastMessageContent": "Photo"
+                    "lastMessageContent": "📸 Photo"
                 ], forDocument: chatDocRef)
 
                 try await batch.commit()
@@ -194,6 +294,23 @@ final class FireMessageViewModel {
         }
     }
 
+    func uploadAudioToFirebaseStorage(audioFileURL: URL, chatID: String, messageId: String) async -> Result<String, Error> {
+            let storageRef = Storage.storage().reference()
+
+            do {
+                let audioData = try Data(contentsOf: audioFileURL)
+                let audioRef = storageRef.child("chat_voice_messages_of_\(chatID)/\(messageId).m4a")
+
+                let metadata = StorageMetadata()
+                metadata.contentType = "audio/m4a"
+
+                _ = try await audioRef.putDataAsync(audioData, metadata: metadata)
+                let url = try await audioRef.downloadURL()
+                return .success(url.absoluteString)
+            } catch {
+                return .failure(error)
+            }
+        }
 
     func uploadMediaToFirebaseStorage(mediaData: UIImage, chatID: String, messageId: String) async -> Result<String, Error> {
         let storageRef = Storage.storage().reference()

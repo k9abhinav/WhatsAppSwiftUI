@@ -4,7 +4,7 @@ import Observation
 
 @MainActor
 @Observable
-final class FireChatViewModel {
+final class FireChatViewModel  {
     private let db = Firestore.firestore()
     private let chatsCollection: CollectionReference
     private let messagesCollection: CollectionReference
@@ -32,9 +32,8 @@ final class FireChatViewModel {
                     return
                 }
                 self.chats = documents.compactMap { try? $0.data(as: FireChatModel.self) }
-                Task { self.triggeredUpdate = true }
+              self.triggeredUpdate = true
                 print("Chat listener triggered, chats count: \(self.chats.count)")
-                
             }
         print("Chat listener setup -----------✅------------")
     }

@@ -6,10 +6,10 @@ struct FireChatRow: View {
 //    let user:FireUserModel
     let userId:String
     var user: FireUserModel {
-        userViewModel.users.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+        userViewModel.allUsers.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
     }
     @Binding var currentUser: FireUserModel?
-    @Binding var isProfilePicPresented:Bool
+    @Binding var isProfilePicPresented : Bool
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(FireUserViewModel.self) private var userViewModel
@@ -29,8 +29,11 @@ struct FireChatRow: View {
                }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
-        .onChange(of: chatViewModel.triggeredUpdate) {
-            fetchLastMessage()
+        .onChange(of: chatViewModel.triggeredUpdate) { _,newValue in
+            print(newValue.description)
+            if newValue {
+                fetchLastMessage()
+            }
         }
         .onDisappear { onDisappearFunctions() }
     }

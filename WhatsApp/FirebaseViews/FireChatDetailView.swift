@@ -5,7 +5,7 @@ struct FireChatDetailView: View {
 
     let userId:String
     var user: FireUserModel {
-        userViewModel.users.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+        userViewModel.allUsers.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
     }
     @Environment(\.dismiss) var dismiss
     @Environment(FireChatViewModel.self) private var chatViewModel
@@ -14,6 +14,7 @@ struct FireChatDetailView: View {
     @Environment(FireUserViewModel.self) private var userViewModel
     @State private var lastMessage : FireMessageModel? = nil
     @FocusState private var isTextFieldFocused: Bool
+    @State private var chatId: String?
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
@@ -34,6 +35,10 @@ struct FireChatDetailView: View {
                 }
                 inputMessageTabBar
             }
+            .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
+                ProfileDetailsView(user: user)
+            }
+            )
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -68,20 +73,20 @@ struct FireChatDetailView: View {
             }
         }
         print("DISAPPEAR Online Status of the USER: \(String(describing: onlineStatus))")
+        chatId = ""
         messageViewModel.removeMessageListener()
         DispatchQueue.main.async {
             UITabBar.appearance().isHidden = false
         }
     }
     private func onAppearFunctions(){
-        var chatId:String?
         Task{
             chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
             if chatExists == true {
                 chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                messageViewModel.setupMessageListener(for: chatId ?? "Error")
+                await messageViewModel.fetchAllMessages(for: chatId ?? "Error")
             }
-            messageViewModel.setupMessageListener(for: chatId ?? "Error")
-            await messageViewModel.fetchAllMessages(for: chatId ?? "Error")
             userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "Error", newStatus: true){ error in
                 if let error = error {
                     print("Error updating user online status: \(error.localizedDescription)")
@@ -98,11 +103,11 @@ struct FireChatDetailView: View {
     }
     private func sendMessage() async {
         Task{
-            var chatId:String?
             guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             if chatExists == false {
                 await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
                 chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                messageViewModel.setupMessageListener(for: chatId ?? "Error")
                 print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
             }
             await messageViewModel.sendTextMessage(chatId: chatId ?? "" , currentUserId: authViewModel.currentLoggedInUser?.id ?? "", otherUserId: user.id, content: messageText)
@@ -133,33 +138,58 @@ struct FireChatDetailView: View {
                 )
             }
     }
+    private func timeString(from date: Date) -> String {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+
+        if calendar.isDateInToday(date) {
+            formatter.timeStyle = .short
+            return formatter.string(from: date)  // Example: "2:30 PM"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            return formatter.string(from: date)  // Example: "Mar 4, 2025"
+        }
+    }
     //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
     private var renderMessages : some View{
-        ForEach(messageViewModel.messages) { message in
-            FireChatBubble(
-                message: message,
-                currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
-                onReply: {
-               
-                    // For example, you might want to quote the message and focus the text field
-                    messageText = "Replying to: \"\(message.content)\"\n"
-                    //                                isTextFieldFocused = true
-                },
-                onForward: {
-
-                    print("Forward message: \(message.content)")
-                },
-                onDelete: {
-                    
-                    Task{
-                        await messageViewModel.deleteTextMessage(for: message.id)
-                        print("Message deleted! for ---- ♻️ -- \(message.id)")
+        Group{
+            let date : Date = user.createdDate ?? .now
+            Group{
+                Text(timeString(from: date))
+                    .padding()
+                    .frame( alignment: .center)
+                    .background(Color.white.opacity(0.9))
+                Text(" 🔐  Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them. Tap to learn more.")
+                    .frame(maxWidth: 300  , alignment: .center)
+                    .padding()
+                    .background(Color.yellow.opacity(0.5))
+            }.font(.caption)
+            .foregroundColor(.secondary)
+            .cornerRadius(12)
+            .padding(.bottom)
+            ForEach(messageViewModel.messages) { message in
+                FireChatBubble(
+                    message: message,
+                    currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
+                    onReply: {
+                        messageText = "Replying to: \"\(message.content)\"\n"
+                    },
+                    onForward: {
+                        print("Forward message: \(message.content)")
+                    },
+                    onDelete: {
+                        Task{
+                            await messageViewModel.deleteMessage(for: message.id)
+                            print("Message deleted! for ---- ♻️ -- \(message.id)")
+                        }
                     }
-
-                }
-            )
-            .id(message.id)
+                )
+                .id(message.id)
+            }
         }
     }
     // MARK: BG IMG
@@ -196,9 +226,6 @@ struct FireChatDetailView: View {
                 isProfileDetailPresented.toggle()
             }
         }
-//        .navigationDestination(isPresented: isProfileDetailPresented,destination: {
-//            ProfileDetailsView(user: user)
-//        })
     }
 
     private var topRightNavItems: some View {
@@ -302,6 +329,17 @@ struct FireChatDetailView: View {
                     .foregroundColor(.customGreen)
             }
             .disabled(messageText.isEmpty)
+            VoiceRecordButton { audioURL, duration in
+                            Task {
+                                await messageViewModel.sendVoiceMessage(
+                                    chatId: chatId ?? "Error: No chatId",
+                                    currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error: No currentUserId",
+                                    otherUserId: user.id ,
+                                    audioFileURL: audioURL,
+                                    duration: duration
+                                )
+                            }
+                        }
         }
         .padding(.horizontal)
         .padding(.top, 8)
@@ -364,6 +402,3 @@ struct FireChatDetailView: View {
     }
 }
 
-#Preview {
-
-}

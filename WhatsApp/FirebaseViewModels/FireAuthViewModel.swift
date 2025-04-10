@@ -1,4 +1,5 @@
 import Firebase
+import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 import GoogleSignIn
@@ -99,7 +100,7 @@ import SwiftUI
             }
 
             userIsAuthenticated = true
-            print("DEBUG: Loaded user - \(String(describing: currentLoggedInUser?.name))")
+            print("DEBUG: Loaded current user - \(String(describing: currentLoggedInUser?.name))")
 
             // Start monitoring for session changes
             monitorSessionStatus()

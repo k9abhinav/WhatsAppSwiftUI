@@ -28,6 +28,7 @@ struct FireChatListView: View {
                         }
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
+                    //                        .navigationTitle("Chats")
                         .navigationDestination(
                             isPresented: $showingSettings,
                             destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
@@ -65,7 +66,7 @@ struct FireChatListView: View {
             }
         }
     }
-    
+
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
         VStack {
@@ -112,35 +113,32 @@ struct FireChatListView: View {
             }
         }
     }
-
     private var scrollViewChatUsers: some View {
         ScrollView {
             VStack {
                 CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
             }
             .cornerRadius(20)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .padding(.top, 12)
             .padding(.bottom,10)
 
             horizontalChatCategories
 
             LazyVStack(spacing: 17)  {
-                if userViewModel.users.isEmpty {
+                if filteredUsers.isEmpty {
                     Text("No matches found")
                         .font(.caption)
                         .foregroundColor(.gray)
                         .padding()
                 } else {
-                    ForEach(userViewModel.users) { user in
-                            FireChatRow(
-                                userId: user.id,
-                                currentUser: $currentUser,
-                                isProfilePicPresented: $isProfilePicPresented,
-                                navigationPath: $navigationPath
-                            )
-
-
+                    ForEach(filteredUsers) { user in
+                        FireChatRow(
+                            userId: user.id,
+                            currentUser: $currentUser,
+                            isProfilePicPresented: $isProfilePicPresented,
+                            navigationPath: $navigationPath
+                        )
                     }
                 }
             }

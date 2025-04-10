@@ -14,6 +14,8 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
     var isForwarded:Bool
     var imageUrl:String?
     var isSeen:Bool?
+    var voiceUrl: String?
+    var voiceDuration: TimeInterval?
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -24,7 +26,7 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id,chatId,messageType, content, senderUserId, receiverUserId, timestamp, replyToMessageId,isReply,isForwarded,imageUrl,isSeen
+        case id,chatId,messageType, content, senderUserId, receiverUserId, timestamp, replyToMessageId,isReply,isForwarded,imageUrl,isSeen ,voiceUrl , voiceDuration
     }
 
     func asDictionary() -> [String: Any] {
@@ -40,7 +42,9 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
             "isReplied": isReply ,
             "isForwarded": isForwarded,
             "imageUrl": imageUrl ?? NSNull(),
-            "isSeen": isSeen ?? NSNull()
+            "isSeen": isSeen ?? NSNull(),
+            "voiceUrl": voiceUrl ?? NSNull(),
+            "voiceDuration": voiceDuration ?? NSNull()
         ]
     }
 }
@@ -49,7 +53,7 @@ enum MessageType: String, Codable {
     case text
     case image
     case video
-    case audio
+    case voice
     case location
     case contact
 }

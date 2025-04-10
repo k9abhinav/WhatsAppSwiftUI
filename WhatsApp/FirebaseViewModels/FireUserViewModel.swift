@@ -103,7 +103,8 @@ final class FireUserViewModel {
                .map { $0.key }
 
            print("Updated sortedUserIds, count: \(self.sortedUserIds.count)")
-           print("Updated users list via computed property, count: \(self.users.count)")
+           print("Updated users list via computed property")
+           print("Current users with chats count: \(self.users.count)")
            print("Updated users list  \(self.users)")
        }
 
