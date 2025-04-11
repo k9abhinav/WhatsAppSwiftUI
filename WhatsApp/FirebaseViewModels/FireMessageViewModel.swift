@@ -293,6 +293,71 @@ final class FireMessageViewModel {
             print("❌ Error sending message: \(error)")
         }
     }
+    func sendVideoMessage(
+        chatId: String,
+        content: String = "",
+        currentUserId: String,
+        otherUserId: String,
+        videoData: Data,
+        replyToMessageId: String? = nil,
+        isForwarded: Bool = false
+    ) async {
+        do {
+            let chatSnapshot = try await chatsCollection.document(chatId).getDocument()
+            guard let chatData = chatSnapshot.data(),
+                  let participants = chatData["participants"] as? [String],
+                  participants.contains(currentUserId),
+                  participants.contains(otherUserId) else {
+                print("Error: Invalid chat participants or chat document.")
+                return
+            }
+
+            let newMessageId = UUID().uuidString
+
+            // 🔹 Upload the video first and get the URL
+            let mediaUploadResult = await uploadVideoToFirebaseStorage(videoData: videoData, chatID: chatId, messageId: newMessageId)
+
+            switch mediaUploadResult {
+            case .success(let mediaUrl):
+                print("---------✅------------- Media upload successful.")
+
+                let newMessage = FireMessageModel(
+                    id: newMessageId,
+                    chatId: chatId,
+                    messageType: .video,
+                    content: content,
+                    senderUserId: currentUserId,
+                    receiverUserId: otherUserId,
+                    timestamp: Date(),
+                    replyToMessageId: replyToMessageId,
+                    isReply: false,
+                    isForwarded: isForwarded,
+                    isSeen: nil,
+                    videoUrl: mediaUrl
+                )
+
+                try messagesCollection.document(newMessage.id).setData(from: newMessage)
+
+                let batch = chatsCollection.firestore.batch()
+                let chatDocRef = chatsCollection.document(chatId)
+                batch.updateData([
+                    "lastMessageId": newMessage.id,
+                    "lastSeenTimeStamp": newMessage.timestamp,
+                    "lastMessageContent": "🎥 Video"
+                ], forDocument: chatDocRef)
+
+                try await batch.commit()
+                print("✅ Video message sent successfully. ----------- ✅ ---------- ")
+
+            case .failure(let error):
+                print("❌ Error uploading media: \(error)")
+            }
+        }
+        catch {
+            print("❌ Error sending message: \(error)")
+        }
+    }
+
 
     func uploadAudioToFirebaseStorage(audioFileURL: URL, chatID: String, messageId: String) async -> Result<String, Error> {
             let storageRef = Storage.storage().reference()
@@ -311,6 +376,27 @@ final class FireMessageViewModel {
                 return .failure(error)
             }
         }
+    func uploadVideoToFirebaseStorage(videoData: Data, chatID: String, messageId: String) async -> Result<String, Error> {
+        let storageRef = Storage.storage().reference()
+
+        let fileExtension = "mp4" // Video format
+        let contentType = "video/mp4"
+
+        let videoRef = storageRef.child("chat_videos_of_\(chatID)/\(messageId).\(fileExtension)")
+        let metadata = StorageMetadata()
+        metadata.contentType = contentType
+
+        do {
+            // Upload the video data
+            _ = try await videoRef.putDataAsync(videoData, metadata: metadata)
+
+            // Retrieve the download URL
+            let url = try await videoRef.downloadURL()
+            return .success(url.absoluteString)
+        } catch {
+            return .failure(error)
+        }
+    }
 
     func uploadMediaToFirebaseStorage(mediaData: UIImage, chatID: String, messageId: String) async -> Result<String, Error> {
         let storageRef = Storage.storage().reference()

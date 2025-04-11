@@ -14,15 +14,17 @@ struct FireChatDetailView: View {
     @Environment(FireUserViewModel.self) private var userViewModel
     @State private var lastMessage : FireMessageModel? = nil
     @FocusState private var isTextFieldFocused: Bool
+    @State private var isMediaSheetVisible: Bool = false
     @State private var chatId: String?
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
     @State private var isTyping: Bool = false
-    @State private var onlineStatus: Bool? = nil
+    @State private var onlineStatus: Bool?
     @State private var chatExists: Bool? = nil
     @Binding var navigationPath: NavigationPath
     @State private var selectedImages: [PhotosPickerItem] = []
+    @State private var selectedVideos: [PhotosPickerItem] = []
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
@@ -32,8 +34,14 @@ struct FireChatDetailView: View {
                 ZStack {
                     backGroundImage
                     mainScrollChatsView
+                        .onTapGesture {
+                            dismissKeyboard()
+                            withAnimation(.easeInOut) {
+                                           isMediaSheetVisible = false
+                                       }
+                        }
                 }
-                inputMessageTabBar
+                inputMessageTabView
             }
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
                 ProfileDetailsView(user: user)
@@ -51,19 +59,22 @@ struct FireChatDetailView: View {
             .onAppear {
                 onAppearFunctions()
             }
-            .onChange(of: onlineStatus) {
-//                onChangeOfOnlineStatusFunction()
+            .onChange(of: messageViewModel.messages.last ){ _,newValue in
+                lastMessage = newValue
+            }
+            .onChange(of: user.onlineStatus ) { _,newValue in
+                onChangeOfOnlineStatusFunction(newValue: newValue )
             }
             .onDisappear {
                 onDisappearFunctions()
             }
-//            profilePicOverlayZStack
+            //            profilePicOverlayZStack
         }
     }
 
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
-    private func onChangeOfOnlineStatusFunction(){
-        onlineStatus = user.onlineStatus
+    private func onChangeOfOnlineStatusFunction(newValue: Bool?){
+        onlineStatus = newValue
         print("ON CHANGE Online Status of the USER: \(String(describing: onlineStatus))")
     }
     private func onDisappearFunctions(){
@@ -74,6 +85,7 @@ struct FireChatDetailView: View {
         }
         print("DISAPPEAR Online Status of the USER: \(String(describing: onlineStatus))")
         chatId = ""
+        lastMessage = nil
         messageViewModel.removeMessageListener()
         DispatchQueue.main.async {
             UITabBar.appearance().isHidden = false
@@ -87,12 +99,12 @@ struct FireChatDetailView: View {
                 messageViewModel.setupMessageListener(for: chatId ?? "Error")
                 await messageViewModel.fetchAllMessages(for: chatId ?? "Error")
             }
-            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "Error", newStatus: true){ error in
+            userViewModel.updateUserOnlineStatus(userId: authViewModel.currentLoggedInUser?.id ?? "Error", newStatus: true)
+            { error in
                 if let error = error {
                     print("Error updating user online status: \(error.localizedDescription)")
                 }
             }
-            await authViewModel.loadCurrentUser()
             onlineStatus = user.onlineStatus
             print("Online Status of the USER: \(String(describing: onlineStatus))")
             lastMessage = messageViewModel.messages.last
@@ -115,14 +127,15 @@ struct FireChatDetailView: View {
         }
         dismissKeyboard()
     }
-    
     private func dismissKeyboard() {
-        isTyping = false
+        if isTyping {
+            isTyping = false
+        }
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     private func sendImage(_ image: UIImage) async {
         guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
-        
+
         Task {
             var chatId:String?
             if chatExists == false {
@@ -130,14 +143,33 @@ struct FireChatDetailView: View {
                 chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
                 print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
             }
-                await messageViewModel.sendImageMessage(
-                    chatId: chatId ?? "",
-                    currentUserId: currentUserId,
-                    otherUserId: user.id,
-                    imageData: image
-                )
-            }
+            await messageViewModel.sendImageMessage(
+                chatId: chatId ?? "",
+                currentUserId: currentUserId,
+                otherUserId: user.id,
+                imageData: image
+            )
+        }
     }
+    private func sendVideo(_ videoData: Data) async {
+        guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
+
+        Task {
+            var chatId: String?
+            if chatExists == false {
+                await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
+                print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
+            }
+            await messageViewModel.sendVideoMessage(
+                chatId: chatId ?? "",
+                currentUserId: currentUserId,
+                otherUserId: user.id,
+                videoData: videoData
+            )
+        }
+    }
+
     private func timeString(from date: Date) -> String {
         let calendar = Calendar.current
         let formatter = DateFormatter()
@@ -168,9 +200,9 @@ struct FireChatDetailView: View {
                     .padding()
                     .background(Color.yellow.opacity(0.5))
             }.font(.caption)
-            .foregroundColor(.secondary)
-            .cornerRadius(12)
-            .padding(.bottom)
+                .foregroundColor(.secondary)
+                .cornerRadius(12)
+                .padding(.bottom)
             ForEach(messageViewModel.messages) { message in
                 FireChatBubble(
                     message: message,
@@ -197,7 +229,7 @@ struct FireChatDetailView: View {
         Image("bgChats")
             .resizable()
             .scaleEffect(1.4)
-            .opacity(0.5)
+            .opacity(0.35)
     }
     // MARK: BACK BUTTON NAV --- NAVV ITEMS
     private var backButton: some View {
@@ -239,7 +271,9 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10, pinnedViews: []) {
-                    renderMessages
+                    withAnimation(.smooth ) {
+                        renderMessages
+                    }
                     typingIndicator
                 }
             }
@@ -297,27 +331,75 @@ struct FireChatDetailView: View {
     // MARK: Message Tab Bar
     private var inputMessageTabBar: some View {
         HStack(spacing: 12) {
-            PhotosPicker(
-                selection: $selectedImages,
-                maxSelectionCount: 2, // Allow multiple images
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
+            Menu {
+                // Image Picker Option
+                PhotosPicker(
+                    selection: $selectedImages,
+                    maxSelectionCount: 2,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Label("Images", systemImage: "photo.on.rectangle")
+                }
+                .onChange(of: selectedImages) { _, newItems in
+                    Task {
+                        for item in newItems {
+                            if let data = try? await item.loadTransferable(type: Data.self),
+                               let image = UIImage(data: data) {
+                                await sendImage(image)
+                            }
+                        }
+                        selectedImages.removeAll()
+                    }
+                }
+
+
+                // Video Picker Option
+                PhotosPicker(
+                    selection: $selectedVideos,
+                    maxSelectionCount: 2,
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    Label("Videos", systemImage: "film")
+                }
+                .onChange(of: selectedVideos) { _, newItems in
+                    Task {
+                        for item in newItems {
+                            if let data = try? await item.loadTransferable(type: Data.self) {
+                                await sendVideo(data)
+                            }
+                        }
+                        selectedVideos.removeAll()
+                    }
+                }
+
+                // Audio Picker Option
+                Button(action: {
+                    // Your audio selection code here
+                }) {
+                    Label("Audio", systemImage: "waveform")
+                }
+
+                // Contact Picker Option
+                Button(action: {
+                    // Your contact selection code here
+                }) {
+                    Label("Contact", systemImage: "person.crop.circle")
+                }
+
+                // Location Option
+                Button(action: {
+                    // Your location sharing code here
+                }) {
+                    Label("Location", systemImage: "location.fill")
+                }
+            } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 22))
                     .foregroundColor(.gray)
             }
-            .onChange(of: selectedImages) { _, newItems in
-                Task {
-                    for item in newItems {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let image = UIImage(data: data) {
-                            await sendImage(image)
-                        }
-                    }
-                    selectedImages.removeAll()
-                }
-            }
+
             TextField("Message", text: $messageText)
                 .focused($isTextFieldFocused)
                 .padding(10)
@@ -329,17 +411,19 @@ struct FireChatDetailView: View {
                     .foregroundColor(.customGreen)
             }
             .disabled(messageText.isEmpty)
-            VoiceRecordButton { audioURL, duration in
-                            Task {
-                                await messageViewModel.sendVoiceMessage(
-                                    chatId: chatId ?? "Error: No chatId",
-                                    currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error: No currentUserId",
-                                    otherUserId: user.id ,
-                                    audioFileURL: audioURL,
-                                    duration: duration
-                                )
-                            }
-                        }
+            if(!isTextFieldFocused){
+                VoiceRecordButton { audioURL, duration in
+                    Task {
+                        await messageViewModel.sendVoiceMessage(
+                            chatId: chatId ?? "Error: No chatId",
+                            currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error: No currentUserId",
+                            otherUserId: user.id ,
+                            audioFileURL: audioURL,
+                            duration: duration
+                        )
+                    }
+                }
+            }
         }
         .padding(.horizontal)
         .padding(.top, 8)
@@ -347,6 +431,93 @@ struct FireChatDetailView: View {
         .background(Color.white)
         .ignoresSafeArea()
     }
+    private var inputMessageTabView: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeInOut) {
+                        isMediaSheetVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22))
+                        .foregroundColor(.gray)
+                }
+
+                TextField("Message", text: $messageText)
+                    .focused($isTextFieldFocused)
+                    .padding(10)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(20)
+
+                Button(action: { Task { await sendMessage() } }) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.customGreen)
+                }
+                .disabled(messageText.isEmpty)
+
+                VoiceRecordButton { audioURL, duration in
+                    Task {
+                        await messageViewModel.sendVoiceMessage(
+                            chatId: chatId ?? "Error",
+                            currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
+                            otherUserId: user.id,
+                            audioFileURL: audioURL,
+                            duration: duration
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 5)
+            .background(Color.white)
+
+            if isMediaSheetVisible {
+                mediaPickerSheet
+                    .transition(.move(edge: .bottom))
+            }
+        }
+    }
+    private var mediaPickerSheet: some View {
+        VStack(spacing: 20) {
+            HStack(spacing: 30) {
+                mediaButton(icon: "photo", title: "Photo") {
+                    // Open Photos
+                }
+                mediaButton(icon: "video", title: "Video") {
+                    // Open Videos
+                }
+                mediaButton(icon: "waveform", title: "Audio") {
+                    // Audio action
+                }
+                mediaButton(icon: "location", title: "Location") {
+                    // Location action
+                }
+            }
+            .padding()
+
+
+        }
+        .frame(maxWidth: .infinity)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+
+    }
+    private func mediaButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        VStack {
+            Button(action: action) {
+                Image(systemName: icon)
+                    .font(.title)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .clipShape(Circle())
+            }
+            Text(title).font(.caption)
+        }
+    }
+
     private var typingIndicator: some View {
         Group{
             if (isTyping && user.id != authViewModel.currentLoggedInUser?.id ) {
@@ -364,7 +535,6 @@ struct FireChatDetailView: View {
 
     private var profileImage: some View {
         Group{
-            // Profile Image
             if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString),!imageUrlString.hasSuffix(".svg") {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
@@ -402,3 +572,6 @@ struct FireChatDetailView: View {
     }
 }
 
+#Preview {
+
+}

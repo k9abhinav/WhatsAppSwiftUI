@@ -1,6 +1,6 @@
 import SwiftUI
 import AVFoundation
-
+import AVKit
 // First, update your FireChatBubble to handle voice messages
 struct FireChatBubble: View {
     let message: FireMessageModel
@@ -94,7 +94,14 @@ struct FireChatBubble: View {
                 .cornerRadius(10)
             } else if message.messageType == .voice, let audioUrl = message.voiceUrl {
                 voiceMessageView(audioUrl: audioUrl, duration: message.voiceDuration ?? 0)
-            } else if message.messageType == .text {
+            }
+            else if message.messageType == .video, let videoUrl = message.videoUrl, let url = URL(string: videoUrl) {
+                        VideoPlayer(player: AVPlayer(url: url))
+                            .frame(width: 300, height: 300)
+                            .cornerRadius(10)
+                            .padding(10)
+                    }
+            else if message.messageType == .text {
                 Group {
                     if(message.content == "You deleted this message"){
                         Text(message.content)

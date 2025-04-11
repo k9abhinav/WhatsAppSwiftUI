@@ -23,12 +23,12 @@ struct FireChatListView: View {
                     scrollViewChatUsers
                         .scrollIndicators(.hidden)
                         .toolbar {
-                            ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
+                            ToolbarItem(placement: .topBarLeading) { chatOptionsButton }
                             ToolbarItemGroup { toolbarButtons }
                         }
                         .toolbarBackground(.white, for: .navigationBar)
                         .toolbarColorScheme(.light, for: .navigationBar)
-                    //                        .navigationTitle("Chats")
+                        .navigationTitle("Chats")
                         .navigationDestination(
                             isPresented: $showingSettings,
                             destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
@@ -39,6 +39,7 @@ struct FireChatListView: View {
                         .navigationDestination(
                             isPresented: $showingContactUsers,
                             destination: { FireContactUsersListView(navigationPath: $navigationPath) })
+                        .searchable(text: $searchText, placement: .automatic, prompt: "Ask Meta AI or Search")
                 }
                 // ZStack Overlay
                 plusButtonToStartANewChat
@@ -101,36 +102,64 @@ struct FireChatListView: View {
     private var toolbarButtons: some View {
         HStack {
             PhotosPicker(selection: .constant(nil), matching: .images, photoLibrary: .shared()) {
-                Image(systemName: "qrcode.viewfinder")
+                Image(systemName: "camera.fill")
             }
-            PhotosPicker(selection: .constant(nil), matching: .images, photoLibrary: .shared()) {
-                Image(systemName: "camera")
-            }
-            Button(action: {    showingSettings.toggle()  }) {
-                Image(systemName: "ellipsis")
+            Button(action: {    showingSettings.toggle()  } ) {
+                Image(systemName: "gear")
                     .rotationEffect(.degrees(90))
                     .fontWeight(.semibold)
             }
         }
     }
+    private var chatOptionsButton: some View {
+        Menu{
+            Button(action: {},label: {
+                HStack(){
+                    Text("Select chats")
+                    Image(systemName: "checkmark.circle")
+                        .foregroundColor(.gray)
+                        .padding(.leading, 5)
+                }
+
+            }
+            )
+            Button(action: {},label: {
+                HStack(){
+                    Text("Read all")
+                    Image(systemName: "checkmark.bubble")
+                        .foregroundColor(.gray)
+                        .padding(.leading, 5)
+                }
+            }
+            )
+        } label: {
+            Image(systemName: "ellipsis")
+                .fontWeight(.semibold)
+        }
+        .buttonStyle(.plain)
+
+    }
     private var scrollViewChatUsers: some View {
         ScrollView {
-            VStack {
-                CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
-            }
-            .cornerRadius(20)
-            .padding(.horizontal, 10)
-            .padding(.top, 12)
-            .padding(.bottom,10)
+            //            VStack {
+            //                CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
+            //            }
+            //            .cornerRadius(20)
+            //            .padding(.horizontal, 10)
+            //            .padding(.top, 12)
+            //            .padding(.bottom,10)
 
             horizontalChatCategories
 
             LazyVStack(spacing: 17)  {
                 if filteredUsers.isEmpty {
-                    Text("No matches found")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding()
+                    VStack{
+                        Text("No matches found")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding()
+
+                    }
                 } else {
                     ForEach(filteredUsers) { user in
                         FireChatRow(
@@ -153,25 +182,25 @@ struct FireChatListView: View {
                 ForEach(viewModel.chatCategories, id: \.self) { category in
                     Text(category)
                         .font(.caption)
-                        .foregroundColor(.white)
+                        .foregroundColor(.gray)
                         .padding(.horizontal, 16)
                         .fontWeight(.semibold)
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(Color.customGreen)
+                                .fill(Color.gray.opacity(0.2))
                         )
                         .fixedSize()
                 }
                 Text(" + ")
                     .font(.caption)
-                    .foregroundColor(.white)
+                    .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                     .fontWeight(.semibold)
                     .padding(.vertical, 8)
                     .background(
                         Capsule()
-                            .fill(Color.customGreen)
+                            .fill(Color.gray.opacity(0.2))
                     )
                     .fixedSize()
                     .onTapGesture {

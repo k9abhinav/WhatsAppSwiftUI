@@ -44,7 +44,8 @@ struct MainTabView: View {
                     }
                     .tag(3)
             }
-            .tint(Color(#colorLiteral(red: 0.2178634405, green: 0.582372725, blue: 0.9793615937, alpha: 1)))
+//            .tint(Color(#colorLiteral(red: 0.2178634405, green: 0.582372725, blue: 0.9793615937, alpha: 1)))
+            .tint(.primary)
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(.white, for: .tabBar)
             profilePicOverlayZStack

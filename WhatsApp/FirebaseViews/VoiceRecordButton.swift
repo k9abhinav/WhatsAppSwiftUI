@@ -21,12 +21,12 @@ struct VoiceRecordButton: View {
             // Main Button Circle
             Circle()
                 .fill(isRecording ? Color.red : Color.blue)
-                .frame(width: 40, height: 40)
+                .frame(width: 30, height: 30)
 
             // Button Icon
             Image(systemName: isRecording ? "stop.fill" : "mic.fill")
                 .foregroundColor(.white)
-                .font(.system(size: 18))
+                .font(.system(size: 12))
         }
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -61,7 +61,7 @@ struct VoiceRecordButton: View {
     }
 
     private func stopRecording() {
-        if let url = voiceRecorder.stopRecording(),
+        if let _ = voiceRecorder.stopRecording(),
            let startTime = recordingStartTime {
             recordingDuration = Date().timeIntervalSince(startTime)
             isRecording = false

@@ -15,10 +15,10 @@ extension FireMessageViewModel {
         var recordingURL: URL?
         var permissionGranted = false
         
-        override init() {
-            super.init()
-            checkMicrophonePermission()
-        }
+//        override init() {
+//            super.init()
+//            checkMicrophonePermission()
+//        }
         
         func checkMicrophonePermission() {
             switch AVAudioApplication.shared.recordPermission {
