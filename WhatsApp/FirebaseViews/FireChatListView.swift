@@ -8,6 +8,7 @@ struct FireChatListView: View {
     @Environment(ChatsViewModel.self) private var viewModel : ChatsViewModel
     @Environment(FireChatViewModel.self) private var chatViewModel: FireChatViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel: FireAuthViewModel
+    @FocusState private var isSearchFocused: Bool
     @State private var searchText = ""
     @State private var showingSettings = false
     @State var showingContactUsers: Bool = false
@@ -40,6 +41,7 @@ struct FireChatListView: View {
                             isPresented: $showingContactUsers,
                             destination: { FireContactUsersListView(navigationPath: $navigationPath) })
                         .searchable(text: $searchText, placement: .automatic, prompt: "Ask Meta AI or Search")
+                        .searchFocused($isSearchFocused)
                 }
                 // ZStack Overlay
                 plusButtonToStartANewChat
@@ -149,25 +151,35 @@ struct FireChatListView: View {
             //            .padding(.top, 12)
             //            .padding(.bottom,10)
 
-            horizontalChatCategories
+            if (!isSearchFocused){ horizontalChatCategories }
 
             LazyVStack(spacing: 17)  {
-                if filteredUsers.isEmpty {
-                    VStack{
-                        Text("No matches found")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .padding()
+                if(!isSearchFocused){
+                    if filteredUsers.isEmpty {
+                        VStack{
+                            Text("No such results")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding()
+                                .frame(alignment: .center)
 
+                        }
+                    } else {
+                        ForEach(filteredUsers) { user in
+                            FireChatRow(
+                                userId: user.id,
+                                currentUser: $currentUser,
+                                isProfilePicPresented: $isProfilePicPresented,
+                                navigationPath: $navigationPath
+                            )
+                        }
                     }
-                } else {
-                    ForEach(filteredUsers) { user in
-                        FireChatRow(
-                            userId: user.id,
-                            currentUser: $currentUser,
-                            isProfilePicPresented: $isProfilePicPresented,
-                            navigationPath: $navigationPath
-                        )
+                }
+                else{
+                    if filteredUsers.isEmpty {
+                        VStack{
+
+                        }
                     }
                 }
             }
@@ -188,7 +200,8 @@ struct FireChatListView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(Color.gray.opacity(0.2))
+                                .fill(
+                                    category == "All" ? Color.customGreen.opacity(0.5) : Color.gray.opacity(0.2))
                         )
                         .fixedSize()
                 }

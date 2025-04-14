@@ -13,7 +13,8 @@ struct FireUserModel: Identifiable, Codable, Hashable,Equatable {
     var lastSeenTime: Date?
     var onlineStatus: Bool?
     var currentSessionId: String?
-    
+    var isTyping: Bool?
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
@@ -22,7 +23,7 @@ struct FireUserModel: Identifiable, Codable, Hashable,Equatable {
         return lhs.id == rhs.id
     }
     enum CodingKeys: String, CodingKey {
-        case id, phoneNumber, name, imageUrl, aboutInfo,createdDate, email,password, typeOfAuth, lastSeenTime, onlineStatus,currentSessionId
+        case id, phoneNumber, name, imageUrl, aboutInfo,createdDate, email,password, typeOfAuth, lastSeenTime, onlineStatus,currentSessionId,isTyping
     }
 }
 

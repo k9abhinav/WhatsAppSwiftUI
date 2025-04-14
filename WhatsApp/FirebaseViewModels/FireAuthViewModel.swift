@@ -888,7 +888,8 @@ import SwiftUI
             email: firebaseUser.email,
             typeOfAuth: getAuthType(for: firebaseUser),
             lastSeenTime: (data["lastSeenTime"] as? Timestamp)?.dateValue(),
-            onlineStatus: data["onlineStatus"] as? Bool
+            onlineStatus: data["onlineStatus"] as? Bool,
+            isTyping: data["isTyping"] as? Bool
         )
     }
 
@@ -911,7 +912,8 @@ import SwiftUI
             "email": email,
             "authType": authType,
             "lastSeenTime": Date() ,
-            "onlineStatus": false
+            "onlineStatus": false,
+            "isTyping": false
         ]
     }
 

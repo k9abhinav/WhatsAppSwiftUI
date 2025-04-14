@@ -237,7 +237,9 @@ final class FireUserViewModel {
     func updateUserStatus(userId: String, newStatus: String, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "aboutInfo", value: newStatus, completion: completion)
     }
-
+    func updateUserTypingStatus(userId: String, newStatus: Bool, completion: @escaping (Error?) -> Void) {
+        updateUserField(userId: userId, fieldName: "isTyping", value: newStatus, completion: completion)
+    }
     func updateUserOnlineStatus(userId: String, newStatus: Bool, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "onlineStatus", value: newStatus, completion: completion)
     }

@@ -7,11 +7,9 @@ struct FireChatBubble: View {
     let currentUserId: String
     @State private var showContextMenu = false
     @State private var imageLoadError = false
-
-    // Audio player states
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
-    @State private var playbackProgress: Double = 0
+    @State private var playbackProgress: CGFloat = 0
     @State private var playbackTimer: Timer?
 
     var onReply: () -> Void = {}
@@ -123,7 +121,7 @@ struct FireChatBubble: View {
             }) {
                 Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(isFromCurrentUser ? .white : .blue)
+                    .foregroundColor(isFromCurrentUser ? Color.customGreen : Color.blue)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -138,7 +136,7 @@ struct FireChatBubble: View {
 
                         // Progress
                         Rectangle()
-                            .fill(isFromCurrentUser ? Color.white : Color.blue)
+                            .fill(isFromCurrentUser ? Color.customGreen : Color.blue)
                             .frame(width: geometry.size.width * playbackProgress, height: 4)
                             .cornerRadius(2)
                     }
@@ -148,7 +146,7 @@ struct FireChatBubble: View {
                 // Duration
                 Text("\(formattedDuration(duration: duration))")
                     .font(.caption)
-                    .foregroundColor(isFromCurrentUser ? .white.opacity(0.9) : .gray)
+                    .foregroundColor(isFromCurrentUser ? Color.black.opacity(0.5) : .gray)
             }
         }
         .padding(.vertical, 12)
@@ -208,20 +206,18 @@ struct FireChatBubble: View {
     private func playAudio(from urlString: String) {
         guard let url = URL(string: urlString) else { return }
 
-        // Set up audio session
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default)
             try audioSession.setActive(true)
         } catch {
-            print("Failed to set up audio session: \(error)")
+            print("Audio session error: \(error)")
             return
         }
 
-        // Download and play the audio
         URLSession.shared.dataTask(with: url) { data, _, error in
             guard let data = data, error == nil else {
-                print("Failed to download audio: \(error?.localizedDescription ?? "Unknown error")")
+                print("Download error: \(error?.localizedDescription ?? "Unknown error")")
                 return
             }
 
@@ -231,11 +227,9 @@ struct FireChatBubble: View {
                     audioPlayer?.prepareToPlay()
                     audioPlayer?.play()
                     isPlaying = true
-
-                    // Set up timer to update progress
                     startProgressTimer()
                 } catch {
-                    print("Failed to play audio: \(error)")
+                    print("Playback error: \(error)")
                 }
             }
         }.resume()
@@ -255,14 +249,16 @@ struct FireChatBubble: View {
         playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             if let player = audioPlayer, player.isPlaying {
                 playbackProgress = player.currentTime / player.duration
-            } else {
-                // Audio finished playing
-                if playbackProgress >= 0.99 {
-                    stopAudio()
-                }
             }
         }
     }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            stopAudio()
+        }
+    }
+
 
     private func formattedDuration(duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60

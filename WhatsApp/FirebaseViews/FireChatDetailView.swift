@@ -1,6 +1,6 @@
 import PhotosUI
 import SwiftUI
-
+import MediaPlayer
 struct FireChatDetailView: View {
 
     let userId:String
@@ -19,12 +19,14 @@ struct FireChatDetailView: View {
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
-    @State private var isTyping: Bool = false
+    @State private var isTyping: Bool?
     @State private var onlineStatus: Bool?
     @State private var chatExists: Bool? = nil
     @Binding var navigationPath: NavigationPath
+    @State private var selectedMedia: MPMediaItem?
     @State private var selectedImages: [PhotosPickerItem] = []
     @State private var selectedVideos: [PhotosPickerItem] = []
+
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
 
@@ -42,6 +44,7 @@ struct FireChatDetailView: View {
                         }
                 }
                 inputMessageTabView
+                    .zIndex(3)
             }
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
                 ProfileDetailsView(user: user)
@@ -63,7 +66,22 @@ struct FireChatDetailView: View {
                 lastMessage = newValue
             }
             .onChange(of: user.onlineStatus ) { _,newValue in
-                onChangeOfOnlineStatusFunction(newValue: newValue )
+                onlineStatus = newValue
+            }
+            .onChange(of: user.isTyping ){ _,newValue in
+                isTyping = newValue ?? false
+            }
+            .onChange(of: isTextFieldFocused ){ _,newValue in
+
+                    userViewModel.updateUserTypingStatus(
+                        userId: authViewModel.currentLoggedInUser?.id ?? "",
+                        newStatus: newValue ? true : false
+                    ) { error in
+                        if let error = error {
+                            print(error.localizedDescription)
+                        }
+                    }
+
             }
             .onDisappear {
                 onDisappearFunctions()
@@ -74,7 +92,7 @@ struct FireChatDetailView: View {
 
     // ----------------------------------- MARK: HELPER FUNCTIONS---------------------------------------------------------
     private func onChangeOfOnlineStatusFunction(newValue: Bool?){
-        onlineStatus = newValue
+
         print("ON CHANGE Online Status of the USER: \(String(describing: onlineStatus))")
     }
     private func onDisappearFunctions(){
@@ -93,6 +111,7 @@ struct FireChatDetailView: View {
     }
     private func onAppearFunctions(){
         Task{
+            await userViewModel.initializeData(loggedInUserId: user.id)
             chatExists = await chatViewModel.isThereChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
             if chatExists == true {
                 chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
@@ -106,6 +125,7 @@ struct FireChatDetailView: View {
                 }
             }
             onlineStatus = user.onlineStatus
+            isTyping = user.isTyping ?? false
             print("Online Status of the USER: \(String(describing: onlineStatus))")
             lastMessage = messageViewModel.messages.last
             if isTextFieldFocused {
@@ -128,7 +148,7 @@ struct FireChatDetailView: View {
         dismissKeyboard()
     }
     private func dismissKeyboard() {
-        if isTyping {
+        if isTyping ?? false {
             isTyping = false
         }
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -303,7 +323,7 @@ struct FireChatDetailView: View {
                     }
                 }
             }
-            .onChange(of: isTyping) { _, newValue in
+            .onChange(of: isTyping ?? false) { _, newValue in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
 
                     if newValue {
@@ -405,12 +425,6 @@ struct FireChatDetailView: View {
                 .padding(10)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(20)
-            Button(action: { Task { await sendMessage() }}) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(.customGreen)
-            }
-            .disabled(messageText.isEmpty)
             if(!isTextFieldFocused){
                 VoiceRecordButton { audioURL, duration in
                     Task {
@@ -424,6 +438,12 @@ struct FireChatDetailView: View {
                     }
                 }
             }
+            Button(action: { Task { await sendMessage() }}) {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(.customGreen)
+            }
+            .disabled(messageText.isEmpty)
         }
         .padding(.horizontal)
         .padding(.top, 8)
@@ -483,28 +503,56 @@ struct FireChatDetailView: View {
     private var mediaPickerSheet: some View {
         VStack(spacing: 20) {
             HStack(spacing: 30) {
-                mediaButton(icon: "photo", title: "Photo") {
-                    // Open Photos
+                Group{
+                    PhotosPicker(
+                        selection: $selectedImages,
+                        maxSelectionCount: 2,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        Label("Images", systemImage: "photo.on.rectangle")
+                    }
+                    .onChange(of: selectedImages) { _, newItems in
+                        Task {
+                            for item in newItems {
+                                if let data = try? await item.loadTransferable(type: Data.self),
+                                   let image = UIImage(data: data) {
+                                    await sendImage(image)
+                                }
+                            }
+                            selectedImages.removeAll()
+                        }
+                    }
+//
+                    PhotosPicker(
+                        selection: $selectedVideos,
+                        maxSelectionCount: 2,
+                        matching: .videos,
+                        photoLibrary: .shared()
+                    ) {
+                        Label("Videos", systemImage: "film")
+                    }
+                    .onChange(of: selectedVideos) { _, newItems in
+                        Task {
+                            for item in newItems {
+                                if let data = try? await item.loadTransferable(type: Data.self) {
+                                    await sendVideo(data)
+                                }
+                            }
+                            selectedVideos.removeAll()
+                        }
+                    }
+                    //
+                    
                 }
-                mediaButton(icon: "video", title: "Video") {
-                    // Open Videos
-                }
-                mediaButton(icon: "waveform", title: "Audio") {
-                    // Audio action
-                }
-                mediaButton(icon: "location", title: "Location") {
-                    // Location action
+                .onTapGesture {
+                    isMediaSheetVisible = false
                 }
             }
-            .padding()
-
-
         }
-        .frame(maxWidth: .infinity)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-
+        .padding()
     }
+
     private func mediaButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
         VStack {
             Button(action: action) {
@@ -520,12 +568,12 @@ struct FireChatDetailView: View {
 
     private var typingIndicator: some View {
         Group{
-            if (isTyping && user.id != authViewModel.currentLoggedInUser?.id ) {
+            if (isTyping ?? false && user.id != authViewModel.currentLoggedInUser?.id ) {
                 HStack {
                     ChatTypingIndicator()
                     Spacer()
                 }
-                .padding(.leading, 20)
+                .padding(.leading)
                 .transition(.opacity)
                 .id("TypingIndicator")
             }

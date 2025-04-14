@@ -20,7 +20,7 @@ struct VoiceRecordButton: View {
 
             // Main Button Circle
             Circle()
-                .fill(isRecording ? Color.red : Color.blue)
+                .fill(isRecording ? Color.red : Color.green)
                 .frame(width: 30, height: 30)
 
             // Button Icon
