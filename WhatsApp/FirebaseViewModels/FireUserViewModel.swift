@@ -3,7 +3,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage
 
-@MainActor
 @Observable
 final class FireUserViewModel {
     // MARK: - Properties

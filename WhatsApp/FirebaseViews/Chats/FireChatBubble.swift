@@ -3,8 +3,19 @@ import AVFoundation
 import AVKit
 // First, update your FireChatBubble to handle voice messages
 struct FireChatBubble: View {
+    @Environment(FireUserViewModel.self) private var userViewModel
+    @Environment(FireChatViewModel.self) private var chatViewModel
+    @Environment(FireMessageViewModel.self) private var messageViewModel
     let message: FireMessageModel
     let currentUserId: String
+    let userId:String
+    var user: FireUserModel {
+        userViewModel.allUsers.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
+    }
+    @Binding var chatImageDetailView : Bool
+    @Binding var chatId: String?
+    @Binding var currentMessage: FireMessageModel?
+    @State private var chatExists: Bool = false
     @State private var showContextMenu = false
     @State private var imageLoadError = false
     @State private var audioPlayer: AVAudioPlayer?
@@ -34,10 +45,14 @@ struct FireChatBubble: View {
                     .font(.body)
                     .contextMenu { contextMenuItems }
                     .onLongPressGesture { feedback() ; showContextMenu = true }
-                Text(timeString(from: message.timestamp))
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                    .padding(isFromCurrentUser ? .trailing : .leading, 4)
+                HStack{
+                    if(!isFromCurrentUser){ messageReadSymbol }
+                    Text(timeString(from: message.timestamp))
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .padding(isFromCurrentUser ? .trailing : .leading, 4)
+                    if(isFromCurrentUser){messageReadSymbol}
+                }
             }
             .frame(maxWidth: UIScreen.main.bounds.width * 0.95, alignment: isFromCurrentUser ? .trailing : .leading)
         }
@@ -56,11 +71,37 @@ struct FireChatBubble: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+        .onAppear{
+            if chatExists == true && !isFromCurrentUser && user.onlineStatus == true {
+                Task{
+                    await messageViewModel.markMessageAsSeen(messageId: message.id, chatId: chatId ??  "Error" )
+                }
+
+                }
+            Task{
+                chatExists = await chatViewModel.isThereChatWithId(chatId: chatId ?? "Error")
+            }
+        }
         .onDisappear {
             stopAudio()
         }
     }
-
+    private var messageReadSymbol: some View {
+        Group{
+            if(message.isSeen == false ){
+                Image("receivedMessage")
+                    .resizable()
+            } else if (message.isSeen == true){
+                Image("seenMessage")
+                    .resizable()
+            }
+            else if (message.isSeen == nil){
+                Image("sentMessage")
+                    .resizable()
+            }
+        }
+        .frame(width: 8, height: 8)
+    }
     // Updated to include voice messages
     private var displayMessageContent: some View {
         VStack {
@@ -77,6 +118,10 @@ struct FireChatBubble: View {
                             .frame(width: 300, height: 300)
                             .cornerRadius(10)
                             .padding(10)
+                            .onTapGesture {
+                                currentMessage = message
+                                chatImageDetailView.toggle()
+                            }
                     case .failure:
                         Image(systemName: "photo")
                             .resizable()
@@ -109,6 +154,10 @@ struct FireChatBubble: View {
                     }
                 }
                 .padding(12)
+            }
+            else{
+                ProgressView()
+                    .frame(width: 300, height: 300)
             }
         }
     }

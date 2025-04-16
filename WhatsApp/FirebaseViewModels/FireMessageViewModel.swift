@@ -1,8 +1,8 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage
-import UniformTypeIdentifiers
-@MainActor
+
+
 @Observable
 final class FireMessageViewModel {
     private let storageRef = Storage.storage().reference()
@@ -61,7 +61,7 @@ final class FireMessageViewModel {
             print("Failed to fetch messages -----------  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching messages
         }
     }
-
+    
     func sendTextMessage(
         chatId: String,
         currentUserId: String,
@@ -112,6 +112,29 @@ final class FireMessageViewModel {
         } catch {
             print("Error sending message -----------  ❌ ---------- : \(error)")
 
+        }
+    }
+    func markMessageAsSeen(messageId: String, chatId: String) async {
+        do {
+            let messageDocRef = messagesCollection.document(messageId)
+            let chatDocRef = chatsCollection.document(chatId)
+
+            // Check if the message exists
+            let messageSnapshot = try await messageDocRef.getDocument()
+            guard messageSnapshot.exists else {
+                print("Error: Message does not exist. ----------- ❌ ---------- ")
+                return
+            }
+
+            // Update isSeen to true for the message
+            try await messageDocRef.updateData(["isSeen": true])
+
+            // Optionally update the chat document to reflect the last seen message
+            try await chatDocRef.updateData(["lastSeenMessageId": messageId])
+
+            print("Message marked as seen successfully. ----------- ✅ ---------- ")
+        } catch {
+            print("Error marking message as seen ----------- ❌ ---------- : \(error)")
         }
     }
 

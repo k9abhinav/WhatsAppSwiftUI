@@ -6,13 +6,15 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State var selectView: Bool = true
     @State var currentUser: FireUserModel?
+    @State var currentMessage: FireMessageModel?
     @State var isProfilePicPresented = false
+    @State var chatImageDetailView : Bool = false
     var body: some View {
 
         ZStack {
             TabView(selection: $selectedTab) {
                 if selectView {
-                    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
+                    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented, chatImageDetailView: $chatImageDetailView, currentMessage: $currentMessage )
                         .tabItem {
                             Label("Chats", systemImage: "ellipsis.message.fill")
                         }
@@ -49,6 +51,7 @@ struct MainTabView: View {
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(.white, for: .tabBar)
             profilePicOverlayZStack
+            chatImageOverlayZStack
         }
     }
     private var profilePicOverlayZStack: some View {
@@ -56,6 +59,15 @@ struct MainTabView: View {
             if isProfilePicPresented {
                 ProfilePicOverlay(user: currentUser) {
                     withAnimation { isProfilePicPresented = false }
+                }
+            }
+        }
+    }
+    private var  chatImageOverlayZStack : some View {
+        Group{
+            if chatImageDetailView {
+                ChatImageOverlay(message: currentMessage){
+                    withAnimation { chatImageDetailView = false }
                 }
             }
         }

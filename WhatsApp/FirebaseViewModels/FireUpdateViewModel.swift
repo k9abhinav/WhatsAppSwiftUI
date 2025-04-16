@@ -2,7 +2,6 @@
 import SwiftUI
 import FirebaseFirestore
 
-@MainActor
 @Observable
 class UpdateViewModel {
     var updates: [FireUpdateModel] = []

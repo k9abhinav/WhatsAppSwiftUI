@@ -2,11 +2,23 @@ import Firebase
 import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
-import GoogleSignIn
+@preconcurrency import GoogleSignIn
 import SwiftUI
+/**
+ In summary, @preconcurrency in Swift and SwiftUI is a way to tell the compiler to assume concurrency safety (similar to Sendable) for code that predates the strict Sendable checking, facilitating smoother interoperability between synchronous and asynchronous code and maintaining backward compatibility. It helps avoid immediate Sendable-related errors or warnings when using older code in concurrent contexts.
+ */
 
-@MainActor
-@Observable final class FireAuthViewModel {
+@Observable
+final class FireAuthViewModel : Sendable {
+    /**
+     The primary goal of Sendable is to prevent data races. Data races occur when multiple threads or concurrent tasks try to access and modify the same mutable data without proper synchronization, leading to unpredictable and often incorrect behavior.
+     When a type conforms to Sendable, it signals to the compiler that its values are inherently safe to be shared concurrently. This usually means one of two things:
+     Immutability: The type's state cannot be changed after it's created (e.g., structs with only let properties, enums with associated values that are also Sendable). Immutable data is inherently safe to share.
+     Internal Synchronization: If the type has mutable state, it internally manages access to that state using appropriate synchronization mechanisms (like locks, actors, or atomic operations) to prevent data races.
+
+     In summary, conforming to the Sendable protocol is essential for writing correct and efficient concurrent Swift code. It allows the compiler to verify the safety of sharing data across concurrency domains, preventing data races and enabling more robust and predictable asynchronous applications. By explicitly marking types as Sendable, you provide valuable information to the compiler and other developers about the intended concurrency behavior of your code.
+
+     */
     // MARK: - Properties
     var currentLoggedInUser: FireUserModel?
     var verificationID = ""
@@ -41,7 +53,7 @@ import SwiftUI
         }
 
         do {
-            try await firebaseUser.reload() // Refresh user session
+            try await firebaseUser.reload()
             if auth.currentUser == nil {
                 print("DEBUG: User no longer exists in Firebase Auth.")
                 userIsAuthenticated = false
@@ -53,14 +65,14 @@ import SwiftUI
             let document = try await userRef.getDocument()
 
             if document.exists, let data = document.data() {
-                // Check if this device's session is still valid
+
                 let storedSessionId = data["currentSessionId"] as? String
                 let deviceSessionId = UserDefaults.standard.string(forKey: "userSessionId_\(firebaseUser.uid)")
 
                 if let storedSessionId = storedSessionId,
                    let deviceSessionId = deviceSessionId,
                    storedSessionId != deviceSessionId {
-                    // This device has been logged out by another login
+
                     print("DEBUG: Session invalid - user was logged in elsewhere")
                     userIsAuthenticated = false
                     try auth.signOut()
@@ -68,13 +80,11 @@ import SwiftUI
                     return
                 }
 
-                // Create user model with session information
                 var userModel = createUserModel(
                     firebaseUser: firebaseUser,
                     data: data
                 )
 
-                // If no session exists, create one
                 if storedSessionId == nil {
                     let newSessionId = generateSessionId()
                     try await userRef.updateData([
@@ -83,10 +93,8 @@ import SwiftUI
                         "lastDevice": UIDevice.current.name
                     ])
 
-                    // Save session locally
                     UserDefaults.standard.set(newSessionId, forKey: "userSessionId_\(firebaseUser.uid)")
 
-                    // Update user model
                     userModel.currentSessionId = newSessionId
                 } else {
                     // Save existing session locally
@@ -335,7 +343,7 @@ import SwiftUI
         guard let userId = currentLoggedInUser?.id else { return }
 
         // Create a listener for changes to the user document
-        let listener = getUserRef(userId: userId)
+        let _  = getUserRef(userId: userId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
                 guard let self = self,
                       let document = documentSnapshot,
@@ -612,204 +620,204 @@ import SwiftUI
         }
     }
     // MARK: - Sign Up With Google (updated with session management)
-//    func signUpWithGoogle(presenting viewController: UIViewController) async {
-//        guard let clientID = FirebaseApp.app()?.options.clientID else {
-//            showError("Missing Firebase Client ID")
-//            return
-//        }
-//
-//        let config = GIDConfiguration(clientID: clientID)
-//        GIDSignIn.sharedInstance.configuration = config
-//
-//        do {
-//            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
-//            guard let email = googleUser.user.profile?.email else {
-//                showError("Failed to retrieve email from Google account")
-//                return
-//            }
-//
-//            let snapshot = try await getUserByEmail(email)
-//
-//            if !snapshot.documents.isEmpty {
-//                let userDoc = snapshot.documents.first!
-//                let userData = userDoc.data()
-//                let authType = userData["authType"] as? String ?? "unknown"
-//
-//                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
-//
-//                // Check if user is already logged in elsewhere
-//                let (isActive, _) = await checkActiveSession(userId: userDoc.documentID)
-//
-//                if isActive {
-//                    // Option 1: Prevent login and inform user
-//                    // showError("This account is already logged in on another device. Please log out there first.")
-//                    // return
-//
-//                    // Option 2: Force logout on other device and continue
-//                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
-//                }
-//
-//                if authType == "email" {
-//                    DispatchQueue.main.async {
-//                        self.typeOfAuth = .email
-//
-//                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
-//                            withIDToken: googleUser.user.idToken!.tokenString,
-//                            accessToken: googleUser.user.accessToken.tokenString
-//                        )
-//
-//                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
-//
-//                        self.showAccountLinkingPrompt = true
-//                    }
-//                    return
-//                } else if authType == "google" {
-//                    await signInWithGoogle(presenting: viewController)
-//                    return
-//                }
-//            }
-//
-//            let credential = GoogleAuthProvider.credential(
-//                withIDToken: googleUser.user.idToken!.tokenString,
-//                accessToken: googleUser.user.accessToken.tokenString
-//            )
-//
-//            let authResult = try await auth.signIn(with: credential)
-//            let firebaseUser = authResult.user
-//            let userRef = getUserRef(userId: firebaseUser.uid)
-//
-//            let fullName = googleUser.user.profile?.name ?? "Unknown User"
-//            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
-//            let phoneNumber = firebaseUser.phoneNumber ?? ""
-//
-//            // Generate a session ID for this new user
-//            let sessionId = generateSessionId()
-//
-//            // Add sessionId to user data
-//            var userData = createUserData(
-//                id: firebaseUser.uid,
-//                phone: phoneNumber,
-//                name: fullName,
-//                imageUrl: profileImageURL,
-//                email: email,
-//                authType: "google"
-//            )
-//            userData["currentSessionId"] = sessionId
-//            userData["lastDevice"] = UIDevice.current.name
-//
-//            try await userRef.setData(userData)
-//            print("DEBUG: New user successfully created in Firestore with session ID: \(sessionId)")
-//
-//            currentLoggedInUser = FireUserModel(
-//                id: firebaseUser.uid,
-//                phoneNumber: phoneNumber,
-//                name: fullName,
-//                imageUrl: profileImageURL,
-//                aboutInfo: defaultAboutInfo,
-//                email: email,
-//                typeOfAuth: .google,
-//                onlineStatus: false,
-//                currentSessionId: sessionId
-//            )
-//            userIsAuthenticated = true
-//
-//            // Start monitoring for session changes
-//            monitorSessionStatus()
-//        } catch {
-//            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
-//            showError(error.localizedDescription)
-//        }
-//    }
+    //    func signUpWithGoogle(presenting viewController: UIViewController) async {
+    //        guard let clientID = FirebaseApp.app()?.options.clientID else {
+    //            showError("Missing Firebase Client ID")
+    //            return
+    //        }
+    //
+    //        let config = GIDConfiguration(clientID: clientID)
+    //        GIDSignIn.sharedInstance.configuration = config
+    //
+    //        do {
+    //            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+    //            guard let email = googleUser.user.profile?.email else {
+    //                showError("Failed to retrieve email from Google account")
+    //                return
+    //            }
+    //
+    //            let snapshot = try await getUserByEmail(email)
+    //
+    //            if !snapshot.documents.isEmpty {
+    //                let userDoc = snapshot.documents.first!
+    //                let userData = userDoc.data()
+    //                let authType = userData["authType"] as? String ?? "unknown"
+    //
+    //                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+    //
+    //                // Check if user is already logged in elsewhere
+    //                let (isActive, _) = await checkActiveSession(userId: userDoc.documentID)
+    //
+    //                if isActive {
+    //                    // Option 1: Prevent login and inform user
+    //                    // showError("This account is already logged in on another device. Please log out there first.")
+    //                    // return
+    //
+    //                    // Option 2: Force logout on other device and continue
+    //                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+    //                }
+    //
+    //                if authType == "email" {
+    //                    DispatchQueue.main.async {
+    //                        self.typeOfAuth = .email
+    //
+    //                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
+    //                            withIDToken: googleUser.user.idToken!.tokenString,
+    //                            accessToken: googleUser.user.accessToken.tokenString
+    //                        )
+    //
+    //                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+    //
+    //                        self.showAccountLinkingPrompt = true
+    //                    }
+    //                    return
+    //                } else if authType == "google" {
+    //                    await signInWithGoogle(presenting: viewController)
+    //                    return
+    //                }
+    //            }
+    //
+    //            let credential = GoogleAuthProvider.credential(
+    //                withIDToken: googleUser.user.idToken!.tokenString,
+    //                accessToken: googleUser.user.accessToken.tokenString
+    //            )
+    //
+    //            let authResult = try await auth.signIn(with: credential)
+    //            let firebaseUser = authResult.user
+    //            let userRef = getUserRef(userId: firebaseUser.uid)
+    //
+    //            let fullName = googleUser.user.profile?.name ?? "Unknown User"
+    //            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
+    //            let phoneNumber = firebaseUser.phoneNumber ?? ""
+    //
+    //            // Generate a session ID for this new user
+    //            let sessionId = generateSessionId()
+    //
+    //            // Add sessionId to user data
+    //            var userData = createUserData(
+    //                id: firebaseUser.uid,
+    //                phone: phoneNumber,
+    //                name: fullName,
+    //                imageUrl: profileImageURL,
+    //                email: email,
+    //                authType: "google"
+    //            )
+    //            userData["currentSessionId"] = sessionId
+    //            userData["lastDevice"] = UIDevice.current.name
+    //
+    //            try await userRef.setData(userData)
+    //            print("DEBUG: New user successfully created in Firestore with session ID: \(sessionId)")
+    //
+    //            currentLoggedInUser = FireUserModel(
+    //                id: firebaseUser.uid,
+    //                phoneNumber: phoneNumber,
+    //                name: fullName,
+    //                imageUrl: profileImageURL,
+    //                aboutInfo: defaultAboutInfo,
+    //                email: email,
+    //                typeOfAuth: .google,
+    //                onlineStatus: false,
+    //                currentSessionId: sessionId
+    //            )
+    //            userIsAuthenticated = true
+    //
+    //            // Start monitoring for session changes
+    //            monitorSessionStatus()
+    //        } catch {
+    //            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
+    //            showError(error.localizedDescription)
+    //        }
+    //    }
 
     // MARK: - Sign Up With Google (with account checking and linking flow)
-        func signUpWithGoogle(presenting viewController: UIViewController) async {
-            guard let clientID = FirebaseApp.app()?.options.clientID else {
-                showError("Missing Firebase Client ID")
+    func signUpWithGoogle(presenting viewController: UIViewController) async {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            showError("Missing Firebase Client ID")
+            return
+        }
+        
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        do {
+            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+            guard let email = googleUser.user.profile?.email else {
+                showError("Failed to retrieve email from Google account")
                 return
             }
 
-            let config = GIDConfiguration(clientID: clientID)
-            GIDSignIn.sharedInstance.configuration = config
+            let snapshot = try await getUserByEmail(email)
 
-            do {
-                let googleUser = try await signInWithGoogleHelper(presenting: viewController)
-                guard let email = googleUser.user.profile?.email else {
-                    showError("Failed to retrieve email from Google account")
+            if !snapshot.documents.isEmpty {
+
+                let userDoc = snapshot.documents.first!
+                let userData = userDoc.data()
+                let authType = userData["authType"] as? String ?? "unknown"
+
+                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+
+                if authType == "email" {
+
+                    DispatchQueue.main.async {
+                        self.typeOfAuth = .email
+
+                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
+                            withIDToken: googleUser.user.idToken!.tokenString,
+                            accessToken: googleUser.user.accessToken.tokenString
+                        )
+
+                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+
+                        self.showAccountLinkingPrompt = true
+                    }
+                    return
+                } else if authType == "google" {
+                    await signInWithGoogle(presenting: viewController)
                     return
                 }
-
-                let snapshot = try await getUserByEmail(email)
-
-                if !snapshot.documents.isEmpty {
-
-                    let userDoc = snapshot.documents.first!
-                    let userData = userDoc.data()
-                    let authType = userData["authType"] as? String ?? "unknown"
-
-                    print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
-
-                    if authType == "email" {
-
-                        DispatchQueue.main.async {
-                            self.typeOfAuth = .email
-
-                            self.pendingGoogleCredential = GoogleAuthProvider.credential(
-                                withIDToken: googleUser.user.idToken!.tokenString,
-                                accessToken: googleUser.user.accessToken.tokenString
-                            )
-
-                            self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
-
-                            self.showAccountLinkingPrompt = true
-                        }
-                        return
-                    } else if authType == "google" {
-                        await signInWithGoogle(presenting: viewController)
-                        return
-                    }
-                }
-
-                let credential = GoogleAuthProvider.credential(
-                    withIDToken: googleUser.user.idToken!.tokenString,
-                    accessToken: googleUser.user.accessToken.tokenString
-                )
-
-                let authResult = try await auth.signIn(with: credential)
-                let firebaseUser = authResult.user
-                let userRef = getUserRef(userId: firebaseUser.uid)
-
-                let fullName = googleUser.user.profile?.name ?? "Unknown User"
-                let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
-                let phoneNumber = firebaseUser.phoneNumber ?? ""
-
-                let userData = createUserData(
-                    id: firebaseUser.uid,
-                    phone: phoneNumber,
-                    name: fullName,
-                    imageUrl: profileImageURL,
-                    email: email,
-                    authType: "google"
-                )
-
-                try await userRef.setData(userData)
-                print("DEBUG: New user successfully created in Firestore")
-
-                currentLoggedInUser = FireUserModel(
-                    id: firebaseUser.uid,
-                    phoneNumber: phoneNumber,
-                    name: fullName,
-                    imageUrl: profileImageURL,
-                    aboutInfo: defaultAboutInfo,
-                    email: email,
-                    typeOfAuth: .google,
-                    onlineStatus: false
-                )
-                userIsAuthenticated = true
-            } catch {
-                print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
-                showError(error.localizedDescription)
             }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: googleUser.user.idToken!.tokenString,
+                accessToken: googleUser.user.accessToken.tokenString
+            )
+
+            let authResult = try await auth.signIn(with: credential)
+            let firebaseUser = authResult.user
+            let userRef = getUserRef(userId: firebaseUser.uid)
+
+            let fullName = googleUser.user.profile?.name ?? "Unknown User"
+            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
+            let phoneNumber = firebaseUser.phoneNumber ?? ""
+
+            let userData = createUserData(
+                id: firebaseUser.uid,
+                phone: phoneNumber,
+                name: fullName,
+                imageUrl: profileImageURL,
+                email: email,
+                authType: "google"
+            )
+
+            try await userRef.setData(userData)
+            print("DEBUG: New user successfully created in Firestore")
+
+            currentLoggedInUser = FireUserModel(
+                id: firebaseUser.uid,
+                phoneNumber: phoneNumber,
+                name: fullName,
+                imageUrl: profileImageURL,
+                aboutInfo: defaultAboutInfo,
+                email: email,
+                typeOfAuth: .google,
+                onlineStatus: false
+            )
+            userIsAuthenticated = true
+        } catch {
+            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
+            showError(error.localizedDescription)
         }
+    }
     // MARK: - Send OTP
     func sendOTP(phoneNumber: String) async {
         do {
@@ -902,7 +910,7 @@ import SwiftUI
         authType: String,
         onlineStatus: Bool? = nil
     ) -> [String: Any] {
-         [
+        [
             "id": id,
             "phoneNumber": phone,
             "name": name,

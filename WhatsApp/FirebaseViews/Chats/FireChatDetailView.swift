@@ -15,7 +15,7 @@ struct FireChatDetailView: View {
     @State private var lastMessage : FireMessageModel? = nil
     @FocusState private var isTextFieldFocused: Bool
     @State private var isMediaSheetVisible: Bool = false
-    @State private var chatId: String?
+    @State var chatId: String?
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isProfileImagePresented: Bool = false
@@ -23,9 +23,14 @@ struct FireChatDetailView: View {
     @State private var onlineStatus: Bool?
     @State private var chatExists: Bool? = nil
     @Binding var navigationPath: NavigationPath
+    @Binding var chatImageDetailView : Bool
+    @Binding var currentMessage: FireMessageModel?
     @State private var selectedMedia: MPMediaItem?
     @State private var selectedImages: [PhotosPickerItem] = []
     @State private var selectedVideos: [PhotosPickerItem] = []
+    @State private var showCamera = false
+    @State private var capturedImage: UIImage?
+    @State private var showPreview = false
 
 
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
@@ -44,7 +49,6 @@ struct FireChatDetailView: View {
                         }
                 }
                 inputMessageTabView
-                    .zIndex(3)
             }
             .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
                 ProfileDetailsView(user: user)
@@ -87,6 +91,23 @@ struct FireChatDetailView: View {
                 onDisappearFunctions()
             }
             //            profilePicOverlayZStack
+            if showPreview, let image = capturedImage {
+                            ImagePreviewView(
+                                image: image,
+                                onSend: {
+                                    // 👉 Pass the image to your chat message logic here
+                                    print("Sending image…")
+                                    showPreview = false
+                                    capturedImage = nil
+                                },
+                                onCancel: {
+                                    showPreview = false
+                                    capturedImage = nil
+                                }
+                            )
+                            .transition(.move(edge: .bottom))
+                            .zIndex(1)
+                        }
         }
     }
 
@@ -157,14 +178,13 @@ struct FireChatDetailView: View {
         guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
 
         Task {
-            var chatId:String?
             if chatExists == false {
                 await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
-                print("THE CHAT ID ---- > \(chatId ?? "NO CHATID HERE ---❌---")")
+                chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id]) ?? ""
+                print("THE CHAT ID ---- > \(chatId ?? "" )")
             }
             await messageViewModel.sendImageMessage(
-                chatId: chatId ?? "",
+                chatId: chatId ?? "" ,
                 currentUserId: currentUserId,
                 otherUserId: user.id,
                 imageData: image
@@ -175,7 +195,7 @@ struct FireChatDetailView: View {
         guard let currentUserId = authViewModel.currentLoggedInUser?.id else { return }
 
         Task {
-            var chatId: String?
+
             if chatExists == false {
                 await chatViewModel.createNewChat(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
                 chatId = await chatViewModel.loadChatId(for: [authViewModel.currentLoggedInUser?.id ?? "", user.id])
@@ -208,7 +228,7 @@ struct FireChatDetailView: View {
     //   ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
     private var renderMessages : some View{
-        Group{
+        VStack{
             let date : Date = user.createdDate ?? .now
             Group{
                 Text(timeString(from: date))
@@ -227,6 +247,9 @@ struct FireChatDetailView: View {
                 FireChatBubble(
                     message: message,
                     currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
+                    userId: user.id,
+                    chatImageDetailView: $chatImageDetailView,
+                    chatId: $chatId, currentMessage: $currentMessage,
                     onReply: {
                         messageText = "Replying to: \"\(message.content)\"\n"
                     },
@@ -348,18 +371,112 @@ struct FireChatDetailView: View {
             }
         }
     }
-    // MARK: Message Tab Bar
-    private var inputMessageTabBar: some View {
-        HStack(spacing: 12) {
-            Menu {
-                // Image Picker Option
+
+    private var inputMessageTabView: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isMediaSheetVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(.gray.opacity(0.7))
+                }
+
+                TextField("Message", text: $messageText)
+                    .focused($isTextFieldFocused)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(20)
+
+                if messageText.isEmpty {
+                    HStack(spacing: 16) {
+                        Button {
+                            // Camera action
+                            showCamera = true
+                        } label: {
+                            Image(systemName: "camera")
+                                .font(.system(size: 22))
+                                .foregroundColor(.gray.opacity(0.7))
+                        }
+
+                        VoiceRecordButton { audioURL, duration in
+                            Task {
+                                await messageViewModel.sendVoiceMessage(
+                                    chatId: chatId ?? "Error",
+                                    currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
+                                    otherUserId: user.id,
+                                    audioFileURL: audioURL,
+                                    duration: duration
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Button(action: { Task { await sendMessage() } }) {
+                        Circle()
+                            .fill(Color.green) // WhatsApp green
+                            .frame(width: 38, height: 38)
+                            .overlay(
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .offset(x: 1)
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            .padding(.bottom, 5)
+
+            if isMediaSheetVisible {
+                mediaPickerSheet
+//                    .transition(.move(edge: .bottom))
+            }
+        }
+        .background(Color.white)
+//        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: -1)
+    }
+
+    private var mediaPickerSheet: some View {
+        VStack(spacing: 0) {
+            // Handle indicator
+//            Rectangle()
+//                .fill(Color(.systemGray4))
+//                .frame(width: 40, height: 4)
+//                .cornerRadius(2)
+//                .padding(.top, 8)
+//                .padding(.bottom, 20)
+
+            // Grid layout
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 24) {
+                // Document button
+                mediaSheetButton(iconName: "doc.fill", label: "Document", color: Color.purple)
+
+                // Camera button
+                Button {
+                    showCamera = true
+                } label: {
+                    mediaSheetButtonView(iconName: "camera.fill", label: "Camera", color: Color.red.opacity(0.8))
+                }
+
+                // Image Gallery button
                 PhotosPicker(
                     selection: $selectedImages,
-                    maxSelectionCount: 2,
+                    maxSelectionCount: 10,
                     matching: .images,
                     photoLibrary: .shared()
                 ) {
-                    Label("Images", systemImage: "photo.on.rectangle")
+                    mediaSheetButtonView(iconName: "photo.fill", label: "Images", color: Color.cyan)
                 }
                 .onChange(of: selectedImages) { _, newItems in
                     Task {
@@ -370,18 +487,16 @@ struct FireChatDetailView: View {
                             }
                         }
                         selectedImages.removeAll()
+                        isMediaSheetVisible = false
                     }
                 }
-
-
-                // Video Picker Option
                 PhotosPicker(
                     selection: $selectedVideos,
-                    maxSelectionCount: 2,
-                    matching: .videos,
-                    photoLibrary: .shared()
+                                            maxSelectionCount: 2,
+                                            matching: .videos,
+                                            photoLibrary: .shared()
                 ) {
-                    Label("Videos", systemImage: "film")
+                    mediaSheetButtonView(iconName: "photo.fill", label: "Videos", color: Color.teal)
                 }
                 .onChange(of: selectedVideos) { _, newItems in
                     Task {
@@ -394,175 +509,61 @@ struct FireChatDetailView: View {
                     }
                 }
 
-                // Audio Picker Option
-                Button(action: {
-                    // Your audio selection code here
-                }) {
-                    Label("Audio", systemImage: "waveform")
-                }
+                // Audio button
+                mediaSheetButton(iconName: "music.note", label: "Audio", color: Color.orange)
 
-                // Contact Picker Option
-                Button(action: {
-                    // Your contact selection code here
-                }) {
-                    Label("Contact", systemImage: "person.crop.circle")
-                }
+                // Location button
+                mediaSheetButton(iconName: "location.fill", label: "Location", color: Color.green)
 
-                // Location Option
-                Button(action: {
-                    // Your location sharing code here
-                }) {
-                    Label("Location", systemImage: "location.fill")
-                }
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 22))
-                    .foregroundColor(.gray)
-            }
+                // Contact button
+                mediaSheetButton(iconName: "person.fill", label: "Contact", color: Color.indigo)
 
-            TextField("Message", text: $messageText)
-                .focused($isTextFieldFocused)
-                .padding(10)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(20)
-            if(!isTextFieldFocused){
-                VoiceRecordButton { audioURL, duration in
-                    Task {
-                        await messageViewModel.sendVoiceMessage(
-                            chatId: chatId ?? "Error: No chatId",
-                            currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error: No currentUserId",
-                            otherUserId: user.id ,
-                            audioFileURL: audioURL,
-                            duration: duration
-                        )
-                    }
-                }
+                // Poll button
+                mediaSheetButton(iconName: "chart.bar.fill", label: "Poll", color: Color.pink)
             }
-            Button(action: { Task { await sendMessage() }}) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(.customGreen)
-            }
-            .disabled(messageText.isEmpty)
+            .padding(.horizontal, 20)
+//            .padding(.bottom, 30)
         }
-        .padding(.horizontal)
-        .padding(.top, 8)
-        .padding(.bottom, 5)
-        .background(Color.white)
-        .ignoresSafeArea()
-    }
-    private var inputMessageTabView: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Button {
-                    withAnimation(.easeInOut) {
-                        isMediaSheetVisible.toggle()
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 22))
-                        .foregroundColor(.gray)
-                }
-
-                TextField("Message", text: $messageText)
-                    .focused($isTextFieldFocused)
-                    .padding(10)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(20)
-
-                Button(action: { Task { await sendMessage() } }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.customGreen)
-                }
-                .disabled(messageText.isEmpty)
-
-                VoiceRecordButton { audioURL, duration in
-                    Task {
-                        await messageViewModel.sendVoiceMessage(
-                            chatId: chatId ?? "Error",
-                            currentUserId: authViewModel.currentLoggedInUser?.id ?? "Error",
-                            otherUserId: user.id,
-                            audioFileURL: audioURL,
-                            duration: duration
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 5)
-            .background(Color.white)
-
-            if isMediaSheetVisible {
-                mediaPickerSheet
-                    .transition(.move(edge: .bottom))
+//        .padding(.bottom, 16)
+        .background(
+//            RoundedRectangle(cornerRadius: 20)
+//                .fill(Color.white)
+//                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
+            Color.white
+        )
+        .sheet(isPresented: $showCamera) {
+            CameraPicker { image in
+                capturedImage = image
+                showPreview = true
             }
         }
     }
-    private var mediaPickerSheet: some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 30) {
-                Group{
-                    PhotosPicker(
-                        selection: $selectedImages,
-                        maxSelectionCount: 2,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Images", systemImage: "photo.on.rectangle")
-                    }
-                    .onChange(of: selectedImages) { _, newItems in
-                        Task {
-                            for item in newItems {
-                                if let data = try? await item.loadTransferable(type: Data.self),
-                                   let image = UIImage(data: data) {
-                                    await sendImage(image)
-                                }
-                            }
-                            selectedImages.removeAll()
-                        }
-                    }
-//
-                    PhotosPicker(
-                        selection: $selectedVideos,
-                        maxSelectionCount: 2,
-                        matching: .videos,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Videos", systemImage: "film")
-                    }
-                    .onChange(of: selectedVideos) { _, newItems in
-                        Task {
-                            for item in newItems {
-                                if let data = try? await item.loadTransferable(type: Data.self) {
-                                    await sendVideo(data)
-                                }
-                            }
-                            selectedVideos.removeAll()
-                        }
-                    }
-                    //
-                    
-                }
-                .onTapGesture {
-                    isMediaSheetVisible = false
-                }
-            }
+
+    // Helper function to create consistent media sheet buttons
+    private func mediaSheetButton(iconName: String, label: String, color: Color) -> some View {
+        Button {
+            isMediaSheetVisible = false
+        } label: {
+            mediaSheetButtonView(iconName: iconName, label: label, color: color)
         }
-        .padding()
     }
 
-    private func mediaButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        VStack {
-            Button(action: action) {
-                Image(systemName: icon)
-                    .font(.title)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .clipShape(Circle())
+    // Helper function for the button view
+    private func mediaSheetButtonView(iconName: String, label: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(color)
+                    .frame(width: 58, height: 58)
+
+                Image(systemName: iconName)
+                    .font(.system(size: 26))
+                    .foregroundColor(.white)
             }
-            Text(title).font(.caption)
+
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(.primary)
         }
     }
 

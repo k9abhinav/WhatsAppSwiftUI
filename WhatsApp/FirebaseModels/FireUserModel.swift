@@ -22,9 +22,11 @@ struct FireUserModel: Identifiable, Codable, Hashable,Equatable {
     static func == (lhs: FireUserModel, rhs: FireUserModel) -> Bool {
         return lhs.id == rhs.id
     }
+
     enum CodingKeys: String, CodingKey {
         case id, phoneNumber, name, imageUrl, aboutInfo,createdDate, email,password, typeOfAuth, lastSeenTime, onlineStatus,currentSessionId,isTyping
     }
+
 }
 
 enum AuthType: String ,Codable {

@@ -16,7 +16,8 @@ struct FireChatListView: View {
     @State var navigationPath: NavigationPath = NavigationPath()
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
-
+    @Binding var chatImageDetailView : Bool
+    @Binding var currentMessage: FireMessageModel?
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -35,7 +36,7 @@ struct FireChatListView: View {
                             destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
                         )
                         .navigationDestination(for: FireUserModel.self) { user in
-                            FireChatDetailView(userId: user.id, navigationPath: $navigationPath)
+                            FireChatDetailView(userId: user.id, navigationPath: $navigationPath, chatImageDetailView: $chatImageDetailView, currentMessage: $currentMessage)
                         }
                         .navigationDestination(
                             isPresented: $showingContactUsers,
@@ -58,7 +59,7 @@ struct FireChatListView: View {
     }
 
     // MARK: - HELPER FUNCTIONS
-    private var filteredUsers: [FireUserModel] {
+    private var filteredUsers: [FireUserModel]  {
         if searchText.isEmpty {
             return userViewModel.users
         } else {
@@ -122,7 +123,6 @@ struct FireChatListView: View {
                         .foregroundColor(.gray)
                         .padding(.leading, 5)
                 }
-
             }
             )
             Button(action: {},label: {
@@ -157,12 +157,15 @@ struct FireChatListView: View {
                 if(!isSearchFocused){
                     if filteredUsers.isEmpty {
                         VStack{
-                            Text("No such results")
+                            Image("startChat")
+                                .resizable()
+                                .frame(width: 100, height: 100)
+                                .scaledToFit()
+                            Text("Start a chat... Click on the plus (+) icon ")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                                 .padding()
                                 .frame(alignment: .center)
-
                         }
                     } else {
                         ForEach(filteredUsers) { user in
@@ -178,7 +181,11 @@ struct FireChatListView: View {
                 else{
                     if filteredUsers.isEmpty {
                         VStack{
-
+                            Text("No such results")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding()
+                                .frame(alignment: .center)
                         }
                     }
                 }
@@ -228,14 +235,14 @@ struct FireChatListView: View {
 }
 
 #Preview {
-    @Previewable @State var selectView: Bool = false
-    @Previewable @State var currentUser: FireUserModel? = nil
-    @Previewable @State var isProfilePicPresented: Bool = false
-
-    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
-        .environment(FireUserViewModel())
-        .environment(ChatsViewModel())
-        .environment(FireChatViewModel())
-        .environment(FireAuthViewModel())
+//    @Previewable @State var selectView: Bool = false
+//    @Previewable @State var currentUser: FireUserModel? = nil
+//    @Previewable @State var isProfilePicPresented: Bool = false
+//
+//    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
+//        .environment(FireUserViewModel())
+//        .environment(ChatsViewModel())
+//        .environment(FireChatViewModel())
+//        .environment(FireAuthViewModel())
 }
 

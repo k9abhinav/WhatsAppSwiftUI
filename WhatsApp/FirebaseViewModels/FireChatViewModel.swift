@@ -2,7 +2,6 @@ import SwiftUI
 import FirebaseFirestore
 import Observation
 
-@MainActor
 @Observable
 final class FireChatViewModel  {
     private let db = Firestore.firestore()
@@ -32,7 +31,7 @@ final class FireChatViewModel  {
                     return
                 }
                 self.chats = documents.compactMap { try? $0.data(as: FireChatModel.self) }
-              self.triggeredUpdate = true
+                self.triggeredUpdate = true
                 print("Chat listener triggered, chats count: \(self.chats.count)")
             }
         print("Chat listener setup -----------✅------------")
@@ -125,6 +124,27 @@ final class FireChatViewModel  {
         print("Chat does not exist for participants ------❌----------- ") //Debug: chat does not exist
         return false
     }
+    func isThereChatWithId(chatId: String) async -> Bool {
+        do {
+            // Query Firestore for a document with the given chatId
+            let querySnapshot = try await chatsCollection
+                .whereField("chatId", isEqualTo: chatId)
+                .getDocuments()
+
+            // Check if the query returned any documents
+            if !querySnapshot.isEmpty {
+                print(" ----------------- Chat exists with chatId ✅ ------------") // Debug: Chat exists
+                return true
+            }
+        } catch {
+            print("Error checking chat existence ------❌----------- : \n \(error.localizedDescription) ") // Debug: Error checking chat existence
+        }
+
+        print("Chat does not exist with chatId ------❌----------- ") // Debug: Chat does not exist
+        return false
+    }
+
+
     //MARK: -deleteChat
     func deleteChat(for chatId: String) async {
         do {

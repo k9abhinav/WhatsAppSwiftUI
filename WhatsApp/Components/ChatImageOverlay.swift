@@ -1,26 +1,27 @@
+//
+//  ProfilePicOverlay 2.swift
+//  WhatsApp
+//
+//  Created by Abhinava Krishna on 16/04/25.
+//
+
+
 import SwiftUI
 
-struct ProfilePicOverlay: View {
-    let user: FireUserModel?
+struct ChatImageOverlay : View {
+    let message:FireMessageModel?
     let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            // Background with fade effect
             VStack{
                 Color.black
                     .ignoresSafeArea(.all)
             }
-                // Tap anywhere to dismiss
-
             VStack {
-                // Close button at top left
-
-
                 Spacer()
-
                 // Profile Image
-                if let imageUrlString = user?.imageUrl, let imageUrl = URL(string: imageUrlString) {
+                if let imageUrlString = message?.imageUrl, let imageUrl = URL(string: imageUrlString) {
                     AsyncImage(url: imageUrl) { phase in
                         switch phase {
                         case .empty:
@@ -51,20 +52,12 @@ struct ProfilePicOverlay: View {
                         .frame(width: 150, height: 150)
                         .foregroundColor(.gray)
                 }
-
-                // User Name Display
-                Text(user?.name ?? "Error")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.top, 10)
-
                 Spacer()
             }
         }
         .zIndex(10)
         .onTapGesture { onDismiss() }
         .transition(.opacity) // Smooth fade-in effect
-        .animation(.easeInOut(duration: 0.3), value: user?.imageUrl) // Smooth appearance
+        .animation(.easeInOut(duration: 0.3), value: message?.imageUrl) // Smooth appearance
     }
 }

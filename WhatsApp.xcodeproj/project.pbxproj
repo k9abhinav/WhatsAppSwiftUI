@@ -469,6 +469,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WhatsApp/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to let you send photos in chat.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to send voice messages.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need access to save images to your photo library.";
@@ -506,6 +507,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WhatsApp/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = NSAllowsArbitraryLoads;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to let you send photos in chat.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "We need access to your contacts to show chats.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to send voice messages.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need access to save images to your photo library.";
