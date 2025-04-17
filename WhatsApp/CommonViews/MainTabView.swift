@@ -9,6 +9,7 @@ struct MainTabView: View {
     @State var currentMessage: FireMessageModel?
     @State var isProfilePicPresented = false
     @State var chatImageDetailView : Bool = false
+    @Environment(FireAuthViewModel.self) private var authViewModel
     var body: some View {
 
         ZStack {
@@ -20,6 +21,11 @@ struct MainTabView: View {
                         }
                         .tag(0)
                         .badge(1)
+                    FireUpdatesView(userId: authViewModel.currentLoggedInUser?.id ?? "")
+                        .tabItem {
+                            Label("Updates", systemImage: "timer.circle")
+                        }
+                        .tag(1)
                 } else {
                     ChatListView(selectView: $selectView)
                         .tabItem {
@@ -27,13 +33,14 @@ struct MainTabView: View {
                         }
                         .tag(0)
                         .badge(1)
+                    UpdatesView()
+                        .tabItem {
+                            Label("Updates", systemImage: "timer.circle")
+                        }
+                        .tag(1)
                 }
-                UpdatesView()
-                    .tabItem {
-                        Label("Updates", systemImage: "timer.circle")
-                    }
-                    .tag(1)
-                
+
+
                 CommunitiesView()
                     .tabItem {
                         Label("Communities", systemImage: "person.3.fill")

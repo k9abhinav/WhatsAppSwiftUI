@@ -159,9 +159,9 @@ struct FireChatListView: View {
                         VStack{
                             Image("startChat")
                                 .resizable()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 300, height: 300)
                                 .scaledToFit()
-                            Text("Start a chat... Click on the plus (+) icon ")
+                            Text("Start a chat... Click on the plus (+) icon below ")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                                 .padding()

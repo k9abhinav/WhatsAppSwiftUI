@@ -15,6 +15,7 @@ struct WhatsAppApp: App {
     @State private var userViewModel  :FireUserViewModel
     @State private var messageViewModel : FireMessageViewModel
     @State private var contactsManager : ContactsManager
+    @State private var updateViewModel : FireUpdateViewModel
     @Environment(\.modelContext) private var modelContext: ModelContext
     let container: ModelContainer
 
@@ -38,6 +39,7 @@ struct WhatsAppApp: App {
         userViewModel = FireUserViewModel()
         messageViewModel = FireMessageViewModel()
         contactsManager = ContactsManager(modelContext: modelContext)
+        updateViewModel = FireUpdateViewModel()
     }
 
     var body: some Scene {
@@ -49,6 +51,7 @@ struct WhatsAppApp: App {
                 .environment(callsViewModel)
                 .environment(communityViewModel)
                 .environment(chatViewModel)
+                .environment(updateViewModel)
                 .environment(userViewModel)
                 .modelContainer(container)
                 .environment(contactsManager)

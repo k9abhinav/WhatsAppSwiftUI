@@ -176,7 +176,7 @@ final class FireChatViewModel  {
             // Then fetch the chat document directly using this chatId
             let chatSnapshot = try await chatsCollection.document(chatId).getDocument()
             guard let chat = try? chatSnapshot.data(as: FireChatModel.self),
-                  let lastMessageId = chat.lastMessageId, let lastMessageContent = chat.lastMessageContent, let lastMessageTimeStamp = chat.lastSeenTimeStamp else {
+                  let _ = chat.lastMessageId, let lastMessageContent = chat.lastMessageContent, let lastMessageTimeStamp = chat.lastSeenTimeStamp else {
                 return (nil, nil)
             }
             return (lastMessageContent, lastMessageTimeStamp)

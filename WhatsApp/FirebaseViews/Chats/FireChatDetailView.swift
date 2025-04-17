@@ -1,6 +1,7 @@
 import PhotosUI
 import SwiftUI
 import MediaPlayer
+
 struct FireChatDetailView: View {
 
     let userId:String
