@@ -1,110 +1,77 @@
-
 import SwiftUI
 import SwiftData
 import FirebaseAuth
 
 struct ContentView: View {
     @State private var splashViewActive = true
-    @State private var isUserLoggedIn: Bool = Auth.auth().currentUser != nil
+    @State private var isUserLoggedIn = Auth.auth().currentUser != nil
     @State private var authListenerHandle: AuthStateDidChangeListenerHandle?
     @State private var isLoading = true
-    //    @Environment(ContactsManager.self) var contactsManager:ContactsManager
+    @State private var userViewModel = FireUserViewModel()
+    @State private var updateViewModel = FireUpdateViewModel()
+    @State private var messageViewModel = FireMessageViewModel()
+    @State private var chatViewModel = FireChatViewModel()
+    @State private var utilityViewModel = UtilityClass()
+    @State private var authViewModel = FireAuthViewModel()
     var body: some View {
-        VStack {
+        Group {
             if splashViewActive {
                 SplashView(splashViewActive: $splashViewActive)
-            } else  {
-                if isUserLoggedIn {
-                    withAnimation(.smooth(duration: 0.75)) {
-                        ZStack {
-                            if isLoading { LoadingView() }
-                            else {  MainTabView()  }
-                        }
-                    }
-                }
-                else {  withAnimation(.easeIn(duration: 0.3)) { WelcomeView() }
-                }
+            } else {
+                contentView
+                    .environment(userViewModel)
+                    .environment(messageViewModel)
+                    .environment(chatViewModel)
+                    .environment(updateViewModel)
+                    .environment(utilityViewModel)
+                    .environment(authViewModel)
             }
         }
         .animation(.easeOut(duration: 0.3), value: splashViewActive)
-        .onAppear {
-            authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
-                isUserLoggedIn = (user != nil)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation {
-                    isLoading = false
+        .onAppear(perform: setupAuthListener)
+        .onDisappear(perform: removeAuthListener)
+    }
+
+    private var contentView: some View {
+        Group {
+            if isUserLoggedIn {
+                if isLoading {
+                    LoadingView()
+                } else {
+                    MainTabView()
                 }
-            }
-            //            contactsManager.requestAccess()
-        }
-        .onDisappear {
-            if let handle = authListenerHandle {
-                Auth.auth().removeStateDidChangeListener(handle)
+            } else {
+                WelcomeView()
             }
         }
-
+        .animation(.smooth(duration: 0.75), value: isUserLoggedIn)
     }
-}
 
-extension Color {
-    static let customGreen = Color(UIColor(red: 0.22, green: 0.67, blue: 0.49, alpha: 1.0))
-}
+    private func setupAuthListener() {
+        authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
+            isUserLoggedIn = (user != nil)
+        }
 
-extension Color {
-    static var rainbow: some ShapeStyle {
-        LinearGradient(
-            stops: [
-                .init(color: Color(red: 122/255, green: 229/255, blue: 83/255), location: 0.0),
-                .init(color: Color(red: 179/255, green: 203/255, blue: 54/255), location: 0.143),
-                .init(color: Color(red: 216/255, green: 78/255, blue: 87/255), location: 0.286),
-                .init(color: Color(red: 242/255, green: 191/255, blue: 28/255), location: 0.429),
-                .init(color: Color(red: 42/255, green: 161/255, blue: 208/255), location: 0.572),
-                .init(color: Color(red: 94/255, green: 196/255, blue: 138/255), location: 0.714),
-                .init(color: Color(red: 97/255, green: 124/255, blue: 184/255), location: 0.857),
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
+        let isFirstInstall = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+
+        if isFirstInstall {
+            do {
+                try Auth.auth().signOut()
+            }catch {
+                print("\(error.localizedDescription)")
+            }
+            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+        }
+
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation { isLoading = false }
+        }
     }
+
+
+    private func removeAuthListener() {
+        authListenerHandle.map { Auth.auth().removeStateDidChangeListener($0) }
+    }
+
 }
-extension LinearGradient {
-    static let rainbow = LinearGradient(
-        stops: [
-            .init(color: Color(red: 122/255, green: 229/255, blue: 83/255), location: 0.0),
-            .init(color: Color(red: 179/255, green: 203/255, blue: 54/255), location: 0.143),
-            .init(color: Color(red: 216/255, green: 78/255, blue: 87/255), location: 0.286),
-            .init(color: Color(red: 242/255, green: 191/255, blue: 28/255), location: 0.429),
-            .init(color: Color(red: 42/255, green: 161/255, blue: 208/255), location: 0.572),
-            .init(color: Color(red: 94/255, green: 196/255, blue: 138/255), location: 0.714),
-            .init(color: Color(red: 97/255, green: 124/255, blue: 184/255), location: 0.857),
-        ],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
-}
-
-
-
-
-
-
-
-//        .onAppear { contactsManager.requestAccess() }
-
-//    @Environment(ContactsManager.self) private var contactsManager : ContactsManager
-//    @Environment(\.modelContext) var modelContext: ModelContext
-//    init(modelContext: ModelContext) {
-//        _contactsManager = Environment(wrappedValue: ContactsManager(modelContext: modelContext))
-//       }
-//    ------------- For ContactsManager to load users as Contacts if not available ---------------------------------
-
-
-//func clearUserDefaults() {
-//    let defaults = UserDefaults.standard
-//    for key in defaults.dictionaryRepresentation().keys {
-//        defaults.removeObject(forKey: key)
-//    }
-//    defaults.synchronize()
-//}
-//clearUserDefaults()

@@ -5,6 +5,7 @@ import FirebaseStorage
 
 @Observable
 final class FireUserViewModel {
+
     // MARK: - Properties
     var users: [FireUserModel] {
             return sortedUserIds.compactMap { userId in
@@ -15,6 +16,7 @@ final class FireUserViewModel {
     private var userChatTimestamps: [String: Date] = [:]
     private var sortedUserIds: [String] = []
     var triggerProfilePicUpdated: Bool = false
+
     // MARK: - Firebase References
     private let db = Firestore.firestore()
     private let storage = Storage.storage().reference()
@@ -28,13 +30,13 @@ final class FireUserViewModel {
         usersCollection = db.collection("users")
         chatsCollection = db.collection("chats")
         messagesCollection = db.collection("messages")
-        print("---   FireUserViewModel initialized ------✅------------------")
+        print("----- FireUserViewModel initialized ------✅------------------")
     }
     func initializeData(loggedInUserId: String) async {
-//        await fetchAllUsersContacts() // Initial cache
         setupUsersListener()
         setupChatsListener(for: loggedInUserId)
     }
+
     // MARK: - Listeners
     func setupUsersListener() {
             listenerRegistration = usersCollection.addSnapshotListener { [weak self] snapshot, error in
@@ -45,7 +47,7 @@ final class FireUserViewModel {
 
                 self.allUsers = documents.compactMap { try? $0.data(as: FireUserModel.self) }
                 print(allUsers)
-                // If we have chat data, update the users list based on new allUsers
+
                 if !self.userChatTimestamps.isEmpty {
                     self.updateUsersFromChatData()
                 }
@@ -82,14 +84,12 @@ final class FireUserViewModel {
                    }
                }
 
-               // Update users with new chat data
                self.updateUsersFromChatData()
 
                print("Chats listener triggered, ------✅----------- \n sorted users count: \(self.users.count)")
            }
        }
 
-       // Method to update users from chat data
        private func updateUsersFromChatData() {
            guard !userChatTimestamps.isEmpty else {
                print("No users found with chats ----------------❌---------------")
@@ -174,8 +174,6 @@ final class FireUserViewModel {
 //        print("Sorted users with chats, count  ------✅----------- : \(users.count)")
 //    }
 
-
-
     // MARK: - Profile Image Handling
     func changeProfileImage(userId: String, image: UIImage) async -> String? {
         if let imageUrl = await uploadProfileImage(userId: userId, image: image) {
@@ -187,7 +185,6 @@ final class FireUserViewModel {
         }
         return nil
     }
-
 
     func uploadProfileImage(userId: String, image: UIImage) async -> String? {
         guard let (imageData, fileExtension) = getImageDataAndExtension(image: image) else {
@@ -236,9 +233,11 @@ final class FireUserViewModel {
     func updateUserStatus(userId: String, newStatus: String, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "aboutInfo", value: newStatus, completion: completion)
     }
+
     func updateUserTypingStatus(userId: String, newStatus: Bool, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "isTyping", value: newStatus, completion: completion)
     }
+
     func updateUserOnlineStatus(userId: String, newStatus: Bool, completion: @escaping (Error?) -> Void) {
         updateUserField(userId: userId, fieldName: "onlineStatus", value: newStatus, completion: completion)
     }

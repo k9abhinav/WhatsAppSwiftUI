@@ -1,9 +1,3 @@
-//
-//  BackgroundImage.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 12/03/25.
-//
 
 import SwiftUI
 

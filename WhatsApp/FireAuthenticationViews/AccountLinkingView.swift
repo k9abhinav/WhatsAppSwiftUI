@@ -69,7 +69,7 @@ struct AccountLinkingView: View {
         isLinking = true
         
         Task {
-            await authViewModel.completeGoogleAccountLinking(email: email, password: password)
+//            await authViewModel.completeGoogleAccountLinking(email: email, password: password)
             DispatchQueue.main.async {
                 isLinking = false
                 if !authViewModel.showingError {

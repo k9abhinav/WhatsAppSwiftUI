@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ChatBubble: View {
     let message: Chat
-
+    @Environment(UtilityClass.self) private var utilityVM : UtilityClass
     var body: some View {
         HStack(alignment: .bottom) {
 
@@ -14,7 +14,7 @@ struct ChatBubble: View {
                     .cornerRadius(16)
                     .font(.body)
 
-                Text(timeString(from: message.timestamp))
+                Text(utilityVM.timeStringShort(from: message.timestamp))
                     .font(.caption2)
                     .foregroundColor(.gray)
                     .padding(message.isFromCurrentUser ? .trailing : .leading, 4)
@@ -25,9 +25,5 @@ struct ChatBubble: View {
         }
     }
 
-    private func timeString(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
+
 }

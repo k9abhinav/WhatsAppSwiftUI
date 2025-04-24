@@ -5,8 +5,8 @@ import PhotosUI
 struct FireChatListView: View {
 
     @Environment(FireUserViewModel.self) private var userViewModel : FireUserViewModel
-    @Environment(ChatsViewModel.self) private var viewModel : ChatsViewModel
     @Environment(FireChatViewModel.self) private var chatViewModel: FireChatViewModel
+    @Environment(UtilityClass.self) private var utilityVM: UtilityClass
     @Environment(FireAuthViewModel.self) private var authViewModel: FireAuthViewModel
     @FocusState private var isSearchFocused: Bool
     @State private var searchText = ""
@@ -16,8 +16,9 @@ struct FireChatListView: View {
     @State var navigationPath: NavigationPath = NavigationPath()
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
+    @Binding var currentProfileImageData: Data?
     @Binding var chatImageDetailView : Bool
-    @Binding var currentMessage: FireMessageModel?
+    @Binding var currentChatImageData: Data?
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -33,14 +34,19 @@ struct FireChatListView: View {
                         .navigationTitle("Chats")
                         .navigationDestination(
                             isPresented: $showingSettings,
-                            destination: { FireSettingsView(selectView: $selectView, navigationPath: $navigationPath) }
+                            destination: {
+                                FireSettingsView (
+                                    selectView: $selectView,
+                                    navigationPath: $navigationPath
+                                )
+                            }
                         )
                         .navigationDestination(for: FireUserModel.self) { user in
-                            FireChatDetailView(userId: user.id, navigationPath: $navigationPath, chatImageDetailView: $chatImageDetailView, currentMessage: $currentMessage)
+                            FireChatDetailView(userId: user.id, imageURLData: $currentProfileImageData, navigationPath: $navigationPath, chatImageDetailView: $chatImageDetailView, currentChatImageData: $currentChatImageData)
                         }
                         .navigationDestination(
                             isPresented: $showingContactUsers,
-                            destination: { FireContactUsersListView(navigationPath: $navigationPath) })
+                            destination: { FireContactUsersListView( navigationPath: $navigationPath) })
                         .searchable(text: $searchText, placement: .automatic, prompt: "Ask Meta AI or Search")
                         .searchFocused($isSearchFocused)
                 }
@@ -70,6 +76,22 @@ struct FireChatListView: View {
             }
         }
     }
+    private func loadImage(for urlString: String?) {
+        guard let url = URL(string: urlString ?? "") else {
+            print("No URL provided for image")
+            return
+        }
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                DispatchQueue.main.async {
+                    currentProfileImageData = data
+                }
+            } catch {
+                print("Failed to load image data: \(error.localizedDescription)")
+            }
+        }
+    }
 
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
@@ -95,13 +117,6 @@ struct FireChatListView: View {
         }
     }
 
-    private var whatsAppTitle: some View {
-        Text("WhatsApp")
-            .font(.title)
-            .fontWeight(.semibold)
-            .foregroundColor(Color.customGreen)
-    }
-
     private var toolbarButtons: some View {
         HStack {
             PhotosPicker(selection: .constant(nil), matching: .images, photoLibrary: .shared()) {
@@ -115,134 +130,145 @@ struct FireChatListView: View {
         }
     }
     private var chatOptionsButton: some View {
-        Menu{
-            Button(action: {},label: {
-                HStack(){
-                    Text("Select chats")
-                    Image(systemName: "checkmark.circle")
-                        .foregroundColor(.gray)
-                        .padding(.leading, 5)
-                }
-            }
-            )
-            Button(action: {},label: {
-                HStack(){
-                    Text("Read all")
-                    Image(systemName: "checkmark.bubble")
-                        .foregroundColor(.gray)
-                        .padding(.leading, 5)
-                }
-            }
-            )
+        Menu {
+            optionButton(title: "Select chats", icon: "checkmark.circle")
+            optionButton(title: "Read all", icon: "checkmark.bubble")
         } label: {
             Image(systemName: "ellipsis")
                 .fontWeight(.semibold)
         }
         .buttonStyle(.plain)
-
     }
+
+    // Extracted View: Menu Option Buttons
+    private func optionButton(title: String, icon: String) -> some View {
+        Button(action: {}) {
+            HStack {
+                Text(title)
+                Image(systemName: icon)
+                    .foregroundColor(.gray)
+                    .padding(.leading, 5)
+            }
+        }
+    }
+
+    private var encryptionNotice: some View {
+        HStack {
+            Image(systemName: "lock.fill")
+                .resizable()
+                .frame(width: 10, height: 10)
+            Text("Your personal messages are")
+            Text("end-to-end encrypted")
+                .foregroundColor(.green)
+        }
+        .font(.caption)
+    }
+
     private var scrollViewChatUsers: some View {
         ScrollView {
-            //            VStack {
-            //                CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
-            //            }
-            //            .cornerRadius(20)
-            //            .padding(.horizontal, 10)
-            //            .padding(.top, 12)
-            //            .padding(.bottom,10)
-
-            if (!isSearchFocused){ horizontalChatCategories }
-
-            LazyVStack(spacing: 17)  {
-                if(!isSearchFocused){
-                    if filteredUsers.isEmpty {
-                        VStack{
-                            Image("startChat")
-                                .resizable()
-                                .frame(width: 300, height: 300)
-                                .scaledToFit()
-                            Text("Start a chat... Click on the plus (+) icon below ")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .padding()
-                                .frame(alignment: .center)
-                        }
-                    } else {
-                        ForEach(filteredUsers) { user in
-                            FireChatRow(
-                                userId: user.id,
-                                currentUser: $currentUser,
-                                isProfilePicPresented: $isProfilePicPresented,
-                                navigationPath: $navigationPath
-                            )
-                        }
-                    }
-                }
-                else{
-                    if filteredUsers.isEmpty {
-                        VStack{
-                            Text("No such results")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .padding()
-                                .frame(alignment: .center)
-                        }
-                    }
-                }
+            VStack(spacing: 17) {
+                if !isSearchFocused { horizontalChatCategories }
+                contentView
+                encryptionNotice
             }
             .padding(.horizontal)
-            .padding(.bottom, 50)
+            .padding(.bottom, 30)
         }
+    }
 
+    @ViewBuilder
+    private var contentView: some View {
+        if filteredUsers.isEmpty {
+            emptyStateView
+        } else {
+            ForEach(filteredUsers) { user in
+                FireChatRow(
+                    userId: user.id,
+                    currentUser: $currentUser,
+                    isProfilePicPresented: $isProfilePicPresented,
+                    currentProfileImageData: $currentProfileImageData,
+                    navigationPath: $navigationPath
+                )
+                .onTapGesture {
+                    loadImage(for: user.imageUrl)
+                }
+            }
+        }
+    }
+    private var emptyStateView: some View {
+        VStack {
+            Image("startChat")
+                .resizable()
+                .frame(width: 250, height: 250)
+                .scaledToFit()
+            Text(isSearchFocused ? "No such results" : "Start a chat... Tap (+) icon")
+                .font(.caption)
+                .foregroundColor(.gray)
+                .padding()
+        }
     }
     private var horizontalChatCategories: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(viewModel.chatCategories, id: \.self) { category in
-                    Text(category)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 16)
-                        .fontWeight(.semibold)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    category == "All" ? Color.customGreen.opacity(0.5) : Color.gray.opacity(0.2))
-                        )
-                        .fixedSize()
+                ForEach(utilityVM.chatCategories, id: \.self) { category in
+                    categoryChip(for: category)
                 }
-                Text(" + ")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 16)
-                    .fontWeight(.semibold)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(Color.gray.opacity(0.2))
-                    )
-                    .fixedSize()
-                    .onTapGesture {
-                        viewModel.chatCategories.append(" New Category ")
-                    }
-
+                addCategoryButton
             }
             .padding(.horizontal)
         }
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
+
+    // Extracted View: Category Chip
+    private func categoryChip(for category: String) -> some View {
+        Text(category)
+            .font(.caption)
+            .foregroundColor(.gray)
+            .padding(.horizontal, 16)
+            .fontWeight(.semibold)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(category == "All" ? Color.customGreen.opacity(0.5) : Color.gray.opacity(0.2))
+            )
+            .fixedSize()
+    }
+
+    // Extracted View: Add Category Button
+    private var addCategoryButton: some View {
+        Text(" + ")
+            .font(.caption)
+            .foregroundColor(.gray)
+            .padding(.horizontal, 16)
+            .fontWeight(.semibold)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color.gray.opacity(0.2))
+            )
+            .fixedSize()
+            .onTapGesture {
+                utilityVM.chatCategories.append(" New Category ")
+            }
+    }
+
 }
 
+
+
+
+
+
 #Preview {
-//    @Previewable @State var selectView: Bool = false
-//    @Previewable @State var currentUser: FireUserModel? = nil
-//    @Previewable @State var isProfilePicPresented: Bool = false
-//
-//    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
-//        .environment(FireUserViewModel())
-//        .environment(ChatsViewModel())
-//        .environment(FireChatViewModel())
-//        .environment(FireAuthViewModel())
+    //    @Previewable @State var selectView: Bool = false
+    //    @Previewable @State var currentUser: FireUserModel? = nil
+    //    @Previewable @State var isProfilePicPresented: Bool = false
+    //
+    //    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented)
+    //        .environment(FireUserViewModel())
+    //        .environment(ChatsViewModel())
+    //        .environment(FireChatViewModel())
+    //        .environment(FireAuthViewModel())
 }
 

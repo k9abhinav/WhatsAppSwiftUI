@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct CommunitiesView: View {
-    @Environment(CommunityViewModel.self) var viewModel : CommunityViewModel
+    @State private var communityViewModel = CommunityViewModel()
     @State private var showNewCommunity = false
 
     var body: some View {
@@ -31,10 +31,14 @@ struct CommunitiesView: View {
                     }
                 }
                 Section {
-                    ForEach(viewModel.communities) { community in
-                        NavigationLink(destination: CommunityDetailView(community: community))
+                    ForEach(communityViewModel.communities) { community in
+                        NavigationLink(
+                            destination: CommunityDetailView(community: community)
+                                .environment(communityViewModel)
+                        )
                         {
                             CommunityRow(community: community)
+                                .padding(.leading, 10).environment(communityViewModel)
                         }
                     }
                 }

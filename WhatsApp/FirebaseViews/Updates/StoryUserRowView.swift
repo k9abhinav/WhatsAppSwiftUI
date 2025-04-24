@@ -66,8 +66,7 @@ struct StoryUserRowView: View {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:
-                        ProgressView()
-                            .frame(width: 50, height: 50)
+                        DefaultProfileImage(size: 50)
                     case .success(let image):
                         image
                             .resizable()
@@ -75,25 +74,16 @@ struct StoryUserRowView: View {
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
                     case .failure:
-                        defaultProfileImage
+                        DefaultProfileImage(size: 50)
                     @unknown default:
                         EmptyView()
                             .frame(width: 50, height: 50)
                     }
                 }
             } else {
-                defaultProfileImage
+                DefaultProfileImage(size: 50)
             }
         }
-    }
-    
-    private var defaultProfileImage: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .scaledToFill()
-            .frame(width: 50, height: 50)
-            .clipShape(Circle())
-            .foregroundColor(.gray)
     }
     
     private func iconForMediaType(_ mediaType: FireUpdateModel.MediaType) -> String {

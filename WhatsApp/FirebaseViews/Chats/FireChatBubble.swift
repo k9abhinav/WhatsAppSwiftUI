@@ -6,6 +6,7 @@ struct FireChatBubble: View {
     @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
+    @Environment(UtilityClass.self) private var utilityVM
     let message: FireMessageModel
     let currentUserId: String
     let userId:String
@@ -14,7 +15,8 @@ struct FireChatBubble: View {
     }
     @Binding var chatImageDetailView : Bool
     @Binding var chatId: String?
-    @Binding var currentMessage: FireMessageModel?
+    @Binding var currentChatImageData: Data?
+    @State private var imageURLData: Data?
     @State private var chatExists: Bool = false
     @State private var showContextMenu = false
     @State private var imageLoadError = false
@@ -47,7 +49,7 @@ struct FireChatBubble: View {
                     .onLongPressGesture { feedback() ; showContextMenu = true }
                 HStack{
                     if(!isFromCurrentUser){ messageReadSymbol }
-                    Text(timeString(from: message.timestamp))
+                    Text(utilityVM.timeStringShort(from: message.timestamp))
                         .font(.caption2)
                         .foregroundColor(.gray)
                         .padding(isFromCurrentUser ? .trailing : .leading, 4)
@@ -71,16 +73,27 @@ struct FireChatBubble: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .onAppear{
-            if chatExists == true && !isFromCurrentUser && user.onlineStatus == true {
-                Task{
-                    await messageViewModel.markMessageAsSeen(messageId: message.id, chatId: chatId ??  "Error" )
+        .task{
+            guard let url = URL(string: user.imageUrl ?? "") else {
+                print("No URL provided for image")
+                return }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                DispatchQueue.main.async {
+                    imageURLData = data
                 }
 
-                }
-            Task{
-                chatExists = await chatViewModel.isThereChatWithId(chatId: chatId ?? "Error")
+            } catch {
+                print("Failed to load image data: \(error.localizedDescription)")
             }
+        }
+        .onAppear{
+            if !(message.isSeen ?? false) {
+
+              Task{
+                  await messageViewModel.markMessageAsSeen(messageId: message.id, chatId: chatId ??  "Error" )
+              }
+                }
         }
         .onDisappear {
             stopAudio()
@@ -119,9 +132,10 @@ struct FireChatBubble: View {
                             .cornerRadius(10)
                             .padding(10)
                             .onTapGesture {
-                                currentMessage = message
+                                currentChatImageData = imageURLData
                                 chatImageDetailView.toggle()
                             }
+
                     case .failure:
                         Image(systemName: "photo")
                             .resizable()
@@ -147,7 +161,7 @@ struct FireChatBubble: View {
             else if message.messageType == .text {
                 Group {
                     if(message.content == "You deleted this message"){
-                        Text(message.content)
+                        Text(isFromCurrentUser ? "You deleted this message":"This message was deleted")
                             .italic()
                     } else {
                         Text(message.content)
@@ -174,16 +188,16 @@ struct FireChatBubble: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                // Progress bar
+
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        // Background
+
                         Rectangle()
                             .fill(isFromCurrentUser ? Color.white.opacity(0.3) : Color.gray.opacity(0.3))
                             .frame(height: 4)
                             .cornerRadius(2)
 
-                        // Progress
+
                         Rectangle()
                             .fill(isFromCurrentUser ? Color.customGreen : Color.blue)
                             .frame(width: geometry.size.width * playbackProgress, height: 4)
@@ -192,7 +206,6 @@ struct FireChatBubble: View {
                 }
                 .frame(height: 4)
 
-                // Duration
                 Text("\(formattedDuration(duration: duration))")
                     .font(.caption)
                     .foregroundColor(isFromCurrentUser ? Color.black.opacity(0.5) : .gray)
@@ -227,12 +240,6 @@ struct FireChatBubble: View {
                 }
             }
         }
-    }
-
-    private func timeString(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
     }
 
     private func feedback() {

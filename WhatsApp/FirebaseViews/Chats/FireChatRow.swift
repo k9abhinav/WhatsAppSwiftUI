@@ -3,20 +3,23 @@ import SwiftUI
 import PhotosUI
 
 struct FireChatRow: View {
-//    let user:FireUserModel
+
     let userId:String
     var user: FireUserModel {
         userViewModel.allUsers.first { $0.id == userId } ?? FireUserModel(name: "Unknown")
     }
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented : Bool
+    @Binding var currentProfileImageData: Data?
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
+    @Environment(UtilityClass.self) private var utilityVM
     @State private var lastMessageContent : String?
     @State private var lastSeenTimeStamp: Date? = nil
     @Binding var navigationPath: NavigationPath
+    @State var imageURLData: Data?
     var body: some View {
         Button {
             navigationPath.append(user)
@@ -29,6 +32,20 @@ struct FireChatRow: View {
                }
         .buttonStyle(.plain)
         .onAppear { onAppearFunctions() }
+        .task{
+            guard let url = URL(string: user.imageUrl ?? "") else {
+                print("No URL provided for image")
+                return }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                DispatchQueue.main.async {
+                    imageURLData = data
+                }
+
+            } catch {
+                print("Failed to load image data: \(error.localizedDescription)")
+            }
+        }
         .onChange(of: chatViewModel.triggeredUpdate) { _,newValue in
             print(newValue.description)
             if newValue {
@@ -43,15 +60,16 @@ struct FireChatRow: View {
         Button(
             action: {
                 currentUser = user
+                currentProfileImageData = imageURLData
                 isProfilePicPresented.toggle()
             },
-            label: { userProfilePictureView } )
+            label: {   ProfileAsyncImageView(size: 50, imageUrlString: user.imageUrl ) } )
         .buttonStyle(PlainButtonStyle())
     }
     private var userLastSeenTime: some View {
         VStack {
             let date: Date = lastSeenTimeStamp ?? .distantPast
-            Text(timeString(from: date))
+            Text(utilityVM.timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
                 .foregroundStyle(.gray.opacity(0.8))
@@ -106,44 +124,6 @@ struct FireChatRow: View {
         })
 
     }
-    private var defaultProfileImage: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .scaledToFill()
-            .frame(width: 50, height: 50)
-            .clipShape(Circle())
-            .foregroundColor(.gray)
-    }
-    ///
-    private var userProfilePictureView: some View {
-        Group {
-            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 50,height: 50)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 50,height: 50)
-                            .clipShape(Circle())
-
-                    case .failure:
-                        defaultProfileImage
-                    @unknown default:
-                        EmptyView()
-                            .frame(width: 50,height: 50)
-                    }
-                }
-
-            }
-            else{
-                defaultProfileImage
-            }
-        }
-    }
     
     // MARK: HELPER FUNCTIONS -------------------------------
 
@@ -165,21 +145,7 @@ struct FireChatRow: View {
     private func onDisappearFunctions(){
                 chatViewModel.removeChatListener() 
     }
-    private func timeString(from date: Date) -> String {
-        let calendar = Calendar.current
-        let formatter = DateFormatter()
-        
-        if calendar.isDateInToday(date) {
-            formatter.timeStyle = .short
-            return formatter.string(from: date)  // Example: "2:30 PM"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
-        } else {
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .none
-            return formatter.string(from: date)  // Example: "Mar 4, 2025"
-        }
-    }
+
 }
 
 //#Preview {

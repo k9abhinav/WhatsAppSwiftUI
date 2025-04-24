@@ -1,9 +1,4 @@
-//
-//  LoadingView.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 18/03/25.
-//
+
 import SwiftUI
 
 struct LoadingView: View {

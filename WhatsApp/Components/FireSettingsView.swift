@@ -1,3 +1,4 @@
+
 import SwiftUI
 import PhotosUI
 import SwiftData
@@ -6,9 +7,11 @@ struct FireSettingsView: View {
     @Environment(ContactsManager.self) private var contactsManager: ContactsManager
     @Environment(\.dismiss) var dismiss
     @Environment(FireAuthViewModel.self) private var viewModel : FireAuthViewModel
+    var currentLoggedInUser : FireUserModel {
+        viewModel.currentLoggedInUser ?? FireUserModel(id: "", name: "Error")
+    }
     @Environment(FireUserViewModel.self) private var userViewModel: FireUserViewModel
-    @State private var userId: String?
-    @AppStorage("userName") private var userName = "Error~User"
+    @AppStorage("userName") private var userName = "No~User"
     @AppStorage("userStatus") private var userStatus = "No~data!"
     @State private var userImageURLString: String?
     @Binding var selectView: Bool
@@ -29,50 +32,37 @@ struct FireSettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden()
-            .toolbar{
-                ToolbarItem(placement: .topBarLeading){ backButton }
-            }
-            .alert("Image Changed", isPresented: $showingImageChangeAlert) {
-                Button("OK", action: {  })
-            } message: { Text("Your profile image has been updated. Please wait it a moment to see the changes.") }
-                .sheet(isPresented: $showingEdit) {
-                    EditProfileView(
-                        user: viewModel.currentLoggedInUser!,
-                        userName: $userName,
-                        userStatus: $userStatus
-                    ).presentationDetents([.medium])
-                }
-                .onChange(of: userViewModel.triggerProfilePicUpdated) { oldValue, newValue in
-                    if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                        print("Loading image from URL....")
-                        loadImageFromURL(imageUrl)
-                    }
-                }
-                .onAppear {
-                    userId = viewModel.currentLoggedInUser?.id
-                    userName = viewModel.currentLoggedInUser?.name ?? "Error in loading user name"
-                    userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
-                    if let imageUrlString = viewModel.currentLoggedInUser?.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                        loadImageFromURL(imageUrl)
-                    }
-                }
-                .onChange(of: showingEdit) { oldValue, newValue in
-                    Task{
-                        await viewModel.loadCurrentUser()
-                        userName = viewModel.currentLoggedInUser?.name ?? "Error in loading user name"
-                        userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
-                    }
-                }
+            .alert(
+                "Image Changed",
+                isPresented: $showingImageChangeAlert,
+                actions: { Button("OK", action: { print("Done") }) },
+                message: { Text("Your profile image has been updated. Please wait it a moment to see the changes.") }
+            )
+            .toolbar{ ToolbarItem(placement: .topBarLeading){ backButton } }
+            .sheet(
+                isPresented: $showingEdit ,
+                content: { editProfileDetails }
+            )
+            .task{ if !selectView { contactsManager.requestAccess() } }
+            .onAppear(perform: onAppearFunctions )
+            .onChange(of: showingEdit, onChangeFunctions)
         }
     }
-    
+
     // MARK: Components ----------------------------------------------
     private var backButton: some View {
-        Button(
-            action: { dismiss() }
-        )
+        Button( action: {
+            dismiss()
+        } )
         {  Image(systemName: "arrow.backward")  }
-        
+    }
+    private var editProfileDetails: some View {
+        EditProfileView(
+            user: currentLoggedInUser,
+            userName: $userName,
+            userStatus: $userStatus
+        )
+        .presentationDetents([.medium])
     }
     private var profileSection: some View {
         Section {
@@ -91,17 +81,14 @@ struct FireSettingsView: View {
     private var toggeleViewSection: some View {
         Section {
             Toggle(isOn: $istoggleOn) {
-                Text("Toggle Views")
+                Text(selectView ? "Chat with Contacts" : "Chat with Online Users")
+                Text(selectView ? "Firebase Connected!" : "Firebase Disconnected!")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
             }
             .onChange(of: istoggleOn){ old, new in
                 selectView.toggle()
             }
-            Button(action: {
-                contactsManager.requestAccess()
-            }, label: {
-                Text("Load All Contacts As Users")
-            }
-            )
         } header: {
             Text("Toggle Your View Mode")
                 .padding(.bottom, 5)
@@ -125,24 +112,27 @@ struct FireSettingsView: View {
             .padding(.top, 5)
         }
     }
+  
     private var profileImageAndEditView: some View {
-        PhotosPicker(
-            selection: $selectedPhoto,
-            matching: .images,
-            photoLibrary: .shared()
-        ) {
-            ZStack { profileImageView; cameraIconOverlay }
-                .frame(width: 90, height: 90)
+        ZStack {
+            ProfileAsyncImageView(size: 80, imageUrlString: userImageURLString)
+            PhotosPicker(
+                selection: $selectedPhoto,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                cameraIconOverlay
+            }
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
+        .frame(width: 90, height: 90)
         .onChange(of: selectedPhoto) { oldItem, newItem in
             if let newItem = newItem {
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        
-                        // Upload Image and Get New URL
-                        if let newImageUrl = await userViewModel.changeProfileImage(userId: userId ?? "", image: uiImage) {
+
+                        if let newImageUrl = await userViewModel.changeProfileImage(userId: currentLoggedInUser.id, image: uiImage) {
                             await MainActor.run {
                                 userImageURLString = newImageUrl
                             }
@@ -152,7 +142,8 @@ struct FireSettingsView: View {
             }
         }
     }
-    
+
+
     private var cameraIconOverlay: some View {
         Image(systemName: "camera.fill")
             .padding(7)
@@ -161,34 +152,9 @@ struct FireSettingsView: View {
             .foregroundColor(.white.opacity(0.9))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
-    private var profileImageView: some View {
-        AsyncImage(url: URL(string: userImageURLString ?? "")) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
-                    .frame(width: 80, height: 80)
-                
-            case .success(let image):
-                image.resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                
-            case .failure:
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
-                
-            @unknown default:
-                EmptyView()
-            }
-        }
-    }
-    
-    
+
+
+
     private var settingsSection: some View {
         Section {
             EachSettingSection(iconSystemName: "key", title: "Account", subtitle: "Security, disappearing messages")
@@ -200,7 +166,7 @@ struct FireSettingsView: View {
             EachSettingSection(iconSystemName: "iphone.gen3.badge.exclamationmark", title: "App Updates", subtitle: "Check for updates")
         }
     }
-    
+
     private var actionsSection: some View {
         Section {
             Group{
@@ -219,21 +185,19 @@ struct FireSettingsView: View {
             Button("Connect with other Meta accounts") {}
         }
     }
-    private func loadAllContacts(){
-        contactsManager.requestAccess()
-    }
-    private func loadImageFromURL(_ url: URL) {
-        Task {
-            await MainActor.run {
-                userImageURLString = url.absoluteString
-            }
+
+    private func onAppearFunctions() {
+        userName = currentLoggedInUser.name
+        userStatus = currentLoggedInUser.aboutInfo ?? ""
+        if let imageUrl = currentLoggedInUser.imageUrl, let url = URL(string: imageUrl) {
+            userImageURLString = url.absoluteString
         }
     }
-    
+    private func onChangeFunctions() {
+        Task{
+            await viewModel.loadCurrentUser()
+            userName = viewModel.currentLoggedInUser?.name ?? "Error in loading user name"
+            userStatus = viewModel.currentLoggedInUser?.aboutInfo ?? ""
+        }
+    }
 }
-
-
-
-
-
-

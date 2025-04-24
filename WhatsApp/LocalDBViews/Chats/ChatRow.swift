@@ -6,6 +6,7 @@ struct ChatRow: View {
 
     let user: User
     @State private var isProfilePicPresented = false
+    @Environment(UtilityClass.self) private var utilityVM
     var body: some View {
 
         NavigationLink( destination: ChatDetailView(user:user) )
@@ -28,7 +29,7 @@ struct ChatRow: View {
     private var userLastSeenTime: some View {
         VStack {
             let date: Date = user.lastChatMessage?.timestamp ??  .now
-            Text(timeString(from: date))
+            Text(utilityVM.timeString(from: date))
                 .font(.caption)
                 .fontWeight(.light)
                 .foregroundStyle(.gray.opacity(0.8))
@@ -72,25 +73,6 @@ struct ChatRow: View {
             }
         }
     }
-    // MARK: HELPER FUNCTIONS -------------------------------
-    private func timeString(from date: Date) -> String {
-        let calendar = Calendar.current
-        let formatter = DateFormatter()
-
-        if calendar.isDateInToday(date) {
-            formatter.timeStyle = .short
-            return formatter.string(from: date)  // Example: "2:30 PM"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
-        } else {
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .none
-            return formatter.string(from: date)  // Example: "Mar 4, 2025"
-        }
-    }
-
-
-
 }
 
 #Preview {

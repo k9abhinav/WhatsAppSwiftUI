@@ -4,12 +4,13 @@ import FirebaseAuth
 import FirebaseFirestore
 @preconcurrency import GoogleSignIn
 import SwiftUI
+
 /**
  In summary, @preconcurrency in Swift and SwiftUI is a way to tell the compiler to assume concurrency safety (similar to Sendable) for code that predates the strict Sendable checking, facilitating smoother interoperability between synchronous and asynchronous code and maintaining backward compatibility. It helps avoid immediate Sendable-related errors or warnings when using older code in concurrent contexts.
  */
 
 @Observable
-final class FireAuthViewModel : Sendable {
+final class FireAuthViewModel {
     /**
      The primary goal of Sendable is to prevent data races. Data races occur when multiple threads or concurrent tasks try to access and modify the same mutable data without proper synchronization, leading to unpredictable and often incorrect behavior.
      When a type conforms to Sendable, it signals to the compiler that its values are inherently safe to be shared concurrently. This usually means one of two things:
@@ -66,41 +67,41 @@ final class FireAuthViewModel : Sendable {
 
             if document.exists, let data = document.data() {
 
-                let storedSessionId = data["currentSessionId"] as? String
-                let deviceSessionId = UserDefaults.standard.string(forKey: "userSessionId_\(firebaseUser.uid)")
-
-                if let storedSessionId = storedSessionId,
-                   let deviceSessionId = deviceSessionId,
-                   storedSessionId != deviceSessionId {
-
-                    print("DEBUG: Session invalid - user was logged in elsewhere")
-                    userIsAuthenticated = false
-                    try auth.signOut()
-                    showError("Your account was logged in on another device.")
-                    return
-                }
+//                let storedSessionId = data["currentSessionId"] as? String
+//                let deviceSessionId = UserDefaults.standard.string(forKey: "userSessionId_\(firebaseUser.uid)")
+//
+//                if let storedSessionId = storedSessionId,
+//                   let deviceSessionId = deviceSessionId,
+//                   storedSessionId != deviceSessionId {
+//
+//                    print("DEBUG: Session invalid - user was logged in elsewhere")
+//                    userIsAuthenticated = false
+//                    try auth.signOut()
+//                    showError("Your account was logged in on another device.")
+//                    return
+//                }
 
                 var userModel = createUserModel(
                     firebaseUser: firebaseUser,
                     data: data
                 )
 
-                if storedSessionId == nil {
-                    let newSessionId = generateSessionId()
-                    try await userRef.updateData([
-                        "currentSessionId": newSessionId,
-                        "lastLoginTime": Timestamp(date: Date()),
-                        "lastDevice": UIDevice.current.name
-                    ])
-
-                    UserDefaults.standard.set(newSessionId, forKey: "userSessionId_\(firebaseUser.uid)")
-
-                    userModel.currentSessionId = newSessionId
-                } else {
-                    // Save existing session locally
-                    UserDefaults.standard.set(storedSessionId, forKey: "userSessionId_\(firebaseUser.uid)")
-                    userModel.currentSessionId = storedSessionId
-                }
+//                if storedSessionId == nil {
+//                    let newSessionId = generateSessionId()
+//                    try await userRef.updateData([
+//                        "currentSessionId": newSessionId,
+//                        "lastLoginTime": Timestamp(date: Date()),
+//                        "lastDevice": UIDevice.current.name
+//                    ])
+//
+//                    UserDefaults.standard.set(newSessionId, forKey: "userSessionId_\(firebaseUser.uid)")
+//
+//                    userModel.currentSessionId = newSessionId
+//                } else {
+//                    // Save existing session locally
+//                    UserDefaults.standard.set(storedSessionId, forKey: "userSessionId_\(firebaseUser.uid)")
+//                    userModel.currentSessionId = storedSessionId
+//                }
 
                 currentLoggedInUser = userModel
             } else {
@@ -111,7 +112,7 @@ final class FireAuthViewModel : Sendable {
             print("DEBUG: Loaded current user - \(String(describing: currentLoggedInUser?.name))")
 
             // Start monitoring for session changes
-            monitorSessionStatus()
+//            monitorSessionStatus()
         } catch {
             print("DEBUG: Error loading user from Firestore - \(error.localizedDescription)")
         }
@@ -121,6 +122,11 @@ final class FireAuthViewModel : Sendable {
     func signUpWithEmail(email: String, password: String, fullName: String, phoneNumber: String) async {
         guard !email.isEmpty, !password.isEmpty, !fullName.isEmpty, !phoneNumber.isEmpty else {
             showError("Please fill in all fields")
+            return
+        }
+
+        guard isValidPhoneNumber(phoneNumber) else {
+            showError("Phone number must contain exactly 10 digits")
             return
         }
 
@@ -160,6 +166,449 @@ final class FireAuthViewModel : Sendable {
             showError(error.localizedDescription)
         }
     }
+
+    // Helper function to validate phone number
+    private func isValidPhoneNumber(_ phoneNumber: String) -> Bool {
+        let phoneRegex = "^[0-9]{10}$"
+        let phonePredicate = NSPredicate(format: "SELF MATCHES %@", phoneRegex)
+        return phonePredicate.evaluate(with: phoneNumber)
+    }
+
+
+    // MARK: - Sign In with Email
+    func signInWithEmail(email: String, password: String) async {
+        guard !email.isEmpty, !password.isEmpty else {
+            showError("Please enter both email and password")
+            return
+        }
+
+        do {
+            let snapshot = try await getUserByEmail(email)
+            if snapshot.documents.isEmpty {
+                showError("No account found with this email. Please sign up.")
+                return
+            }
+
+            let authResult = try await auth.signIn(withEmail: email, password: password)
+            let firebaseUser = authResult.user
+
+            print("DEBUG: Firebase Email Sign-In successful. UID: \(firebaseUser.uid)")
+
+            let document = snapshot.documents.first
+            let data = document?.data()
+
+            currentLoggedInUser = FireUserModel(
+                id: firebaseUser.uid,
+                phoneNumber: data?["phoneNumber"] as? String ?? "",
+                name: data?["name"] as? String ?? "",
+                imageUrl: data?["imageUrl"] as? String,
+                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
+                createdDate: (data?["createdDate"] as? Timestamp)?.dateValue(),
+                email: email,
+                typeOfAuth: .email,
+                lastSeenTime: (data?["lastSeenTime"] as? Timestamp)?.dateValue(),
+                onlineStatus: data?["onlineStatus"] as? Bool
+            )
+            userIsAuthenticated = true
+        } catch {
+            print("DEBUG: Error occurred during Email Sign-In - \(error.localizedDescription)")
+            showError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Sign Out
+    func signOut() {
+        do {
+            try auth.signOut()
+            userIsAuthenticated = false
+            currentLoggedInUser = nil
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Update User Email
+    func updateUserEmail(currentEmail: String, currentPassword: String, newEmail: String, userId: String, completion: @escaping (Error?) -> Void) {
+        guard let user = auth.currentUser else {
+            completion(NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No user logged in"]))
+            return
+        }
+
+        let credential = EmailAuthProvider.credential(withEmail: currentEmail, password: currentPassword)
+
+        user.reauthenticate(with: credential) { _, error in
+            if let error = error {
+                completion(error)
+                return
+            }
+
+            user.updateEmail(to: newEmail) { error in
+                if let error = error {
+                    completion(error)
+                    return
+                }
+
+                self.getUserRef(userId: userId).updateData(["email": newEmail]) { error in
+                    completion(error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Update Password
+    func updatePassword(newPassword: String) async {
+        guard let firebaseUser = auth.currentUser else { return }
+        do {
+            try await firebaseUser.updatePassword(to: newPassword)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    func updateUserPassword(currentEmail: String, currentPassword: String, newPassword: String, completion: @escaping (Error?) -> Void) {
+        guard let user = auth.currentUser else {
+            completion(NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No user logged in"]))
+            return
+        }
+
+        let credential = EmailAuthProvider.credential(withEmail: currentEmail, password: currentPassword)
+
+        user.reauthenticate(with: credential) { _, error in
+            if let error = error {
+                completion(error)
+                return
+            }
+
+            user.updatePassword(to: newPassword) { error in
+                completion(error)
+            }
+        }
+    }
+
+    // MARK: - Sign In With Google
+    func signInWithGoogle(presenting viewController: UIViewController) async {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            showError("Missing Firebase Client ID")
+            return
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        do {
+            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+            guard let email = googleUser.user.profile?.email else {
+                showError("Failed to retrieve email from Google account")
+                return
+            }
+
+            let snapshot = try await getUserByEmail(email)
+            if snapshot.documents.isEmpty {
+                showError("No account found with this email. Please sign up.")
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: googleUser.user.idToken!.tokenString,
+                accessToken: googleUser.user.accessToken.tokenString
+            )
+
+            let authResult = try await auth.signIn(with: credential)
+            let firebaseUser = authResult.user
+
+            print("DEBUG: Firebase Sign-In successful. UID: \(firebaseUser.uid)")
+
+            let document = snapshot.documents.first
+            let data = document?.data()
+
+            currentLoggedInUser = FireUserModel(
+                id: firebaseUser.uid,
+                phoneNumber: data?["phone"] as? String ?? "",
+                name: data?["name"] as? String ?? "",
+                imageUrl: data?["imageUrl"] as? String,
+                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
+                email: email,
+                typeOfAuth: .google,
+                onlineStatus: data?["onlineStatus"] as? Bool ?? nil
+            )
+            userIsAuthenticated = true
+        } catch {
+            print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
+            showError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Delete Account
+    func deleteAccountandUser() async {
+        guard let firebaseUser = auth.currentUser else { return }
+
+        let userRef = getUserRef(userId: firebaseUser.uid)
+
+        do {
+            print("DEBUG: Deleting user document from Firestore for UID: \(String(describing: firebaseUser.displayName))")
+            try await userRef.delete()
+            print("DEBUG: User document successfully deleted from Firestore")
+            try await firebaseUser.delete()
+            print("DEBUG: User successfully deleted from Firebase Authentication")
+            signOut()
+        } catch {
+            showError(error.localizedDescription)
+            print("DEBUG: Error deleting user - \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Helper Functions
+    private func showError(_ message: String) {
+        errorMessage = message
+        showingError = true
+    }
+
+    private func getUserRef(userId: String) -> DocumentReference {
+        return usersCollection.document(userId)
+    }
+
+    private func getUserByEmail(_ email: String) async throws -> QuerySnapshot {
+        return try await usersCollection.whereField("email", isEqualTo: email).getDocuments()
+    }
+
+    private func getAuthType(for firebaseUser: FirebaseAuth.User) -> AuthType {
+        if let providerID = firebaseUser.providerData.first?.providerID {
+            switch providerID {
+            case "password": return .email
+            case "google.com": return .google
+            case "phone": return .phone
+            default: return .unknown
+            }
+        }
+        return .unknown
+    }
+
+    private func createUserModel(firebaseUser: FirebaseAuth.User, data: [String: Any]) -> FireUserModel {
+        return FireUserModel(
+            id: firebaseUser.uid,
+            phoneNumber: data["phoneNumber"] as? String ?? "",
+            name: data["name"] as? String ?? firebaseUser.displayName ?? "",
+            imageUrl: data["imageUrl"] as? String,
+            aboutInfo: data["aboutInfo"] as? String ?? defaultAboutInfo,
+            createdDate: (data["createdDate"] as? Timestamp)?.dateValue(),
+            email: firebaseUser.email,
+            typeOfAuth: getAuthType(for: firebaseUser),
+            lastSeenTime: (data["lastSeenTime"] as? Timestamp)?.dateValue(),
+            onlineStatus: data["onlineStatus"] as? Bool,
+            isTyping: data["isTyping"] as? Bool
+        )
+    }
+
+    private func createUserData(
+        id: String,
+        phone: String,
+        name: String,
+        imageUrl: String? = nil,
+        email: String,
+        authType: String,
+        onlineStatus: Bool? = nil
+    ) -> [String: Any] {
+        [
+            "id": id,
+            "phoneNumber": phone,
+            "name": name,
+            "imageUrl": imageUrl ?? "",
+            "aboutInfo": defaultAboutInfo,
+            "createdDate": Timestamp(date: Date()),
+            "email": email,
+            "authType": authType,
+            "lastSeenTime": Date() ,
+            "onlineStatus": false,
+            "isTyping": false
+        ]
+    }
+
+    private func signInWithGoogleHelper(presenting viewController: UIViewController) async throws -> GIDSignInResult {
+        let userAuth = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
+        guard (userAuth.user.idToken?.tokenString) != nil else {
+            throw NSError(domain: "AuthError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve Google ID Token"])
+        }
+        return userAuth
+    }
+}
+
+// MARK: - SESSION MANAGEMENT ================================================================
+
+extension FireAuthViewModel{
+
+    // MARK: - Send OTP
+//    func sendOTP(phoneNumber: String) async {
+//        do {
+//            Auth.auth().settings?.isAppVerificationDisabledForTesting = false
+//
+//            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber("+911234567890", uiDelegate: nil)
+//            DispatchQueue.main.async {
+//                self.verificationID = verificationID
+//                print("OTP sent successfully! Verification ID: \(verificationID)")
+//            }
+//        } catch {
+//            DispatchQueue.main.async {
+//                self.showError("Failed to send OTP: \(error.localizedDescription)")
+//                print("Error sending OTP: \(error.localizedDescription)")
+//
+//                if let error = error as NSError? {
+//                    print("Debug Info - Code: \(error.code), Domain: \(error.domain)")
+//                }
+//            }
+//        }
+//    }
+
+    // MARK: - Complete Google Account Linking (updated with session management)
+//    func completeGoogleAccountLinking(email: String, password: String) async {
+//        guard let pendingCredential = pendingGoogleCredential else {
+//            showError("No pending Google account to link")
+//            return
+//        }
+//
+//        do {
+//            // First check if user is logged in elsewhere
+//            let snapshot = try await getUserByEmail(email)
+//            if let document = snapshot.documents.first {
+//                let userId = document.documentID
+//                let (isActive, _) = await checkActiveSession(userId: userId)
+//
+//                if isActive {
+//                    // Option 1: Prevent login and inform user
+//                    // showError("This account is already logged in on another device. Please log out there first.")
+//                    // return
+//
+//                    // Option 2: Force logout on other device and continue
+//                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
+//                }
+//            }
+//
+//            let authResult = try await auth.signIn(withEmail: email, password: password)
+//            let firebaseUser = authResult.user
+//
+//            try await firebaseUser.link(with: pendingCredential)
+//
+//            // Generate and save new session ID
+//            let sessionId = await updateUserSession(userId: firebaseUser.uid)
+//
+//            try await getUserRef(userId: firebaseUser.uid).updateData([
+//                "typeOfAuth": "linkedWithGoogle",
+//                "linkedProviders": FieldValue.arrayUnion(["google"]),
+//                "currentSessionId": sessionId,
+//                "lastDevice": UIDevice.current.name
+//            ])
+//
+//            await loadCurrentUser()
+//
+//            // Update the currentSessionId in the user model
+//            if currentLoggedInUser != nil {
+//                var updatedUser = currentLoggedInUser!
+//                updatedUser.currentSessionId = sessionId
+//                currentLoggedInUser = updatedUser
+//            }
+//
+//            pendingGoogleCredential = nil
+//            showAccountLinkingPrompt = false
+//
+//            print("DEBUG: Successfully linked Google account with session ID: \(sessionId)")
+//
+//            // Start monitoring for session changes
+//            monitorSessionStatus()
+//        } catch {
+//            print("DEBUG: Error during account linking: \(error.localizedDescription)")
+//            showError("Failed to link accounts: \(error.localizedDescription)")
+//        }
+//    }
+//
+    // MARK: - Sign Up With Google (with account checking and linking flow)
+    func signUpWithGoogle(presenting viewController: UIViewController) async {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            showError("Missing Firebase Client ID")
+            return
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        do {
+            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
+            guard let email = googleUser.user.profile?.email else {
+                showError("Failed to retrieve email from Google account")
+                return
+            }
+
+            let snapshot = try await getUserByEmail(email)
+
+            if !snapshot.documents.isEmpty {
+
+                let userDoc = snapshot.documents.first!
+                let userData = userDoc.data()
+                let authType = userData["authType"] as? String ?? "unknown"
+
+                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
+
+                if authType == "email" {
+
+                    DispatchQueue.main.async {
+                        self.typeOfAuth = .email
+
+                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
+                            withIDToken: googleUser.user.idToken!.tokenString,
+                            accessToken: googleUser.user.accessToken.tokenString
+                        )
+
+                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
+
+                        self.showAccountLinkingPrompt = true
+                    }
+                    return
+                } else if authType == "google" {
+                    await signInWithGoogle(presenting: viewController)
+                    return
+                }
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: googleUser.user.idToken!.tokenString,
+                accessToken: googleUser.user.accessToken.tokenString
+            )
+
+            let authResult = try await auth.signIn(with: credential)
+            let firebaseUser = authResult.user
+            let userRef = getUserRef(userId: firebaseUser.uid)
+
+            let fullName = googleUser.user.profile?.name ?? "Unknown User"
+            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
+            let phoneNumber = firebaseUser.phoneNumber ?? ""
+
+            let userData = createUserData (
+                id: firebaseUser.uid,
+                phone: phoneNumber,
+                name: fullName,
+                imageUrl: profileImageURL,
+                email: email,
+                authType: "google"
+            )
+
+            try await userRef.setData(userData)
+            print("DEBUG: New user successfully created in Firestore")
+
+            currentLoggedInUser = FireUserModel(
+                id: firebaseUser.uid,
+                phoneNumber: phoneNumber,
+                name: fullName,
+                imageUrl: profileImageURL,
+                aboutInfo: defaultAboutInfo,
+                email: email,
+                typeOfAuth: .google,
+                onlineStatus: false
+            )
+            userIsAuthenticated = true
+        } catch {
+            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
+            showError(error.localizedDescription)
+        }
+    }
+
 
     // MARK: - Sign In with Email (SESSION MANAGEMENT)
     //    func signInWithEmail(email: String, password: String) async {
@@ -240,198 +689,6 @@ final class FireAuthViewModel : Sendable {
     //        }
     //    }
 
-    // MARK: - Sign In with Email
-    func signInWithEmail(email: String, password: String) async {
-        guard !email.isEmpty, !password.isEmpty else {
-            showError("Please enter both email and password")
-            return
-        }
-
-        do {
-            let snapshot = try await getUserByEmail(email)
-            if snapshot.documents.isEmpty {
-                showError("No account found with this email. Please sign up.")
-                return
-            }
-
-            let authResult = try await auth.signIn(withEmail: email, password: password)
-            let firebaseUser = authResult.user
-
-            print("DEBUG: Firebase Email Sign-In successful. UID: \(firebaseUser.uid)")
-
-            let document = snapshot.documents.first
-            let data = document?.data()
-
-            currentLoggedInUser = FireUserModel(
-                id: firebaseUser.uid,
-                phoneNumber: data?["phoneNumber"] as? String ?? "",
-                name: data?["name"] as? String ?? "",
-                imageUrl: data?["imageUrl"] as? String,
-                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
-                createdDate: (data?["createdDate"] as? Timestamp)?.dateValue(),
-                email: email,
-                typeOfAuth: .email,
-                lastSeenTime: (data?["lastSeenTime"] as? Timestamp)?.dateValue(),
-                onlineStatus: data?["onlineStatus"] as? Bool
-            )
-            userIsAuthenticated = true
-        } catch {
-            print("DEBUG: Error occurred during Email Sign-In - \(error.localizedDescription)")
-            showError(error.localizedDescription)
-        }
-    }
-
-    // MARK: - Sign Out
-    func signOut() {
-        do {
-            try auth.signOut()
-            userIsAuthenticated = false
-            currentLoggedInUser = nil
-        } catch {
-            showError(error.localizedDescription)
-        }
-    }
-    // MARK: CREATE SESSION ID
-    private func generateSessionId() -> String {
-        return UUID().uuidString
-    }
-
-    // Update the user's session information
-    private func updateUserSession(userId: String) async -> String {
-        let sessionId = generateSessionId()
-
-        do {
-            try await getUserRef(userId: userId).updateData([
-                "currentSessionId": sessionId,
-                "lastLoginTime": Timestamp(date: Date()),
-                "lastDevice": UIDevice.current.name // Optional: track which device they're using
-            ])
-            print("DEBUG: Updated session ID to \(sessionId) for user \(userId)")
-            return sessionId
-        } catch {
-            print("DEBUG: Failed to update session: \(error.localizedDescription)")
-            return sessionId // Still return the session ID even if update fails
-        }
-    }
-
-    // Check if user has an active session elsewhere
-    private func checkActiveSession(userId: String) async -> (isActive: Bool, sessionId: String?) {
-        do {
-            let document = try await getUserRef(userId: userId).getDocument()
-            guard let data = document.data(),
-                  let sessionId = data["currentSessionId"] as? String else {
-                return (false, nil)
-            }
-
-            // If session exists, check if it's recent (optional: you can add timeout logic)
-            if let lastLoginTime = (data["lastLoginTime"] as? Timestamp)?.dateValue() {
-                // For example, consider sessions older than 30 minutes as expired
-                if Date().timeIntervalSince(lastLoginTime) > 1800 {
-                    return (false, sessionId)
-                }
-            }
-
-            return (true, sessionId)
-        } catch {
-            print("DEBUG: Error checking active session: \(error.localizedDescription)")
-            return (false, nil)
-        }
-    }
-
-    // Monitor session status to detect force logouts
-    func monitorSessionStatus() {
-        guard let userId = currentLoggedInUser?.id else { return }
-
-        // Create a listener for changes to the user document
-        let _  = getUserRef(userId: userId)
-            .addSnapshotListener { [weak self] documentSnapshot, error in
-                guard let self = self,
-                      let document = documentSnapshot,
-                      let data = document.data(),
-                      let currentSessionId = data["currentSessionId"] as? String,
-                      let mySessionId = self.currentLoggedInUser?.currentSessionId else {
-                    return
-                }
-
-                // If the session IDs don't match, this user has been logged in elsewhere
-                if currentSessionId != mySessionId {
-                    print("DEBUG: Session invalidated - user logged in elsewhere")
-                    self.forceLogout()
-                }
-            }
-
-        // Store the listener somewhere so it can be removed later (on logout)
-        // For example: sessionListener = listener
-    }
-
-    // Force logout when another device logs in
-    func forceLogout() {
-        // Display alert to user
-        errorMessage = "You have been logged out because your account was accessed on another device."
-        showingError = true
-
-        // Perform logout
-        signOut()
-    }
-
-    // MARK: - Update User Email
-    func updateUserEmail(currentEmail: String, currentPassword: String, newEmail: String, userId: String, completion: @escaping (Error?) -> Void) {
-        guard let user = auth.currentUser else {
-            completion(NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No user logged in"]))
-            return
-        }
-
-        let credential = EmailAuthProvider.credential(withEmail: currentEmail, password: currentPassword)
-
-        user.reauthenticate(with: credential) { _, error in
-            if let error = error {
-                completion(error)
-                return
-            }
-
-            user.updateEmail(to: newEmail) { error in
-                if let error = error {
-                    completion(error)
-                    return
-                }
-
-                self.getUserRef(userId: userId).updateData(["email": newEmail]) { error in
-                    completion(error)
-                }
-            }
-        }
-    }
-
-    // MARK: - Update Password
-    func updatePassword(newPassword: String) async {
-        guard let firebaseUser = auth.currentUser else { return }
-        do {
-            try await firebaseUser.updatePassword(to: newPassword)
-        } catch {
-            showError(error.localizedDescription)
-        }
-    }
-
-    func updateUserPassword(currentEmail: String, currentPassword: String, newPassword: String, completion: @escaping (Error?) -> Void) {
-        guard let user = auth.currentUser else {
-            completion(NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No user logged in"]))
-            return
-        }
-
-        let credential = EmailAuthProvider.credential(withEmail: currentEmail, password: currentPassword)
-
-        user.reauthenticate(with: credential) { _, error in
-            if let error = error {
-                completion(error)
-                return
-            }
-
-            user.updatePassword(to: newPassword) { error in
-                completion(error)
-            }
-        }
-    }
-
     // MARK: - Sign In With Google (With session management)
     //    func signInWithGoogle(presenting viewController: UIViewController) async {
     //        guard let clientID = FirebaseApp.app()?.options.clientID else {
@@ -505,120 +762,8 @@ final class FireAuthViewModel : Sendable {
     //            showError(error.localizedDescription)
     //        }
     //    }
-    // MARK: - Sign In With Google
-    // MARK: SIGN IN GOOGLE
-    func signInWithGoogle(presenting viewController: UIViewController) async {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            showError("Missing Firebase Client ID")
-            return
-        }
 
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
 
-        do {
-            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
-            guard let email = googleUser.user.profile?.email else {
-                showError("Failed to retrieve email from Google account")
-                return
-            }
-
-            let snapshot = try await getUserByEmail(email)
-            if snapshot.documents.isEmpty {
-                showError("No account found with this email. Please sign up.")
-                return
-            }
-
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: googleUser.user.idToken!.tokenString,
-                accessToken: googleUser.user.accessToken.tokenString
-            )
-
-            let authResult = try await auth.signIn(with: credential)
-            let firebaseUser = authResult.user
-
-            print("DEBUG: Firebase Sign-In successful. UID: \(firebaseUser.uid)")
-
-            let document = snapshot.documents.first
-            let data = document?.data()
-
-            currentLoggedInUser = FireUserModel(
-                id: firebaseUser.uid,
-                phoneNumber: data?["phone"] as? String ?? "",
-                name: data?["name"] as? String ?? "",
-                imageUrl: data?["imageUrl"] as? String,
-                aboutInfo: data?["aboutInfo"] as? String ?? defaultAboutInfo,
-                email: email,
-                typeOfAuth: .google,
-                onlineStatus: data?["onlineStatus"] as? Bool ?? nil
-            )
-            userIsAuthenticated = true
-        } catch {
-            print("DEBUG: Error occurred during Google Sign-In - \(error.localizedDescription)")
-            showError(error.localizedDescription)
-        }
-    }
-
-    // MARK: - Complete Google Account Linking (updated with session management)
-    func completeGoogleAccountLinking(email: String, password: String) async {
-        guard let pendingCredential = pendingGoogleCredential else {
-            showError("No pending Google account to link")
-            return
-        }
-
-        do {
-            // First check if user is logged in elsewhere
-            let snapshot = try await getUserByEmail(email)
-            if let document = snapshot.documents.first {
-                let userId = document.documentID
-                let (isActive, _) = await checkActiveSession(userId: userId)
-
-                if isActive {
-                    // Option 1: Prevent login and inform user
-                    // showError("This account is already logged in on another device. Please log out there first.")
-                    // return
-
-                    // Option 2: Force logout on other device and continue
-                    print("DEBUG: User already logged in elsewhere, forcing logout on other device")
-                }
-            }
-
-            let authResult = try await auth.signIn(withEmail: email, password: password)
-            let firebaseUser = authResult.user
-
-            try await firebaseUser.link(with: pendingCredential)
-
-            // Generate and save new session ID
-            let sessionId = await updateUserSession(userId: firebaseUser.uid)
-
-            try await getUserRef(userId: firebaseUser.uid).updateData([
-                "typeOfAuth": "linkedWithGoogle",
-                "linkedProviders": FieldValue.arrayUnion(["google"]),
-                "currentSessionId": sessionId,
-                "lastDevice": UIDevice.current.name
-            ])
-
-            await loadCurrentUser()
-
-            // Update the currentSessionId in the user model
-            if currentLoggedInUser != nil {
-                var updatedUser = currentLoggedInUser!
-                updatedUser.currentSessionId = sessionId
-                currentLoggedInUser = updatedUser
-            }
-
-            pendingGoogleCredential = nil
-            showAccountLinkingPrompt = false
-
-            print("DEBUG: Successfully linked Google account with session ID: \(sessionId)")
-
-            // Start monitoring for session changes
-            monitorSessionStatus()
-        } catch {
-            print("DEBUG: Error during account linking: \(error.localizedDescription)")
-            showError("Failed to link accounts: \(error.localizedDescription)")
-        }
-    }
     // MARK: - Sign Up With Google (updated with session management)
     //    func signUpWithGoogle(presenting viewController: UIViewController) async {
     //        guard let clientID = FirebaseApp.app()?.options.clientID else {
@@ -728,208 +873,85 @@ final class FireAuthViewModel : Sendable {
     //            showError(error.localizedDescription)
     //        }
     //    }
+    // Monitor session status to detect force logouts
 
-    // MARK: - Sign Up With Google (with account checking and linking flow)
-    func signUpWithGoogle(presenting viewController: UIViewController) async {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            showError("Missing Firebase Client ID")
-            return
-        }
-        
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
+    // MARK: CREATE SESSION ID
+//    private func generateSessionId() -> String {
+//        return UUID().uuidString
+//    }
 
-        do {
-            let googleUser = try await signInWithGoogleHelper(presenting: viewController)
-            guard let email = googleUser.user.profile?.email else {
-                showError("Failed to retrieve email from Google account")
-                return
-            }
-
-            let snapshot = try await getUserByEmail(email)
-
-            if !snapshot.documents.isEmpty {
-
-                let userDoc = snapshot.documents.first!
-                let userData = userDoc.data()
-                let authType = userData["authType"] as? String ?? "unknown"
-
-                print("DEBUG: User with email \(email) already exists with auth type: \(authType)")
-
-                if authType == "email" {
-
-                    DispatchQueue.main.async {
-                        self.typeOfAuth = .email
-
-                        self.pendingGoogleCredential = GoogleAuthProvider.credential(
-                            withIDToken: googleUser.user.idToken!.tokenString,
-                            accessToken: googleUser.user.accessToken.tokenString
-                        )
-
-                        self.showError("We found an existing account with this email. Please enter your password to link your Google account.")
-
-                        self.showAccountLinkingPrompt = true
-                    }
-                    return
-                } else if authType == "google" {
-                    await signInWithGoogle(presenting: viewController)
-                    return
-                }
-            }
-
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: googleUser.user.idToken!.tokenString,
-                accessToken: googleUser.user.accessToken.tokenString
-            )
-
-            let authResult = try await auth.signIn(with: credential)
-            let firebaseUser = authResult.user
-            let userRef = getUserRef(userId: firebaseUser.uid)
-
-            let fullName = googleUser.user.profile?.name ?? "Unknown User"
-            let profileImageURL = googleUser.user.profile?.imageURL(withDimension: 200)?.absoluteString
-            let phoneNumber = firebaseUser.phoneNumber ?? ""
-
-            let userData = createUserData(
-                id: firebaseUser.uid,
-                phone: phoneNumber,
-                name: fullName,
-                imageUrl: profileImageURL,
-                email: email,
-                authType: "google"
-            )
-
-            try await userRef.setData(userData)
-            print("DEBUG: New user successfully created in Firestore")
-
-            currentLoggedInUser = FireUserModel(
-                id: firebaseUser.uid,
-                phoneNumber: phoneNumber,
-                name: fullName,
-                imageUrl: profileImageURL,
-                aboutInfo: defaultAboutInfo,
-                email: email,
-                typeOfAuth: .google,
-                onlineStatus: false
-            )
-            userIsAuthenticated = true
-        } catch {
-            print("DEBUG: Error occurred during Google Sign-Up - \(error.localizedDescription)")
-            showError(error.localizedDescription)
-        }
-    }
-    // MARK: - Send OTP
-    func sendOTP(phoneNumber: String) async {
-        do {
-            Auth.auth().settings?.isAppVerificationDisabledForTesting = false
-
-            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber("+911234567890", uiDelegate: nil)
-            DispatchQueue.main.async {
-                self.verificationID = verificationID
-                print("OTP sent successfully! Verification ID: \(verificationID)")
-            }
-        } catch {
-            DispatchQueue.main.async {
-                self.showError("Failed to send OTP: \(error.localizedDescription)")
-                print("Error sending OTP: \(error.localizedDescription)")
-
-                if let error = error as NSError? {
-                    print("Debug Info - Code: \(error.code), Domain: \(error.domain)")
-                }
-            }
-        }
-    }
-
-    // MARK: - Delete Account
-    func deleteAccountandUser() async {
-        guard let firebaseUser = auth.currentUser else { return }
-
-        let userRef = getUserRef(userId: firebaseUser.uid)
-
-        do {
-            print("DEBUG: Deleting user document from Firestore for UID: \(String(describing: firebaseUser.displayName))")
-            try await userRef.delete()
-            print("DEBUG: User document successfully deleted from Firestore")
-            try await firebaseUser.delete()
-            print("DEBUG: User successfully deleted from Firebase Authentication")
-            signOut()
-        } catch {
-            showError(error.localizedDescription)
-            print("DEBUG: Error deleting user - \(error.localizedDescription)")
-        }
-    }
-
-    // MARK: - Helper Functions
-    private func showError(_ message: String) {
-        errorMessage = message
-        showingError = true
-    }
-
-    private func getUserRef(userId: String) -> DocumentReference {
-        return usersCollection.document(userId)
-    }
-
-    private func getUserByEmail(_ email: String) async throws -> QuerySnapshot {
-        return try await usersCollection.whereField("email", isEqualTo: email).getDocuments()
-    }
-
-    private func getAuthType(for firebaseUser: FirebaseAuth.User) -> AuthType {
-        if let providerID = firebaseUser.providerData.first?.providerID {
-            switch providerID {
-            case "password": return .email
-            case "google.com": return .google
-            case "phone": return .phone
-            default: return .unknown
-            }
-        }
-        return .unknown
-    }
-
-    private func createUserModel(firebaseUser: FirebaseAuth.User, data: [String: Any]) -> FireUserModel {
-        return FireUserModel(
-            id: firebaseUser.uid,
-            phoneNumber: data["phoneNumber"] as? String ?? "",
-            name: data["name"] as? String ?? firebaseUser.displayName ?? "",
-            imageUrl: data["imageUrl"] as? String,
-            aboutInfo: data["aboutInfo"] as? String ?? defaultAboutInfo,
-            createdDate: (data["createdDate"] as? Timestamp)?.dateValue(),
-            email: firebaseUser.email,
-            typeOfAuth: getAuthType(for: firebaseUser),
-            lastSeenTime: (data["lastSeenTime"] as? Timestamp)?.dateValue(),
-            onlineStatus: data["onlineStatus"] as? Bool,
-            isTyping: data["isTyping"] as? Bool
-        )
-    }
-
-    private func createUserData(
-        id: String,
-        phone: String,
-        name: String,
-        imageUrl: String? = nil,
-        email: String,
-        authType: String,
-        onlineStatus: Bool? = nil
-    ) -> [String: Any] {
-        [
-            "id": id,
-            "phoneNumber": phone,
-            "name": name,
-            "imageUrl": imageUrl ?? "",
-            "aboutInfo": defaultAboutInfo,
-            "createdDate": Timestamp(date: Date()),
-            "email": email,
-            "authType": authType,
-            "lastSeenTime": Date() ,
-            "onlineStatus": false,
-            "isTyping": false
-        ]
-    }
-
-    private func signInWithGoogleHelper(presenting viewController: UIViewController) async throws -> GIDSignInResult {
-        let userAuth = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
-        guard (userAuth.user.idToken?.tokenString) != nil else {
-            throw NSError(domain: "AuthError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve Google ID Token"])
-        }
-        return userAuth
-    }
+    // Update the user's session information
+//    private func updateUserSession(userId: String) async -> String {
+//        let sessionId = generateSessionId()
+//
+//        do {
+//            try await getUserRef(userId: userId).updateData([
+//                "currentSessionId": sessionId,
+//                "lastLoginTime": Timestamp(date: Date()),
+//                "lastDevice": UIDevice.current.name // Optional: track which device they're using
+//            ])
+//            print("DEBUG: Updated session ID to \(sessionId) for user \(userId)")
+//            return sessionId
+//        } catch {
+//            print("DEBUG: Failed to update session: \(error.localizedDescription)")
+//            return sessionId // Still return the session ID even if update fails
+//        }
+//    }
+//
+//    // Check if user has an active session elsewhere
+//    private func checkActiveSession(userId: String) async -> (isActive: Bool, sessionId: String?) {
+//        do {
+//            let document = try await getUserRef(userId: userId).getDocument()
+//            guard let data = document.data(),
+//                  let sessionId = data["currentSessionId"] as? String else {
+//                return (false, nil)
+//            }
+//
+//            // If session exists, check if it's recent (optional: you can add timeout logic)
+//            if let lastLoginTime = (data["lastLoginTime"] as? Timestamp)?.dateValue() {
+//                // For example, consider sessions older than 30 minutes as expired
+//                if Date().timeIntervalSince(lastLoginTime) > 1800 {
+//                    return (false, sessionId)
+//                }
+//            }
+//
+//            return (true, sessionId)
+//        } catch {
+//            print("DEBUG: Error checking active session: \(error.localizedDescription)")
+//            return (false, nil)
+//        }
+//    }
+//
+//    // Force logout when another device logs in
+//    func forceLogout() {
+//        // Display alert to user
+//        errorMessage = "You have been logged out because your account was accessed on another device."
+//        showingError = true
+//        // Perform logout
+//        signOut()
+//    }
+//    func monitorSessionStatus() {
+//        guard let userId = currentLoggedInUser?.id else { return }
+//
+//        // Create a listener for changes to the user document
+//        let _  = getUserRef(userId: userId)
+//            .addSnapshotListener { [weak self] documentSnapshot, error in
+//                guard let self = self,
+//                      let document = documentSnapshot,
+//                      let data = document.data(),
+//                      let currentSessionId = data["currentSessionId"] as? String,
+//                      let mySessionId = self.currentLoggedInUser?.currentSessionId else {
+//                    return
+//                }
+//
+//                // If the session IDs don't match, this user has been logged in elsewhere
+//                if currentSessionId != mySessionId {
+//                    print("DEBUG: Session invalidated - user logged in elsewhere")
+//                    self.forceLogout()
+//                }
+//            }
+//
+//        // Store the listener somewhere so it can be removed later (on logout)
+//        // For example: sessionListener = listener
+//    }
 }

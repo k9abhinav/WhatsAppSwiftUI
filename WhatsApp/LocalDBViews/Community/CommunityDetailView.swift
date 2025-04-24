@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CommunityDetailView: View {
-    @Environment(CommunityViewModel.self) var viewModel: CommunityViewModel
+    @Environment(CommunityViewModel.self) var communityViewModel: CommunityViewModel
     let community: Community
 
     var body: some View {
@@ -48,7 +48,7 @@ struct CommunityDetailView: View {
                             Text(announcement.sender)
                                 .font(.caption)
                             Spacer()
-                            Text(viewModel.timeAgo(from: announcement.timestamp))
+                            Text(communityViewModel.timeAgo(from: announcement.timestamp))
                                 .font(.caption)
                         }
                         .foregroundColor(.gray)
@@ -59,6 +59,7 @@ struct CommunityDetailView: View {
             Section(header: Text("Groups")) {
                 ForEach(community.groups) { group in
                     CommunityGroupRow(group: group)
+                        .environment(communityViewModel)
                 }
             }
         }

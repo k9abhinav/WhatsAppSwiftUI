@@ -2,11 +2,11 @@
 import SwiftUI
 
 struct CustomSearchBar: View {
-
+    
     @Binding var searchText: String
     @State var placeholderText: String
     @FocusState var isFocused: Bool
-
+    
     var body: some View {
         HStack {
             magnifyingGlassSymbol
@@ -20,9 +20,9 @@ struct CustomSearchBar: View {
         }
         .background(Color.gray.opacity(0.1))
     }
-
+    
     // MARK: Components -------------------------
-
+    
     private var magnifyingGlassSymbol: some View {
         Image(systemName: "magnifyingglass")
             .foregroundColor(.gray)
@@ -35,9 +35,9 @@ struct CustomSearchBar: View {
             .focused($isFocused)
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
-
+        
     }
-
+    
     private var crossButton: some View {
         Image(systemName: "xmark.circle.fill")
             .foregroundColor(.gray)

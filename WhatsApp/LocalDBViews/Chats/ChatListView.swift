@@ -4,10 +4,9 @@ import SwiftData
 
 struct ChatListView: View {
 
-    @Environment(ChatsViewModel.self) var viewModel : ChatsViewModel
- 
-    @Environment(\.modelContext) private var modelContext
     @Query private var users: [User]
+    @State private var chatsViewModel = ChatsViewModel()
+    @Environment(\.modelContext) private var modelContext
     @State private var searchText = ""
     @State private var showingSettings = false
     @Binding var selectView: Bool
@@ -20,9 +19,12 @@ struct ChatListView: View {
                         ToolbarItem(placement: .topBarLeading) { whatsAppTitle }
                         ToolbarItemGroup { toolbarButtons }
                     }
-                    .navigationDestination(isPresented: $showingSettings, destination: {
+                    .navigationDestination(
+                        isPresented: $showingSettings,
+                        destination: {
                         SettingsView(selectView: $selectView)
-                    })
+                        }
+                    )
                     .toolbarBackground(.white, for: .navigationBar)
                     .toolbarColorScheme(.light, for: .navigationBar)
             }
@@ -31,7 +33,7 @@ struct ChatListView: View {
 
     // MARK: - Computed Properties
     private var filteredUsers: [User] {
-        viewModel.filteredUsers(users: users, searchText: searchText)
+        chatsViewModel.filteredUsers(users: users, searchText: searchText)
     }
 
     // MARK: - Components
@@ -60,46 +62,47 @@ struct ChatListView: View {
 
     private var scrollViewChatUsers: some View {
         ScrollView {
-            VStack {
-                CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
-            }
-            .cornerRadius(20)
-            .padding(.horizontal, 8)
-            .padding(.top, 12)
-            .padding(.bottom,5)
-            
+            CustomSearchBar(searchText: $searchText,placeholderText: "Ask Meta AI or Search")
+                .cornerRadius(20)
+                .padding(.horizontal, 8)
+                .padding(.top, 12)
+                .padding(.bottom,5)
             horizontalChatCategories
-
-            VStack(spacing: 17) {
-                if filteredUsers.isEmpty && !searchText.isEmpty {
-                    Text("No matches found")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding()
-                } else {
-                    ForEach(filteredUsers) { user in
-                        ChatRow(user: user)
-                    }
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 50)
+            renderUserChats
         }
     }
+
+    private var renderUserChats: some View {
+        LazyVStack(spacing: 17) {
+            if filteredUsers.isEmpty && !searchText.isEmpty {
+                Text("No matches found")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding()
+            } else {
+                ForEach(filteredUsers) { user in
+                    ChatRow(user: user)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 50)
+    }
+
     private var horizontalChatCategories: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(viewModel.chatCategories, id: \.self) { category in
+                ForEach(chatsViewModel.chatCategories, id: \.self) { category in
                     Text(category)
                         .font(.caption)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16) // Padding for dynamic width
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
                                 .fill(Color.customGreen)
                         )
-                        .fixedSize() // Ensures the capsule only takes as much space as needed
+                        .fixedSize()
                 }
             }
             .padding(.horizontal)

@@ -63,9 +63,7 @@ struct UpdatesStoryViewerView: View {
                                         AsyncImage(url: imageUrl) { phase in
                                             switch phase {
                                             case .empty:
-                                                Circle()
-                                                    .fill(Color.gray.opacity(0.3))
-                                                    .frame(width: 36, height: 36)
+                                                DefaultProfileImage(size: 36)
                                             case .success(let image):
                                                 image
                                                     .resizable()
@@ -73,19 +71,15 @@ struct UpdatesStoryViewerView: View {
                                                     .frame(width: 36, height: 36)
                                                     .clipShape(Circle())
                                             case .failure:
-                                                Image(systemName: "person.circle.fill")
-                                                    .resizable()
-                                                    .frame(width: 36, height: 36)
-                                                    .foregroundColor(.gray)
+                                                DefaultProfileImage(size: 36)
+
                                             @unknown default:
                                                 EmptyView()
+                                                    .frame(width: 36, height: 36)
                                             }
                                         }
                                     } else {
-                                        Image(systemName: "person.circle.fill")
-                                            .resizable()
-                                            .frame(width: 36, height: 36)
-                                            .foregroundColor(.gray)
+                                        DefaultProfileImage(size: 36)
                                     }
 
                                     VStack(alignment: .leading) {
@@ -158,6 +152,7 @@ struct UpdatesStoryViewerView: View {
                                                 .foregroundColor(.red)
                                         @unknown default:
                                             EmptyView()
+                                                .frame(width: 100, height: 100)
                                         }
                                     }
                                     .onAppear {

@@ -66,7 +66,7 @@ struct SignInWithPhoneView: View {
                     Button(action: {
                         isLoading = true
                         Task {
-                            await viewModel.sendOTP(phoneNumber: phoneNumber)
+                          //
                             otpViewVisibilty = true
                         }
                         //                        Task {

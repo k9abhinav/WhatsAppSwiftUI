@@ -7,23 +7,35 @@ class ContactsManager {
     var contacts: [Contact] = []
     private let contactStore = CNContactStore()
     private let modelContext: ModelContext
+    var isAccessGranted: Bool {
+        get { UserDefaults.standard.bool(forKey: "ContactsAccessGranted") }
+        set { UserDefaults.standard.set(newValue, forKey: "ContactsAccessGranted") }
+    }
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        if isAccessGranted {
+            fetchContactsIfNeeded()
+        }
     }
 
     func requestAccess() {
         contactStore.requestAccess(for: .contacts) { granted, error in
-            if granted {
-                self.fetchContacts()
-            } else {
-                print("Access Denied: \(error?.localizedDescription ?? "Unknown Error")")
+            DispatchQueue.main.async {
+                if granted {
+                    self.isAccessGranted = true
+                    self.fetchContactsIfNeeded()
+                } else {
+                    print("Access Denied: \(error?.localizedDescription ?? "Unknown Error")")
+                }
             }
         }
     }
 
-    private func fetchContacts() {
-        DispatchQueue.global(qos: .userInitiated).async {
+    private func fetchContactsIfNeeded() {
+        guard contacts.isEmpty else { return } // Avoid redundant fetching
+
+        DispatchQueue.global(qos: .background).async {
             let keys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey, CNContactImageDataKey] as [CNKeyDescriptor]
             let request = CNContactFetchRequest(keysToFetch: keys)
 

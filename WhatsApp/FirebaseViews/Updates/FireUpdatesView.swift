@@ -54,7 +54,7 @@ struct FireUpdatesView: View {
                         .padding()
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
-                        .shadow(radius: 2)
+                        .shadow(radius: 1)
                         .padding(.horizontal)
                     }
 
@@ -99,7 +99,7 @@ struct FireUpdatesView: View {
                     if updateViewModel.allUpdates.isEmpty {
                         ContentUnavailableView("No Updates",
                                                systemImage: "bubble.left.and.text.bubble.right",
-                                               description: Text("You haven't posted any updates in the last 24 hours"))
+                                               description: Text("All updates in the last 24 hours will appear here."))
                             .padding(.top)
                     }
                 }
@@ -122,14 +122,7 @@ struct FireUpdatesView: View {
             }
         }
     }
-    private var defaultProfileImage: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .scaledToFill()
-            .frame(width: 50, height: 50)
-            .clipShape(Circle())
-            .foregroundColor(.gray)
-    }
+
     ///
     private var userProfilePictureView: some View {
         Group {
@@ -137,8 +130,7 @@ struct FireUpdatesView: View {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:
-                        ProgressView()
-                            .frame(width: 50,height: 50)
+                        DefaultProfileImage(size: 50)
                     case .success(let image):
                         image
                             .resizable()
@@ -147,7 +139,7 @@ struct FireUpdatesView: View {
                             .clipShape(Circle())
 
                     case .failure:
-                        defaultProfileImage
+                        DefaultProfileImage(size: 50)
                     @unknown default:
                         EmptyView()
                             .frame(width: 50,height: 50)
@@ -156,7 +148,7 @@ struct FireUpdatesView: View {
 
             }
             else{
-                defaultProfileImage
+                DefaultProfileImage(size: 50)
             }
         }
     }

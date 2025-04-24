@@ -2,7 +2,7 @@
 import SwiftUI
 
 struct CallsView: View {
-    @Environment(CallsViewModel.self) var viewModel : CallsViewModel
+    @State private var callsViewModel = CallsViewModel()
     @State private var showNewCallSheet = false
 
     var body: some View {
@@ -34,7 +34,7 @@ struct CallsView: View {
 
                 // Recent Calls Section
                 Section(header: Text("Recent")) {
-                    ForEach(viewModel.calls) { call in
+                    ForEach(callsViewModel.calls) { call in
                         CallRow(call: call)
 
                     }
