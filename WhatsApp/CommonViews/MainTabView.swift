@@ -7,16 +7,16 @@ struct MainTabView: View {
     @State var selectView: Bool = true
     @State var currentUser: FireUserModel?
     @State var currentChatImageData: Data?
-    @State var currentProfileImageData: Data?
     @State var isProfilePicPresented : Bool = false
     @State var chatImageDetailView : Bool = false
     @Environment(FireAuthViewModel.self) private var authViewModel
+    @Environment(UtilityClass.self) private var utilityVM
     var body: some View {
         
         ZStack {
             TabView(selection: $selectedTab) {
                 if selectView {
-                    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented, currentProfileImageData: $currentProfileImageData, chatImageDetailView: $chatImageDetailView, currentChatImageData: $currentChatImageData )
+                    FireChatListView(selectView: $selectView, currentUser: $currentUser, isProfilePicPresented: $isProfilePicPresented, chatImageDetailView: $chatImageDetailView, currentChatImageData: $currentChatImageData )
                         .tabItem {
                             Label("Chats", systemImage: "ellipsis.message.fill")
                         }
@@ -64,7 +64,7 @@ struct MainTabView: View {
     private var profilePicOverlayZStack: some View {
         Group{
             if isProfilePicPresented {
-                ProfilePicOverlay(imageData: currentProfileImageData, username: currentUser?.name ) {
+                ProfilePicOverlay(imageData: utilityVM.profileImageData, username: currentUser?.name ) {
                     withAnimation { isProfilePicPresented = false }
                 }
             }

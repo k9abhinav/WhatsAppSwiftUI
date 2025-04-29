@@ -33,7 +33,7 @@ class ChatsViewModel {
         )
         context.insert(newMessage)
         
-        Task { @MainActor in
+        Task {
             try await Task.sleep(nanoseconds: 2_000_000_000)
             let replyMessage = Chat(
                 content: generateReply(for: messageText),

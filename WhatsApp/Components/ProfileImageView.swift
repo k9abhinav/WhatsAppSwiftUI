@@ -3,13 +3,10 @@ import SwiftUI
 
 struct ProfileImageView: View {
     let size: CGFloat
-    @State var image:UIImage?
+    @State private var image: UIImage?
     @Binding var imageData: Data?
+
     var body: some View {
-        profileImage
-            .task{  loadImage() }
-    }
-    private var profileImage: some View {
         Group {
             if let uiImage = image {
                 Image(uiImage: uiImage)
@@ -21,11 +18,19 @@ struct ProfileImageView: View {
                 DefaultProfileImage(size: size)
             }
         }
+        .onChange(of: imageData){
+          _,_ in loadImage()
+        }
+        .onAppear {
+            loadImage()
+        }
     }
 
     private func loadImage() {
-        if let imageData = imageData {
-            image = UIImage(data: imageData)
+        if let data = imageData, !data.isEmpty {
+            self.image = UIImage(data: data)
+        } else {
+            self.image = nil
         }
     }
 }
@@ -35,7 +40,7 @@ struct ProfileAsyncImageView:View{
     @State var imageUrlString: String?
     var body: some View{
         Group {
-            if let imageUrlString = imageUrlString, let imageUrl = URL(string: imageUrlString) {
+            if let imageUrlString = imageUrlString, let imageUrl = URL(string: imageUrlString),!imageUrlString.hasSuffix(".svg") {
                 AsyncImage(url: imageUrl) { phase in
                     switch phase {
                     case .empty:

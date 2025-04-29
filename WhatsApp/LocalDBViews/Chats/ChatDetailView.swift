@@ -3,16 +3,16 @@ import SwiftData
 import PhotosUI
 
 struct ChatDetailView: View {
-    
+
     let user: User
-    @Environment(ChatsViewModel.self) private var viewModel: ChatsViewModel
+    @Bindable var localChatsVM : ChatsViewModel
     @Environment(\.modelContext) private var context : ModelContext
     @Environment(\.presentationMode) private var presentationMode
     @FocusState private var isTextFieldFocused: Bool
     @State private var messageText: String = ""
     @State private var isProfileDetailPresented: Bool = false
     @State private var isTyping: Bool = false
-    
+    @State private var userImageData: Data?
     // -------------------------------------- MARK: VIEW BODY ------------------------------------------------------------
     
     var body: some View {
@@ -28,8 +28,11 @@ struct ChatDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .task{
+            userImageData = user.imageData
+        }
         .navigationDestination(isPresented: $isProfileDetailPresented, destination: {
-            //                ProfileDetailsView(user: user)
+            ProfileDetailsView(userName: user.name, userOnlineStatus: false , userImageData: $userImageData)
         })
         .toolbar {
             ToolbarItemGroup(placement: .topBarLeading) { backButton ; topLeftNavItems }
@@ -49,7 +52,7 @@ struct ChatDetailView: View {
     
     private func sendMessage() {
 //        dismissKeyboard()
-        viewModel.sendMessage(user: user, messageText: messageText, context: context)
+        localChatsVM.sendMessage(user: user, messageText: messageText, context: context)
         messageText = ""
         isTyping = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

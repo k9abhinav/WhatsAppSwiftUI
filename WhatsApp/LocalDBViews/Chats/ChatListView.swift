@@ -5,8 +5,9 @@ import SwiftData
 struct ChatListView: View {
 
     @Query private var users: [User]
-    @State private var chatsViewModel = ChatsViewModel()
+    @Environment(UtilityClass.self) private var utilityVM
     @Environment(\.modelContext) private var modelContext
+    @State private var localChatsVM = ChatsViewModel()
     @State private var searchText = ""
     @State private var showingSettings = false
     @Binding var selectView: Bool
@@ -33,7 +34,7 @@ struct ChatListView: View {
 
     // MARK: - Computed Properties
     private var filteredUsers: [User] {
-        chatsViewModel.filteredUsers(users: users, searchText: searchText)
+        localChatsVM.filteredUsers(users: users, searchText: searchText)
     }
 
     // MARK: - Components
@@ -81,7 +82,7 @@ struct ChatListView: View {
                     .padding()
             } else {
                 ForEach(filteredUsers) { user in
-                    ChatRow(user: user)
+                    ChatRow(user: user,localChatsVM: localChatsVM)
                 }
             }
         }
@@ -92,7 +93,7 @@ struct ChatListView: View {
     private var horizontalChatCategories: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(chatsViewModel.chatCategories, id: \.self) { category in
+                ForEach(utilityVM.chatCategories, id: \.self) { category in
                     Text(category)
                         .font(.caption)
                         .foregroundColor(.white)

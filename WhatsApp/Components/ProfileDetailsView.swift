@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ProfileDetailsView: View {
-    //    let user: User
+
     let userName:String
     let userOnlineStatus: Bool
     @Binding var userImageData: Data?
@@ -11,12 +11,11 @@ struct ProfileDetailsView: View {
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
     @State private var profileImageIsActive: Bool = false
-    // Sample data for media counts
+
     @State private var mediaCount: Int = 48
     @State private var linksCount: Int = 12
     @State private var docsCount: Int = 7
     
-    // Search results
     @State private var searchResults: [Chat] = []
     
     var body: some View {

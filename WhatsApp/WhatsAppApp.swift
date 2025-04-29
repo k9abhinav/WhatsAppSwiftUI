@@ -9,7 +9,7 @@ struct WhatsAppApp: App {
     @State private var contactsManager : ContactsManager
     @Environment(\.modelContext) private var modelContext: ModelContext
     let container: ModelContainer
-
+ 
     init() {
         FirebaseApp.configure()
 

@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseCore
+import SwiftUI
 
 struct FireMessageModel: Codable, Identifiable, Hashable {
     var id: String = UUID().uuidString
@@ -17,6 +18,8 @@ struct FireMessageModel: Codable, Identifiable, Hashable {
     var voiceUrl: String?
     var voiceDuration: TimeInterval?
     var videoUrl: String?
+    var localImage: UIImage?
+    var isUploading: Bool = false
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)

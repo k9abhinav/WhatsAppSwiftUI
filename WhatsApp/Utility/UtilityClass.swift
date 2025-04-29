@@ -1,7 +1,9 @@
 import SwiftUI
 
-@Observable class UtilityClass{
+@Observable
+class UtilityClass {
     var chatCategories: [String] = ["All","Archived","Family ❤️","Friends","Work","Unread"]
+    @MainActor var profileImageData: Data? = nil
      func timeStringShort(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short

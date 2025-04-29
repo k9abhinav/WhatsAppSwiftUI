@@ -8,18 +8,18 @@ struct ProfilePicOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Rectangle()
+                .fill(Material.ultraThin)
+                .background(Color.black.opacity(0.4))
                 .ignoresSafeArea(.all)
             VStack {
                 Spacer()
                 profileImage
-                Spacer()
                 Text(username ?? "Error")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                     .padding(.top, 10)
-
                 Spacer()
             }
         }
@@ -27,6 +27,9 @@ struct ProfilePicOverlay: View {
         .onTapGesture { onDismiss() }
         .transition(.opacity) // Smooth fade-in effect
         .animation(.easeInOut(duration: 0.3), value: imageData) // Smooth appearance
+        .onAppear {
+            loadImage()
+        }
     }
     private var profileImage: some View {
         Group {

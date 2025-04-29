@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var chatViewModel = FireChatViewModel()
     @State private var utilityViewModel = UtilityClass()
     @State private var authViewModel = FireAuthViewModel()
+
     var body: some View {
         Group {
             if splashViewActive {
@@ -21,9 +22,9 @@ struct ContentView: View {
                 contentView
                     .environment(userViewModel)
                     .environment(messageViewModel)
-                    .environment(chatViewModel)
                     .environment(updateViewModel)
                     .environment(utilityViewModel)
+                    .environment(chatViewModel)
                     .environment(authViewModel)
             }
         }
@@ -64,7 +65,7 @@ struct ContentView: View {
         }
 
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             withAnimation { isLoading = false }
         }
     }

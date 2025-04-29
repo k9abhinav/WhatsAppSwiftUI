@@ -10,9 +10,7 @@ struct FireChatRow: View {
     }
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented : Bool
-    @Binding var currentProfileImageData: Data?
     @Environment(FireChatViewModel.self) private var chatViewModel
-    @Environment(FireMessageViewModel.self) private var messageViewModel
     @Environment(FireUserViewModel.self) private var userViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
     @Environment(UtilityClass.self) private var utilityVM
@@ -21,31 +19,17 @@ struct FireChatRow: View {
     @Binding var navigationPath: NavigationPath
     @State var imageURLData: Data?
     var body: some View {
-        Button {
-            navigationPath.append(user)
-        } label: {
-                   HStack {
-                       profilePicViewButton
-                       userProfileNameandContent
-                   }
-                   .padding(.vertical, 5)
-               }
-        .buttonStyle(.plain)
-        .onAppear { onAppearFunctions() }
-        .task{
-            guard let url = URL(string: user.imageUrl ?? "") else {
-                print("No URL provided for image")
-                return }
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                DispatchQueue.main.async {
-                    imageURLData = data
-                }
-
-            } catch {
-                print("Failed to load image data: \(error.localizedDescription)")
-            }
+        HStack {
+            profilePicViewButton
+            userProfileNameandContent
         }
+        .padding(.vertical, 5)
+        .onTapGesture {
+            let navData = UserNavigationData(user: user, imageData: imageURLData)
+            print("NAVDATA \n USER name: \(navData.user.name) - Image Data\(String(describing: navData.imageData?.description))")
+            navigationPath.append(navData)
+        }
+        .onAppear { onAppearFunctions() }
         .onChange(of: chatViewModel.triggeredUpdate) { _,newValue in
             print(newValue.description)
             if newValue {
@@ -60,10 +44,20 @@ struct FireChatRow: View {
         Button(
             action: {
                 currentUser = user
-                currentProfileImageData = imageURLData
+                print(utilityVM.profileImageData?.debugDescription ?? "ERROR -- no data in profileImageData variable")
+                print(imageURLData?.description ?? "NO DATA IN FIRECHATROW for imageURLData")
+                utilityVM.profileImageData = imageURLData
+                print(utilityVM.profileImageData?.debugDescription ?? "ERROR -- no data in profileImageData variable")
                 isProfilePicPresented.toggle()
             },
-            label: {   ProfileAsyncImageView(size: 50, imageUrlString: user.imageUrl ) } )
+            label: {
+                if let _ = imageURLData {
+                    ProfileImageView(size: 50, imageData: $imageURLData)
+                } else{
+                    DefaultProfileImage(size: 50)
+                }
+            }
+        )
         .buttonStyle(PlainButtonStyle())
     }
     private var userLastSeenTime: some View {
@@ -76,52 +70,48 @@ struct FireChatRow: View {
         }
     }
     private var userProfileNameandContent: some View {
-        Button(action: {
-            navigationPath.append(user)
-        }, label: {
-            VStack(alignment: .leading,spacing: 6) {
-                HStack {
-                    Text(user.name)
+        VStack(alignment: .leading,spacing: 6) {
+            HStack {
+                Text(user.name)
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                if user.id == authViewModel.currentLoggedInUser?.id {
+                    Text("(You)")
                         .font(.headline)
-                        .foregroundStyle(.black)
-                    if user.id == authViewModel.currentLoggedInUser?.id {
-                        Text("(You)")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                    }
-                    Spacer()
-                    userLastSeenTime
-                }
-
-                HStack(spacing:12 ){
-                    Image("doubleCheck")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 5, height: 5)
-                        .scaleEffect(3.5)
-
-                    Text(lastMessageContent ?? "No Message")
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
                         .foregroundColor(.gray)
-                    Spacer()
-                    ZStack {
-                        Image(systemName: "circlebadge.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(Color.customGreen)
-                            .frame(width: 20, height: 20)
-                        Text("")
-                            .foregroundStyle(.white)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-
-                    }.padding(.top,3)
                 }
-                .padding(.leading,5)
+                Spacer()
+                userLastSeenTime
             }
-        })
+
+            HStack(spacing:12 ){
+                Image("doubleCheck")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 5, height: 5)
+                    .scaleEffect(3.5)
+
+                Text(lastMessageContent ?? "No Message")
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundColor(.gray)
+                Spacer()
+                ZStack {
+                    Image(systemName: "circlebadge.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(Color.customGreen)
+                        .frame(width: 20, height: 20)
+                    Text("")
+                        .foregroundStyle(.white)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                }.padding(.top,3)
+            }
+            .padding(.leading,5)
+        }
 
     }
     
@@ -129,8 +119,26 @@ struct FireChatRow: View {
 
     
     private func onAppearFunctions(){
+        Task {
+              await fetchProfileImage()
+          }
         chatViewModel.setupChatListener(currentUserId: authViewModel.currentLoggedInUser?.id ?? "")
         fetchLastMessage()
+    }
+    private func fetchProfileImage() async {
+        guard let url = URL(string: user.imageUrl ?? "") else {
+            print("No URL provided for image")
+            return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            await MainActor.run {
+                imageURLData = data
+                print("Sucessfully to load image data: \(imageURLData)")
+            }
+        } catch {
+            print("Failed to load image data: \(error.localizedDescription)")
+        }
     }
     private func fetchLastMessage() {
         Task { @MainActor in

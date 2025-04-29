@@ -14,6 +14,7 @@ struct FireSettingsView: View {
     @AppStorage("userName") private var userName = "No~User"
     @AppStorage("userStatus") private var userStatus = "No~data!"
     @State private var userImageURLString: String?
+    @State private var userImageData:Data?
     @Binding var selectView: Bool
     @State var istoggleOn: Bool = false
     @State private var showingEdit = false
@@ -43,7 +44,22 @@ struct FireSettingsView: View {
                 isPresented: $showingEdit ,
                 content: { editProfileDetails }
             )
-            .task{ if !selectView { contactsManager.requestAccess() } }
+            .task{
+                if !selectView { contactsManager.requestAccess() }
+                
+                guard let url = URL(string: currentLoggedInUser.imageUrl ?? "") else {
+                    print("No URL provided for image")
+                    return }
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    DispatchQueue.main.async {
+                        userImageData = data
+                    }
+
+                } catch {
+                    print("Failed to load image data: \(error.localizedDescription)")
+                }
+            }
             .onAppear(perform: onAppearFunctions )
             .onChange(of: showingEdit, onChangeFunctions)
         }
@@ -112,10 +128,16 @@ struct FireSettingsView: View {
             .padding(.top, 5)
         }
     }
-  
+
     private var profileImageAndEditView: some View {
         ZStack {
-            ProfileAsyncImageView(size: 80, imageUrlString: userImageURLString)
+            VStack {
+                if let imageData = userImageData, !imageData.isEmpty {
+                    ProfileImageView(size: 80, imageData: $userImageData)
+                } else {
+                    ProfileAsyncImageView(size: 80, imageUrlString: userImageURLString)
+                }
+            }
             PhotosPicker(
                 selection: $selectedPhoto,
                 matching: .images,
@@ -126,22 +148,21 @@ struct FireSettingsView: View {
             .buttonStyle(PlainButtonStyle())
         }
         .frame(width: 90, height: 90)
-        .onChange(of: selectedPhoto) { oldItem, newItem in
-            if let newItem = newItem {
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
+        .onChange(of: selectedPhoto) { _, newItem in
+            Task {
+                if let newItem = newItem, let data = try? await newItem.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data),
+                   let newImageUrl = await userViewModel.changeProfileImage(userId: currentLoggedInUser.id, image: uiImage) {
 
-                        if let newImageUrl = await userViewModel.changeProfileImage(userId: currentLoggedInUser.id, image: uiImage) {
-                            await MainActor.run {
-                                userImageURLString = newImageUrl
-                            }
-                        }
+                    await MainActor.run {
+                        userImageURLString = newImageUrl
+                        userImageData = data
                     }
                 }
             }
         }
     }
+
 
 
     private var cameraIconOverlay: some View {

@@ -46,8 +46,6 @@ final class FireUserViewModel {
                 }
 
                 self.allUsers = documents.compactMap { try? $0.data(as: FireUserModel.self) }
-                print(allUsers)
-
                 if !self.userChatTimestamps.isEmpty {
                     self.updateUsersFromChatData()
                 }
@@ -102,9 +100,7 @@ final class FireUserViewModel {
                .map { $0.key }
 
            print("Updated sortedUserIds, count: \(self.sortedUserIds.count)")
-           print("Updated users list via computed property")
            print("Current users with chats count: \(self.users.count)")
-           print("Updated users list  \(self.users)")
        }
 
        func removeListener() {

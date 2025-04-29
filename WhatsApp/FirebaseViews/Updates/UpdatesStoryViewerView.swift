@@ -1,10 +1,3 @@
-//
-//  UpdatesStoryViewerView.swift
-//  WhatsApp
-//
-//  Created by Abhinava Krishna on 17/04/25.
-//
-
 import SwiftUI
 import AVFoundation
 import AVKit
@@ -16,7 +9,9 @@ struct UpdatesStoryViewerView: View {
     @State private var currentIndex: Int
     @State private var progressValue: Double = 0
     @State private var timer: Timer?
-    @State private var remainingTime: Double = 5.0  // Default 5 seconds per story
+    @State private var remainingTime: Double = 5.0
+    @State private var isPaused: Bool = false
+
     @Environment(\.dismiss) private var dismiss
     @Environment(FireUserViewModel.self) private var userViewModel
 
@@ -43,7 +38,7 @@ struct UpdatesStoryViewerView: View {
 
                 if let update = currentUpdate {
                     VStack {
-                        // Progress bars
+                        // Progress Bars
                         HStack(spacing: 4) {
                             ForEach(0..<updates.count, id: \.self) { index in
                                 ProgressBar(
@@ -54,9 +49,8 @@ struct UpdatesStoryViewerView: View {
                         .padding(.horizontal)
                         .padding(.top, 12)
 
-                        // Header with user info and time
+                        // User Info and Close Button
                         HStack {
-                            // User profile pic
                             if let user = currentUser {
                                 HStack {
                                     if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
@@ -65,14 +59,12 @@ struct UpdatesStoryViewerView: View {
                                             case .empty:
                                                 DefaultProfileImage(size: 36)
                                             case .success(let image):
-                                                image
-                                                    .resizable()
+                                                image.resizable()
                                                     .scaledToFill()
                                                     .frame(width: 36, height: 36)
                                                     .clipShape(Circle())
                                             case .failure:
                                                 DefaultProfileImage(size: 36)
-
                                             @unknown default:
                                                 EmptyView()
                                                     .frame(width: 36, height: 36)
@@ -86,7 +78,6 @@ struct UpdatesStoryViewerView: View {
                                         Text(user.name)
                                             .font(.subheadline.bold())
                                             .foregroundColor(.white)
-
                                         Text(update.timeRemaining)
                                             .font(.caption)
                                             .foregroundColor(.gray)
@@ -96,7 +87,7 @@ struct UpdatesStoryViewerView: View {
 
                             Spacer()
 
-                            Button(action: {dismiss()}) {
+                            Button(action: { dismiss() }) {
                                 Image(systemName: "xmark")
                                     .foregroundColor(.white)
                                     .padding(8)
@@ -107,9 +98,8 @@ struct UpdatesStoryViewerView: View {
 
                         Spacer()
 
-                        // Content area
+                        // Content
                         ZStack {
-                            // Handle media based on type
                             switch update.mediaType {
                             case .text:
                                 Text(update.content)
@@ -127,11 +117,9 @@ struct UpdatesStoryViewerView: View {
                                     AsyncImage(url: url) { phase in
                                         switch phase {
                                         case .empty:
-                                            ProgressView()
-                                                .tint(.white)
+                                            ProgressView().tint(.white)
                                         case .success(let image):
-                                            image
-                                                .resizable()
+                                            image.resizable()
                                                 .scaledToFit()
                                                 .frame(maxHeight: geometry.size.height * 0.7)
                                                 .cornerRadius(12)
@@ -152,15 +140,9 @@ struct UpdatesStoryViewerView: View {
                                                 .foregroundColor(.red)
                                         @unknown default:
                                             EmptyView()
-                                                .frame(width: 100, height: 100)
                                         }
                                     }
-                                    .onAppear {
-                                        resetTimer()
-                                    }
-                                } else {
-                                    Text(update.content)
-                                        .foregroundColor(.white)
+                                    .onAppear { resetTimer() }
                                 }
 
                             case .video:
@@ -177,12 +159,8 @@ struct UpdatesStoryViewerView: View {
                                             alignment: .bottom
                                         )
                                         .onAppear {
-                                            // Give more time for videos
                                             resetTimer(seconds: 15.0)
                                         }
-                                } else {
-                                    Text(update.content)
-                                        .foregroundColor(.white)
                                 }
                             }
                         }
@@ -191,32 +169,28 @@ struct UpdatesStoryViewerView: View {
                         Spacer()
                     }
                     .contentShape(Rectangle())
-                    // Tap gestures for navigation
                     .gesture(
-                        DragGesture(minimumDistance: 10)
-                            .onEnded { value in
-                                if value.translation.width > 50 {
-                                    // Swipe right - go to previous
-                                    goToPrevious()
-                                } else if value.translation.width < -50 {
-                                    // Swipe left - go to next
-                                    goToNext()
-                                }
+                        LongPressGesture(minimumDuration: 0.2)
+                            .onChanged { _ in
+                                pause()
                             }
+                            .onEnded { _ in
+                                resume()
+                            }
+                        .simultaneously(
+                            with: DragGesture(minimumDistance: 10)
+                                .onEnded { value in
+                                    let locationX = value.location.x
+                                    let width = geometry.size.width
+
+                                    if locationX < width * 0.3 {
+                                        goToPrevious()
+                                    } else if locationX > width * 0.7 {
+                                        goToNext()
+                                    }
+                                }
+                        )
                     )
-                    .onTapGesture { location in
-                        let width = geometry.size.width
-                        if location.x < width * 0.3 {
-                            // Tap left side - go to previous
-                            goToPrevious()
-                        } else if location.x > width * 0.7 {
-                            // Tap right side - go to next
-                            goToNext()
-                        } else {
-                            // Tap center - pause/resume
-                            togglePause()
-                        }
-                    }
                 }
             }
             .onAppear {
@@ -228,16 +202,20 @@ struct UpdatesStoryViewerView: View {
         }
     }
 
+    // MARK: Timer Logic
+
     private func startTimer() {
         resetTimer()
     }
-    
+
     private func resetTimer(seconds: Double = 5.0) {
         stopTimer()
         remainingTime = seconds
         progressValue = 0.0
-        
+
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            guard !isPaused else { return }
+
             if remainingTime > 0.1 {
                 remainingTime -= 0.1
                 progressValue = 1.0 - (remainingTime / seconds)
@@ -246,30 +224,22 @@ struct UpdatesStoryViewerView: View {
             }
         }
     }
-    
+
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
     }
-    
-    private func togglePause() {
-        if timer == nil {
-            // Resume
-            let secondsLeft = remainingTime
-            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-                if remainingTime > 0.1 {
-                    remainingTime -= 0.1
-                    progressValue = 1.0 - (remainingTime / secondsLeft)
-                } else {
-                    goToNext()
-                }
-            }
-        } else {
-            // Pause
-            stopTimer()
-        }
+
+    private func pause() {
+        isPaused = true
     }
-    
+
+    private func resume() {
+        isPaused = false
+    }
+
+    // MARK: Navigation
+
     private func goToNext() {
         if currentIndex < updates.count - 1 {
             currentIndex += 1
@@ -278,7 +248,7 @@ struct UpdatesStoryViewerView: View {
             dismiss()
         }
     }
-    
+
     private func goToPrevious() {
         if currentIndex > 0 {
             currentIndex -= 1
@@ -286,5 +256,3 @@ struct UpdatesStoryViewerView: View {
         }
     }
 }
-
-

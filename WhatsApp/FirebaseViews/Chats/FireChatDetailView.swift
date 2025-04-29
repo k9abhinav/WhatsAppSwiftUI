@@ -5,7 +5,6 @@ import MediaPlayer
 struct FireChatDetailView: View {
     // MARK: - Properties
     let userId: String
-
     @Environment(\.dismiss) var dismiss
     @Environment(FireChatViewModel.self) private var chatViewModel
     @Environment(FireAuthViewModel.self) private var authViewModel
@@ -14,11 +13,10 @@ struct FireChatDetailView: View {
     @Environment(UtilityClass.self) private var utilityVM
 
     @FocusState private var isTextFieldFocused: Bool
-    @Binding var imageURLData: Data?
+    @State var imageURLData: Data?
     @Binding var navigationPath: NavigationPath
     @Binding var chatImageDetailView: Bool
     @Binding var currentChatImageData: Data?
-
     // Consolidated state variables
     @State private var uiState = UIState()
     @State private var chatState = ChatState()
@@ -55,7 +53,7 @@ struct FireChatDetailView: View {
                     ProfileDetailsView(
                         userName: user.name,
                         userOnlineStatus: user.onlineStatus ?? false,
-                        userImageData: $imageURLData 
+                        userImageData: $imageURLData
                     )
                 }
             )
@@ -70,9 +68,19 @@ struct FireChatDetailView: View {
             .toolbar(.hidden, for: .tabBar)
             .onAppear { Task { await onAppearFunctions() } }
             .onDisappear { onDisappearFunctions() }
-            .task{
-                if uiState.isTyping{
-                    uiState.isMediaSheetVisible = false
+            .task {
+                if uiState.isTyping {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        uiState.isMediaSheetVisible = false
+                    }
+                }
+                if uiState.isMediaSheetVisible {
+                    dismissKeyboard()
+                }
+                if !chatState.messageText.isEmpty {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        uiState.isMediaSheetVisible = false
+                    }
                 }
             }
             .onChange(of: messageViewModel.messages.last) { _, newValue in
@@ -89,7 +97,6 @@ struct FireChatDetailView: View {
                 updateTypingStatus(isTyping: newValue)
             }
 
-            // Image preview overlay
             if uiState.showPreview, let image = mediaState.capturedImage {
                 ImagePreviewView(
                     image: image,
@@ -106,16 +113,6 @@ struct FireChatDetailView: View {
                 .transition(.move(edge: .bottom))
                 .zIndex(1)
             }
-
-            // Profile picture overlay
-            if uiState.isProfileImagePresented {
-                ProfilePicOverlay(imageData: imageURLData, username: user.name) {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        uiState.isProfileImagePresented = false
-                    }
-                }
-                .transition(.opacity)
-            }
         }
     }
 
@@ -127,7 +124,7 @@ struct FireChatDetailView: View {
         if chatState.chatExists == true {
             chatState.chatId = await chatViewModel.loadChatId(for: [currentUserId, user.id])
             messageViewModel.setupMessageListener(for: chatState.chatId ?? "Error")
-            await messageViewModel.fetchAllMessages(for: chatState.chatId ?? "Error")
+            //            await messageViewModel.fetchAllMessages(for: chatState.chatId ?? "Error")
         }
 
         userViewModel.updateUserOnlineStatus(userId: currentUserId, newStatus: true) { error in
@@ -191,6 +188,7 @@ struct FireChatDetailView: View {
             content: chatState.messageText
         )
 
+        uiState.isMediaSheetVisible = false
         chatState.messageText = ""
         dismissKeyboard()
     }
@@ -203,6 +201,7 @@ struct FireChatDetailView: View {
             otherUserId: user.id,
             imageData: image
         )
+        uiState.isMediaSheetVisible = false
     }
 
     private func sendVideo(_ videoData: Data) async {
@@ -213,6 +212,7 @@ struct FireChatDetailView: View {
             otherUserId: user.id,
             videoData: videoData
         )
+        uiState.isMediaSheetVisible = false
     }
 
     private func createChatIfNeeded() async {
@@ -221,6 +221,11 @@ struct FireChatDetailView: View {
             chatState.chatId = await chatViewModel.loadChatId(for: [currentUserId, user.id])
             messageViewModel.setupMessageListener(for: chatState.chatId ?? "")
             chatState.chatExists = true
+        }
+        if uiState.isMediaSheetVisible {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                uiState.isMediaSheetVisible = false
+            }
         }
     }
 
@@ -242,7 +247,6 @@ struct FireChatDetailView: View {
         HStack {
             ProfileImageView(size: 32, imageData: $imageURLData)
                 .onTapGesture { uiState.isProfileImagePresented.toggle() }
-
             VStack(alignment: .leading) {
                 Text(user.name).font(.headline)
 
@@ -270,21 +274,28 @@ struct FireChatDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 10) {
-                    withAnimation(.smooth) {
-                        renderMessages
-                    }
+                    withAnimation(.smooth) { renderMessages }
                     typingIndicator
                 }
             }
             .scrollIndicators(.hidden)
+            .onTapGesture {
+                dismissKeyboard()
+                if uiState.isMediaSheetVisible {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        uiState.isMediaSheetVisible = false
+                    }
+                }
+            }
             .onAppear {
                 scrollToLastMessage(using: scrollProxy)
             }
             .onChange(of: messageViewModel.messages.count) { _, _ in
                 scrollToLastMessage(using: scrollProxy, delay: 0.05)
             }
-            .onChange(of: isTextFieldFocused) { _, isFocused in
-                if isFocused {
+            .onChange(of: isTextFieldFocused) { oldFocusState, newFocusState in
+                if newFocusState == true {
+                    print("IS TEXT FIELD FOCUSED --------- YES ---------- ✅------------")
                     scrollToLastMessage(using: scrollProxy, delay: 0.1)
                 }
             }
@@ -295,12 +306,13 @@ struct FireChatDetailView: View {
     }
 
     private func scrollToLastMessage(using proxy: ScrollViewProxy, delay: Double = 0) {
-        guard let lastMessage = chatState.lastMessage else { return }
-
+        guard let lastMessage = chatState.lastMessage else {
+            print("No chat Last Message to scroll to")
+            return
+        }
+        print("Scrolling to last message \(chatState.lastMessage?.content ?? "NO LAST MESSAGE CONTENT ------- ❌-----------")")
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withTransaction(Transaction(animation: nil)) {
-                proxy.scrollTo(lastMessage.id, anchor: .bottom)
-            }
+            proxy.scrollTo(lastMessage.id, anchor: .bottom)
         }
     }
 
@@ -341,6 +353,11 @@ struct FireChatDetailView: View {
                     chatImageDetailView: $chatImageDetailView,
                     chatId: $chatState.chatId,
                     currentChatImageData: $currentChatImageData,
+                    isMediaSheetVisible: $uiState.isMediaSheetVisible,
+                    isTextFieldFocused: Binding(
+                        get: { isTextFieldFocused },
+                        set: { isTextFieldFocused = $0 }
+                    ),
                     onReply: {
                         chatState.messageText = "Replying to: \"\(message.content)\"\n"
                     },
@@ -350,6 +367,13 @@ struct FireChatDetailView: View {
                     }
                 )
                 .id(message.id)
+                .onTapGesture {
+                    if uiState.isMediaSheetVisible {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            uiState.isMediaSheetVisible = false
+                        }
+                    }
+                }
             }
         }
     }
@@ -427,10 +451,13 @@ struct FireChatDetailView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 5)
+            .padding(.bottom, 3)
+            .padding(.top,2)
 
             if uiState.isMediaSheetVisible {
                 mediaPickerSheet
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeInOut(duration: 0.3), value: uiState.isMediaSheetVisible)
             }
         }
         .background(Color.white)

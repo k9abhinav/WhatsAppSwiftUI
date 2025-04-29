@@ -7,9 +7,10 @@ struct ChatRow: View {
     let user: User
     @State private var isProfilePicPresented = false
     @Environment(UtilityClass.self) private var utilityVM
+    @Bindable var localChatsVM : ChatsViewModel
     var body: some View {
 
-        NavigationLink( destination: ChatDetailView(user:user) )
+        NavigationLink( destination: ChatDetailView(user:user, localChatsVM: localChatsVM) )
         {
             HStack {
                 Button(

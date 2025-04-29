@@ -16,7 +16,6 @@ struct FireChatListView: View {
     @State var navigationPath: NavigationPath = NavigationPath()
     @Binding var currentUser: FireUserModel?
     @Binding var isProfilePicPresented:Bool
-    @Binding var currentProfileImageData: Data?
     @Binding var chatImageDetailView : Bool
     @Binding var currentChatImageData: Data?
     var body: some View {
@@ -41,8 +40,14 @@ struct FireChatListView: View {
                                 )
                             }
                         )
-                        .navigationDestination(for: FireUserModel.self) { user in
-                            FireChatDetailView(userId: user.id, imageURLData: $currentProfileImageData, navigationPath: $navigationPath, chatImageDetailView: $chatImageDetailView, currentChatImageData: $currentChatImageData)
+                        .navigationDestination(for: UserNavigationData.self) { navData in
+                            FireChatDetailView(
+                                userId: navData.user.id,
+                                imageURLData: navData.imageData,
+                                navigationPath: $navigationPath,
+                                chatImageDetailView: $chatImageDetailView,
+                                currentChatImageData: $currentChatImageData
+                            )
                         }
                         .navigationDestination(
                             isPresented: $showingContactUsers,
@@ -76,22 +81,21 @@ struct FireChatListView: View {
             }
         }
     }
-    private func loadImage(for urlString: String?) {
+    private func loadImage(for urlString: String?) async -> Data? {
         guard let url = URL(string: urlString ?? "") else {
             print("No URL provided for image")
-            return
+            return nil
         }
-        Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                DispatchQueue.main.async {
-                    currentProfileImageData = data
-                }
-            } catch {
-                print("Failed to load image data: \(error.localizedDescription)")
-            }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return data // No need for DispatchQueue.main, as we're returning data
+        } catch {
+            print("Failed to load image data: \(error.localizedDescription)")
+            return nil
         }
     }
+
 
     // MARK: - COMPONENTS
     private var plusButtonToStartANewChat: some View {
@@ -182,16 +186,13 @@ struct FireChatListView: View {
             emptyStateView
         } else {
             ForEach(filteredUsers) { user in
+
                 FireChatRow(
                     userId: user.id,
                     currentUser: $currentUser,
                     isProfilePicPresented: $isProfilePicPresented,
-                    currentProfileImageData: $currentProfileImageData,
                     navigationPath: $navigationPath
                 )
-                .onTapGesture {
-                    loadImage(for: user.imageUrl)
-                }
             }
         }
     }

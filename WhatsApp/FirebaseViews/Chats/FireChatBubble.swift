@@ -24,7 +24,8 @@ struct FireChatBubble: View {
     @State private var isPlaying = false
     @State private var playbackProgress: CGFloat = 0
     @State private var playbackTimer: Timer?
-
+    @Binding var isMediaSheetVisible: Bool
+    @Binding var isTextFieldFocused : Bool
     var onReply: () -> Void = {}
     var onForward: () -> Void = {}
     var onDelete: () -> Void = {}
@@ -48,7 +49,6 @@ struct FireChatBubble: View {
                     .contextMenu { contextMenuItems }
                     .onLongPressGesture { feedback() ; showContextMenu = true }
                 HStack{
-                    if(!isFromCurrentUser){ messageReadSymbol }
                     Text(utilityVM.timeStringShort(from: message.timestamp))
                         .font(.caption2)
                         .foregroundColor(.gray)
@@ -74,7 +74,7 @@ struct FireChatBubble: View {
             Button("Cancel", role: .cancel) {}
         }
         .task{
-            guard let url = URL(string: user.imageUrl ?? "") else {
+            guard let url = URL(string: message.imageUrl ?? "") else {
                 print("No URL provided for image")
                 return }
             do {
@@ -82,7 +82,6 @@ struct FireChatBubble: View {
                 DispatchQueue.main.async {
                     imageURLData = data
                 }
-
             } catch {
                 print("Failed to load image data: \(error.localizedDescription)")
             }
@@ -118,51 +117,97 @@ struct FireChatBubble: View {
     // Updated to include voice messages
     private var displayMessageContent: some View {
         VStack {
-            if message.messageType == .image, let imageUrl = message.imageUrl, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 300, height: 300)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 300, height: 300)
-                            .cornerRadius(10)
-                            .padding(10)
-                            .onTapGesture {
-                                currentChatImageData = imageURLData
-                                chatImageDetailView.toggle()
+            if message.messageType == .image {
+                if let localImage = message.localImage {
+                    // Display local image immediately
+                    Image(uiImage: localImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 300, height: 300)
+                        .cornerRadius(10)
+                        .padding(10)
+                        .overlay {
+                            if message.isUploading {
+                                // Show upload indicator
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .tint(.white)
                             }
-
-                    case .failure:
-                        Image(systemName: "photo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 80, height: 80)
-                            .foregroundColor(.gray)
-                            .frame(width: 300, height: 300)
-                    @unknown default:
-                        EmptyView()
-                            .frame(width: 300, height: 300)
+                        }
+                        .onTapGesture {
+                            currentChatImageData = localImage.jpegData(compressionQuality: 0.8)
+                            chatImageDetailView.toggle()
+                        }
+                } else if let imageUrl = message.imageUrl, let url = URL(string: imageUrl) {
+                    // Display remote image when available
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(width: 300, height: 300)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 300, height: 300)
+                                .cornerRadius(10)
+                                .padding(10)
+                                .onTapGesture {
+                                    if isMediaSheetVisible {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            isMediaSheetVisible = false
+                                        }
+                                    }
+                                    else if isTextFieldFocused {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            isTextFieldFocused = false
+                                        }
+                                    }
+                                    else {
+                                        currentChatImageData = imageURLData
+                                        chatImageDetailView.toggle()
+                                    }
+                                }
+                        case .failure:
+                            Image(systemName: "photo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.gray)
+                                .frame(width: 300, height: 300)
+                        @unknown default:
+                            EmptyView()
+                                .frame(width: 300, height: 300)
+                        }
                     }
+                    .cornerRadius(10)
+                } else {
+                    // Fallback if neither local nor remote image is available
+                    Image(systemName: "photo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .foregroundColor(.gray)
+                        .frame(width: 300, height: 300)
                 }
-                .cornerRadius(10)
             } else if message.messageType == .voice, let audioUrl = message.voiceUrl {
+                // Voice message handling (unchanged)
                 voiceMessageView(audioUrl: audioUrl, duration: message.voiceDuration ?? 0)
             }
+            // The rest of your code remains the same
             else if message.messageType == .video, let videoUrl = message.videoUrl, let url = URL(string: videoUrl) {
-                        VideoPlayer(player: AVPlayer(url: url))
-                            .frame(width: 300, height: 300)
-                            .cornerRadius(10)
-                            .padding(10)
-                    }
+                VideoPlayer(player: AVPlayer(url: url))
+                    .frame(width: 300, height: 300)
+                    .cornerRadius(10)
+                    .padding(10)
+            }
             else if message.messageType == .text {
                 Group {
                     if(message.content == "You deleted this message"){
-                        Text(isFromCurrentUser ? "You deleted this message":"This message was deleted")
-                            .italic()
+                        if isFromCurrentUser{
+                            Text(message.content)
+                                .italic()
+                        }
                     } else {
                         Text(message.content)
                     }
@@ -260,6 +305,7 @@ struct FireChatBubble: View {
 
     // Audio playback functions
     private func playAudio(from urlString: String) {
+        stopAudio()
         guard let url = URL(string: urlString) else { return }
 
         let audioSession = AVAudioSession.sharedInstance()

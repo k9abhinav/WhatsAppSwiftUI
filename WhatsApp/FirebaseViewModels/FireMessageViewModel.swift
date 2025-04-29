@@ -2,7 +2,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage
 
-
 @Observable
 final class FireMessageViewModel {
     private let storageRef = Storage.storage().reference()
@@ -19,13 +18,18 @@ final class FireMessageViewModel {
         self.usersCollection = db.collection("users")
         print("FireMessageViewModel initialized ----------- ✅ ----------") // Debug: Initialization
     }
+    deinit {
+        messageListener?.remove()
+        print("FireMessageViewModel deinitialized ----------- ❌ ---------- ")
+    }
 
     func setupMessageListener(for chatId: String) {
         messageListener?.remove() // Remove previous listener if any
         messageListener = messagesCollection
             .whereField("chatId", isEqualTo: chatId)
             .order(by: "timestamp", descending: false)
-            .addSnapshotListener { snapshot, error in
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
                 guard let documents = snapshot?.documents, error == nil else {
 
                     print("Error fetching messages: \(error?.localizedDescription ?? "Unknown error -----------  ❌ ---------- ")")
@@ -43,23 +47,6 @@ final class FireMessageViewModel {
         messageListener?.remove()
 
         print("Messages listener removed -----------  ❌ ---------- ")
-    }
-    
-    func fetchAllMessages(for chatId: String) async {
-        do {
-            let snapshot = try await messagesCollection
-                .whereField("chatId", isEqualTo: chatId)
-                .order(by: "timestamp", descending: false)
-                .getDocuments()
-
-            self.messages = snapshot.documents.compactMap { try? $0.data(as: FireMessageModel.self) }
-
-            print("Fetched all messages for chatId: \(chatId), message count: \(self.messages.count)")
-
-        } catch {
-
-            print("Failed to fetch messages -----------  ❌ ---------- : \(error.localizedDescription)") // Debug: Error fetching messages
-        }
     }
     
     func sendTextMessage(
@@ -261,6 +248,33 @@ final class FireMessageViewModel {
         replyToMessageId: String? = nil,
         isForwarded: Bool = false
     ) async {
+        // Create a temporary message ID
+        let newMessageId = UUID().uuidString
+
+        // Create and add local message immediately
+        let localMessage = FireMessageModel(
+            id: newMessageId,
+            chatId: chatId,
+            messageType: .image,
+            content: content,
+            senderUserId: currentUserId,
+            receiverUserId: otherUserId,
+            timestamp: Date(),
+            replyToMessageId: replyToMessageId,
+            isReply: false,
+            isForwarded: isForwarded,
+            imageUrl: nil, // No URL yet
+            isSeen: nil,
+            localImage: imageData, // Store the local image
+            isUploading: true // Mark as uploading
+        )
+
+        // Add to local messages array immediately
+        DispatchQueue.main.async {
+            self.messages.append(localMessage)
+        }
+
+        // Continue with upload process
         do {
             let chatSnapshot = try await chatsCollection.document(chatId).getDocument()
             guard let chatData = chatSnapshot.data(),
@@ -271,15 +285,10 @@ final class FireMessageViewModel {
                 return
             }
 
-            let newMessageId = UUID().uuidString
-
-            // 🔹 Upload the image first and get the URL
             let mediaUploadResult = await uploadMediaToFirebaseStorage(mediaData: imageData, chatID: chatId, messageId: newMessageId)
-
             switch mediaUploadResult {
             case .success(let mediaUrl):
-                print("---------✅------------- Media upload successful.")
-
+                // Update Firestore with the complete message
                 let newMessage = FireMessageModel(
                     id: newMessageId,
                     chatId: chatId,
@@ -308,12 +317,29 @@ final class FireMessageViewModel {
                 try await batch.commit()
                 print("✅ Image message sent successfully. ----------- ✅ ---------- ")
 
+                // No need to update local message as the listener will handle it
+
             case .failure(let error):
                 print("❌ Error uploading media: \(error)")
+
+                // Update local message to show error
+                DispatchQueue.main.async {
+                    if let index = self.messages.firstIndex(where: { $0.id == newMessageId }) {
+                        self.messages[index].isUploading = false
+                        // Optionally add an error indicator
+                    }
+                }
             }
-        }
-        catch {
+        } catch {
             print("❌ Error sending message: \(error)")
+
+            // Update local message to show error
+            DispatchQueue.main.async {
+                if let index = self.messages.firstIndex(where: { $0.id == newMessageId }) {
+                    self.messages[index].isUploading = false
+                    // Optionally add an error indicator
+                }
+            }
         }
     }
     func sendVideoMessage(
@@ -424,20 +450,31 @@ final class FireMessageViewModel {
     func uploadMediaToFirebaseStorage(mediaData: UIImage, chatID: String, messageId: String) async -> Result<String, Error> {
         let storageRef = Storage.storage().reference()
 
+        // Define target file size (below 10MB)
+        let targetFileSize: Int = 10 * 1024 * 1024
         var imageData: Data?
         let fileExtension: String
         let contentType: String
 
-        if let pngData = mediaData.pngData() {
-            imageData = pngData
-            fileExtension = "png"
-            contentType = "image/png"
-        } else if let jpegData = mediaData.jpegData(compressionQuality: 0.8) {
+        // Dynamically adjust compression
+        func compressedData(from image: UIImage) -> Data? {
+            var compressionQuality: CGFloat = 1.0
+            var compressedData: Data?
+
+            repeat {
+                compressedData = image.jpegData(compressionQuality: compressionQuality)
+                compressionQuality -= 0.1
+            } while (compressedData?.count ?? 0) > targetFileSize && compressionQuality > 0.1
+
+            return compressedData
+        }
+
+        if let jpegData = compressedData(from: mediaData) {
             imageData = jpegData
             fileExtension = "jpg"
             contentType = "image/jpeg"
         } else {
-            return .failure(NSError(domain: "Image Conversion Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data."]))
+            return .failure(NSError(domain: "Image Compression Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image within limits."]))
         }
 
         guard let finalData = imageData else {

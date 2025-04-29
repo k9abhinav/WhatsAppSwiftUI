@@ -10,7 +10,9 @@ struct StoryUserRowView: View {
     let user: FireUserModel
     let updates: [FireUpdateModel]
     @State private var showingStoryViewer = false
-    
+    @State private var userImageData:Data?
+    @State private var userImageURLString:String?
+
     var body: some View {
         Button(action: {
             showingStoryViewer = true
@@ -21,22 +23,27 @@ struct StoryUserRowView: View {
                     Circle()
                         .stroke(Color.green, lineWidth: 2)
                         .frame(width: 58, height: 58)
-                    
-                    userProfilePictureView
-                        .frame(width: 50, height: 50)
+
+                    Group{
+                        if let imageData = userImageData, !imageData.isEmpty {
+                            ProfileImageView(size: 50, imageData: $userImageData)
+                        } else {
+                            ProfileAsyncImageView(size: 50, imageUrlString: userImageURLString)
+                        }
+                    }.frame(width: 50, height: 50)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(user.name)
                         .font(.headline)
-                    
+
                     Text(latestUpdateTime)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 // Latest update type icon
                 if let latestUpdate = updates.sorted(by: { $0.createdAt > $1.createdAt }).first {
                     Image(systemName: iconForMediaType(latestUpdate.mediaType))
@@ -49,8 +56,27 @@ struct StoryUserRowView: View {
         .fullScreenCover(isPresented: $showingStoryViewer) {
             UpdatesStoryViewerView(updates: updates, startIndex: 0)
         }
+        .task{
+            guard let url = URL(string: user.imageUrl ?? "") else {
+                print("No URL provided for image")
+                return }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                DispatchQueue.main.async {
+                    userImageData = data
+                }
+
+            } catch {
+                print("Failed to load image data: \(error.localizedDescription)")
+            }
+        }
+        .onAppear{
+            if let imageUrl = user.imageUrl, let url = URL(string: imageUrl) {
+                userImageURLString = url.absoluteString
+            }
+        }
     }
-    
+
     private var latestUpdateTime: String {
         if let latestUpdate = updates.sorted(by: { $0.createdAt > $1.createdAt }).first {
             let formatter = RelativeDateTimeFormatter()
@@ -59,33 +85,7 @@ struct StoryUserRowView: View {
         }
         return ""
     }
-    
-    private var userProfilePictureView: some View {
-        Group {
-            if let imageUrlString = user.imageUrl, let imageUrl = URL(string: imageUrlString) {
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        DefaultProfileImage(size: 50)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
-                    case .failure:
-                        DefaultProfileImage(size: 50)
-                    @unknown default:
-                        EmptyView()
-                            .frame(width: 50, height: 50)
-                    }
-                }
-            } else {
-                DefaultProfileImage(size: 50)
-            }
-        }
-    }
-    
+
     private func iconForMediaType(_ mediaType: FireUpdateModel.MediaType) -> String {
         switch mediaType {
         case .text:
